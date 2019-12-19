@@ -13,7 +13,7 @@ class UserType(Enum):
 
 class User(AbstractUser):
     organization = models.CharField(max_length=20, blank=True)
-    type = models.CharField(max_length=20, choices=[(tag, tag.value) for tag in UserType], default=UserType.DEMO_USER)
+    type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in UserType], default=UserType.DEMO_USER)
 
 
 class BaseProject(models.Model):
@@ -56,11 +56,11 @@ class Flight(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
     date = models.DateField(auto_now_add=True)
-    camera = models.CharField(max_length=10, choices=[(tag, tag.value) for tag in Camera])
+    camera = models.CharField(max_length=10, choices=[(tag.name, tag.value) for tag in Camera])
     multispectral_processing = models.BooleanField(default=False)
     annotations = models.TextField()
     deleted = models.BooleanField(default=False)
-    state = models.CharField(max_length=10, choices=[(tag, tag.value) for tag in FlightState])
+    state = models.CharField(max_length=10, choices=[(tag.name, tag.value) for tag in FlightState])
 
 
 class ArtifactType(Enum):
@@ -69,5 +69,5 @@ class ArtifactType(Enum):
 
 
 class Artifact(models.Model):
-    type = models.CharField(max_length=20, choices=[(tag, tag.value) for tag in ArtifactType])
+    type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in ArtifactType])
     flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name="artifacts")
