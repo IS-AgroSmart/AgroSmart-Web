@@ -142,8 +142,33 @@
         <div class="container-fluid">
 
           <!-- Page Heading -->
-          <h1 class="h3 mb-4 text-gray-800">Crear Vuelo</h1>
-
+           <!-- Basic Card Example -->
+              <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                  <h6 class="m-0 font-weight-bold text-primary">Crear Vuelo</h6>
+                </div>
+                <div class="card-body">
+                  Nombre: <input type="text" class="form-control form-control-user" id="name" aria-describedby="emailHelp" placeholder="Vuelo Arroz"><br>
+				  Fecha y Hora: <input  class="form-control form-control-user" type="datetime-local"><br>
+				  Tipo de Camara: <select>
+                                               <option value="RGB">RGB</option>
+                                               <option value="RedEdge">RedEdge</option>
+                                             </select> <input type="checkbox" name="espectral" value="Bike">Multiespectral<br>
+				  <textarea name="Text1" cols="40" rows="5" placeholder="Comentarios"></textarea><br>
+				  <a href="#" class="btn btn-success btn-icon-split">
+                    <span class="icon text-white-50">
+                      <i class="fas fa-check"></i>
+                    </span>
+                    <span class="text">Crear</span>
+                  </a>
+				  <a href="#" class="btn btn-danger btn-icon-split">
+                    <span class="icon text-white-50">
+                      <i class="fas fa-trash"></i>
+                    </span>
+                    <span class="text">Cancelar</span>
+                  </a>
+                </div>
+              </div>
         </div>
         <!-- /.container-fluid -->
 
