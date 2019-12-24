@@ -11342,7 +11342,7 @@ a:focus {
     content: '\f105';
   }
   .sidebar .sidebar-brand .sidebar-brand-icon i {
-    font-size: 2rem;
+    font-size: 3rem;
   }
   .sidebar .sidebar-brand .sidebar-brand-text {
     display: inline;
@@ -12104,3 +12104,6 @@ footer.sticky-footer .copyright {
 body.sidebar-toggled footer.sticky-footer {
   width: 100%;
 }
+
+
+
