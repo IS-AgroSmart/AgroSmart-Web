@@ -1,27 +1,9 @@
 <template>
-    <div>
-
-    </div>
+    <p>Página principal</p>
 </template>
 
 <script>
 export default {
-    name: "Home",
-
-    props: {
-
-    },
-
-    data() {
-        return {
-            
-        }
-    },
-
-    methods: {
-        readNews(newsNum){
-            this.$emit('read', newsNum);
-        }
-    }
+    
 }
 </script>
