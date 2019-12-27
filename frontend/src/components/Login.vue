@@ -37,7 +37,6 @@ export default {
                 })
                 .then(response => {
                     this.storage.token = response.data.token;
-                    this.$forceUpdate;
                     this.$router.go(-1);
                 })
                 .catch(error => this.error = error);
