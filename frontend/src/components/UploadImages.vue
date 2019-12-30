@@ -5,10 +5,12 @@
         <b-alert variant="danger" show v-if="processingError">No pudo iniciarse el procesamiento</b-alert>
     
         <b-form @submit="onSubmit">
-            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar"></b-form-file>
+            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" accept="image/jpeg, image/png"></b-form-file>
             <div class="mt-3">{{ anyFiles ? "" : '¡No hay archivos seleccionados!' }}</div>
     
-            <b-button type="submit" variant="primary">Subir</b-button>
+            <b-button :disabled="!anyFiles || uploading" type="submit" variant="primary">
+                Subir <span v-if="uploading">({{uploadProgress}} %)</span>
+            </b-button>
         </b-form>
     </div>
 </template>
@@ -23,6 +25,8 @@ export default {
             uploadOK: false,
             uploadError: false,
             processingError: false,
+            uploading: false,
+            uploadProgress: 0,
         }
     },
     computed: {
@@ -46,16 +50,20 @@ export default {
             }
 
             var that = this;
+            this.uploading = true;
             axios.post('/api/upload-files/' + this.$route.params.uuid, data, {
                     headers: { "Authorization": "Token " + this.storage.token },
+                    onUploadProgress: function(progressEvent) {
+                        var percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        that.uploadProgress = percentCompleted;
+                    }
                 })
                 .then(function() {
-                    window.console.log("Redirecting to flight details")
-                    this.$router.replace({ "name": "flightDetails", params: { "uuid": this.$route.params.uuid } })
+                    that.$router.replace({ "name": "flightDetails", params: { "uuid": that.$route.params.uuid } })
                 })
                 .catch(function() {
-                    window.console.log("Error!")
                     that.uploadError = true;
+                    that.uploading = false;
                 });
         },
     }

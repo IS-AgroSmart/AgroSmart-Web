@@ -30,5 +30,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'api/', include(router.urls)),
     path('api/api-auth', obtain_auth_token, name='api_auth'),
-    path('api/upload-files/<uuid:uuid>', upload_images)
+    path('api/upload-files/<uuid:uuid>', upload_images),
+    path('api/webhook-processing-complete', webhook_processing_complete),
+    path('api/downloads/<uuid:uuid>/<artifact>', download_artifact),
+    path('api/preview/<uuid:uuid>', preview_flight_url),
+    path('api/preview4/<uuid:uuid>', preview_flight_url)
 ]

@@ -10,6 +10,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class FlightSerializer(serializers.ModelSerializer):
+    nodeodm_info = serializers.SerializerMethodField()
+
+    def get_nodeodm_info(self, flight):
+        return flight.get_nodeodm_info()
+
     class Meta:
         model = Flight
-        fields = ["uuid", "name", "user", "date", "camera", "annotations", "state"]
+        fields = ["uuid", "name", "user", "date", "camera", "annotations", "state", "nodeodm_info", "processing_time"]

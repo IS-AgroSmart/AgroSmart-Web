@@ -1,5 +1,6 @@
 <template>
     <div>
+        <b-alert v-if="error" variant="danger" show>{{error}}</b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Nombre:" label-for="input-1">
                 <b-form-input id="input-1" v-model="form.name" type="text" required placeholder="Nombre del vuelo"></b-form-input>
@@ -49,10 +50,9 @@ export default {
                     headers: { "Authorization": "Token " + this.storage.token },
                 })
                 .then(response => {
-                    window.console.log(response);
                     this.$router.push({ "name": "uploadImages", params: { "uuid": response.data.uuid } })
                 })
-                .catch(error => this.error = error)
+                .catch(error => this.error = "ERROR: " + error.response.data.name[0])
         }
     }
 }

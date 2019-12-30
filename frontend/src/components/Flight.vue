@@ -6,6 +6,7 @@
         <div class="row">
             <flight-partial v-for="flight in flights" :flight="flight" :key="flight.uuid"></flight-partial>
         </div>
+        <b-alert v-if="noFlights" variant="info" show>Aún no ha creado ningún vuelo</b-alert>
         <add-new-flight-partial/>
     </div>
 </template>
@@ -19,12 +20,23 @@ export default {
     data() {
         return {
             flights: [],
-            error: ""
+            error: "",
+            polling: null
         }
     },
     computed: {
-        allFlights() {
-            return this.flights.concat({ addNew: true })
+        noFlights() {
+            return this.flights.length == 0;
+        }
+    },
+    methods: {
+        updateFlights() {
+            axios
+                .get('api/flights', {
+                    headers: { "Authorization": "Token " + this.storage.token }
+                })
+                .then(response => (this.flights = response.data))
+                .catch(error => this.error = error);
         }
     },
     created() {
@@ -32,12 +44,13 @@ export default {
             this.$router.push("/login");
         }
 
-        axios
-            .get('api/flights', {
-                headers: { "Authorization": "Token " + this.storage.token }
-            })
-            .then(response => (this.flights = response.data))
-            .catch(error => this.error = error);
+        this.updateFlights();
+        this.polling = setInterval(() => {
+            this.updateFlights();
+        }, 2000);
+    },
+    beforeDestroy() {
+        clearInterval(this.polling)
     },
     components: { FlightPartial, AddNewFlightPartial }
 }
