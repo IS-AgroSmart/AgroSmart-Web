@@ -1,0 +1,37 @@
+<template>
+    <div class="col-md-4">
+        <b-card :title="project.name" class="my-3">
+    
+            <b-card-text>
+                <p class="col-2 text-truncate">{{ project.description }}</p>
+            </b-card-text>
+    
+            <b-button :to="{name: 'projectDetails', params: {uuid: project.uuid}}" variant="primary">Ver detalles</b-button>
+        </b-card>
+    </div>
+</template>
+
+<script>
+export default {
+    created() {
+        if (!this.$isLoggedIn()) {
+            this.$router.push("/login");
+        }
+    },
+    data() {
+        return {
+
+        };
+    },
+    computed: {
+        progress() {
+            if (this.flight.state != "PROCESSING") {
+                return ""
+            }
+            return " (" + this.flight.nodeodm_info.progress.toFixed(0) + "%) ";
+        },
+        
+    },
+    props: ["project"]
+}
+</script>
