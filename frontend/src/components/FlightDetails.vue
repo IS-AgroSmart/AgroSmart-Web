@@ -13,8 +13,9 @@
                     <b-progress-bar :value="info.progress" animated></b-progress-bar>
                 </b-progress>
     
-                <b-link v-if="isDone" :href="orthomosaicGeoserverPreviewUrl">
-                    <b-img :src="orthomosaicThumbUrl" fluid rounded="circle" /></b-link>
+                <!--<b-link v-if="isDone" :href="orthomosaicGeoserverPreviewUrl">-->
+                <b-link v-if="isDone" :to="{name: 'flightOrthoPreview', params: {uuid: flight.uuid}}">
+                    <b-img v-if="isDone" :src="orthomosaicThumbUrl" fluid rounded="circle" /></b-link>
                 <h4 class="my-3 text-center">Notas</h4>
                 <span style="white-space: pre;">{{flight.annotations}}</span>
             </div>
@@ -48,6 +49,7 @@
 
 <script>
 import axios from 'axios'
+import forceLogin from './mixins/force_login'
 
 const baseUrl = window.location.protocol + "//" + window.location.hostname + "/api/downloads/";
 export default {
@@ -105,7 +107,6 @@ export default {
                 return ""
             }
             const duration = this.$moment.duration(millis)
-            window.console.log(millis)
             if (duration.days() == 0) { // No days
                 return this.$moment.utc(duration.as('milliseconds')).format('HH [h] mm [min] ss [s]')
             } else { // At least one day, add day format
@@ -146,7 +147,7 @@ export default {
             return this.info.status.code == 20
         },
         isDone() {
-            return this.info.status == 40 || this.flight.state == "COMPLETE";
+            return this.info.status.code == 40 || this.flight.state == "COMPLETE";
         },
         flightDate() {
             return this.flight.date ? this.$moment(this.flight.date, "YYYY-MM-DD").format("dddd D [de] MMMM, YYYY") : ""
@@ -167,21 +168,18 @@ export default {
                 this.$router.replace({ "name": "uploadImages", params: { "uuid": this.flight.uuid } })
             }
 
-            axios
-                .get("/api/preview/" + this.flight.uuid, {
+            if (this.flight.state == "COMPLETE") {
+                axios.get("/api/preview/" + this.flight.uuid, {
                     headers: { "Authorization": "Token " + this.storage.token }
                 })
                 .then(response => {
                     window.console.log(response)
                     this.orthomosaicGeoserverPreviewUrl = response.data.url;
                 });
+            }   
         }
     },
     created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-
         axios
             .get("api/flights/" + this.$route.params.uuid, {
                 headers: { "Authorization": "Token " + this.storage.token }
@@ -200,5 +198,6 @@ export default {
     beforeDestroy() {
         clearInterval(this.polling)
     },
+    mixins: [forceLogin]
 }
 </script>

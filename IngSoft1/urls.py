@@ -34,5 +34,4 @@ urlpatterns = [
     path('api/webhook-processing-complete', webhook_processing_complete),
     path('api/downloads/<uuid:uuid>/<artifact>', download_artifact),
     path('api/preview/<uuid:uuid>', preview_flight_url),
-    path('api/preview4/<uuid:uuid>', preview_flight_url)
 ]

@@ -15,7 +15,7 @@ import Home from './components/Home'
 import Flight from './components/Flight'
 import FlightDetails from './components/FlightDetails'
 import FlightResults from './components/FlightResults'
-import FlightOrthoPreview from './components/FlightOrthoPreview'
+import FlightOrthoPreview2 from './components/FlightOrthoPreview2'
 import UploadImages from './components/UploadImages'
 import NewFlight from './components/NewFlight'
 import Project from './components/Project'
@@ -43,7 +43,7 @@ const router = new VueRouter({
     { path: '/flights/:uuid', name: "flightDetails", component: FlightDetails },
     { path: '/flights/:uuid/upload', name: "uploadImages", component: UploadImages },
     { path: '/flights/:uuid/results', name: "flightResults", component: FlightResults },
-    { path: '/flights/:uuid/preview', name: "flightOrthoPreview", component: FlightOrthoPreview },
+    { path: '/flights/:uuid/preview', name: "flightOrthoPreview", component: FlightOrthoPreview2 },
     { path: '/flights/new', name: "newFlight", component: NewFlight },
     { path: '/projects', component: Project },
     { path: '/login', component: Login },

@@ -16,12 +16,9 @@
 </template>
 
 <script>
+import forceLogin from './mixins/force_login'
+
 export default {
-    created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-    },
     data() {
         return {
 
@@ -44,6 +41,7 @@ export default {
             return this.flight.state == "ERROR"
         },
     },
-    props: ["flight"]
+    props: ["flight"],
+    mixins: [forceLogin]
 }
 </script>

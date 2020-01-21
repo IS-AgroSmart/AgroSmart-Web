@@ -25,6 +25,7 @@
 
 <script>
 import axios from 'axios'
+import forceLogin from './mixins/force_login'
 //import VueLayers from 'vuelayers'
 
 // create custom projection for image 
@@ -53,10 +54,6 @@ export default {
         },
     },
     created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-
         axios
             .get("api/flights/" + this.$route.params.uuid, {
                 headers: { "Authorization": "Token " + this.storage.token }
@@ -66,6 +63,7 @@ export default {
                 this.flightLoaded = true;
             })
             .catch(error => this.error = error);
-    }
+    },
+    mixins: [forceLogin]
 }
 </script>

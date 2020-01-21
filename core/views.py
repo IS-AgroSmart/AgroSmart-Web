@@ -7,7 +7,7 @@ from PIL import Image, ImageOps
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
@@ -33,13 +33,20 @@ class FlightViewSet(viewsets.ModelViewSet):
     serializer_class = FlightSerializer
 
     def get_queryset(self):
-        return Flight.objects.filter(user=self.request.user)
+        return Flight.objects.filter(user=self.request.user) | self.request.user.demo_flights.all()
 
     def perform_create(self, serializer):
         if not self.request.user.is_staff or "target_user" not in self.request.POST:
             serializer.save(user=self.request.user)
         else:
             serializer.save(user=User.objects.get(pk=self.request.POST["target_user"]))
+
+    def perform_destroy(self, instance):
+        if self.request.user.is_staff or instance.user == self.request.user:
+            instance.delete()
+        else:  # User is not admin nor file owner
+            if instance.is_demo:
+                self.request.user.demo_flights.remove(instance)  # Remove demo flight ONLY FOR USER!
 
 
 @csrf_exempt
@@ -91,7 +98,7 @@ def _try_create_thumbnail(flight):
 
             im.save(outfile, "PNG")
         except IOError as e:
-            pass
+            print(e)
 
 
 @csrf_exempt
@@ -105,7 +112,7 @@ def webhook_processing_complete(request):
         flight.state = FlightState.COMPLETE.name
     elif data["status"]["code"] == 50:
         flight.state = FlightState.CANCELED.name
-    flight.processing_time = data["processingTime"]
+    flight.processing_time = data.get("processingTime", 0)
     flight.save()
 
     _try_create_thumbnail(flight)
@@ -120,14 +127,20 @@ def download_artifact(request, uuid, artifact):
     # if not user.is_staff and not flight.user == user:
     #     return HttpResponse(status=403)
 
-    if artifact == "orthomosaic":
-        filepath = "../flights/" + str(uuid) + "/odm_orthophoto/odm_orthophoto.png"
+    print(artifact)
+    filepath = "/flights/" + str(uuid)
+    if artifact == "orthomosaic.png":
+        filepath += "/odm_orthophoto/odm_orthophoto.png"
+    elif artifact == "orthomosaic.tiff":
+        filepath += "/odm_orthophoto/odm_orthophoto.tif"
     elif artifact == "3dmodel":
-        filepath = "../flights/" + str(uuid) + "/odm_meshing/odm_mesh.ply"
+        filepath += "/odm_meshing/odm_mesh.ply"
+    elif artifact == "3dmodel_texture":
+        filepath += "/odm_texturing/odm_textured_model.obj"
     elif artifact == "thumbnail":
         filepath = "./tmp/" + str(uuid) + "_thumbnail.png"
     else:
-        filepath = ""
+        raise Http404
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
 
@@ -148,4 +161,4 @@ def preview_flight_url(request, uuid):
            ','.join(map(str, (bbox["minx"], bbox["miny"], bbox["maxx"], bbox["maxy"]))) + \
            "&width=1000&height=1000&srs=EPSG:32617&format=application/openlayers"
 
-    return JsonResponse({"url": base})
+    return JsonResponse({"url": base, "bbox": bbox, "srs": ans["coverage"]["srs"]})

@@ -21,7 +21,8 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from 'axios'
+import forceLogin from './mixins/force_login'
 
 const baseUrl = window.location.protocol + "//" + window.location.hostname + "/api/downloads/";
 export default {
@@ -29,9 +30,9 @@ export default {
         return {
             flight: {},
             error: "",
-            artifacts: ["Ortomosaico", "Modelo 3D"],
+            artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D"],
             downloads: [false, false],
-            urls: ["/orthomosaic", "/3dmodel"]
+            urls: ["/orthomosaic.png", "/orthomosaic.tiff", "/3dmodel"]
         };
     },
     methods: {
@@ -40,16 +41,13 @@ export default {
         }
     },
     created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-
         axios
             .get("api/flights/" + this.$route.params.uuid, {
                 headers: { "Authorization": "Token " + this.storage.token }
             })
             .then(response => (this.flight = response.data))
             .catch(error => this.error = error);
-    }
+    },
+    mixins: [forceLogin]
 }
 </script>

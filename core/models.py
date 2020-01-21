@@ -1,3 +1,4 @@
+import json
 import os
 
 from django.db import models
@@ -23,6 +24,7 @@ class User(AbstractUser):
     type = models.CharField(max_length=20,
                             choices=[(tag.name, tag.value) for tag in UserType],
                             default=UserType.DEMO_USER)
+    demo_flights = models.ManyToManyField('Flight', related_name='demo_users')
 
 
 class BaseProject(models.Model):
@@ -64,6 +66,7 @@ class FlightState(Enum):
 class Flight(models.Model):
     uuid = models.UUIDField(primary_key=True, default=u.uuid4, editable=False)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
+    is_demo = models.BooleanField(default=False)
     name = models.CharField(max_length=50, unique=True)
     date = models.DateField()
     camera = models.CharField(max_length=10, choices=[(tag.name, tag.value) for tag in Camera])
@@ -80,8 +83,8 @@ class Flight(models.Model):
             return {}
 
         data = requests.get("http://localhost:3000/task/" + str(self.uuid) + "/info").json()
-        return {"processingTime": data["processingTime"], "progress": data["progress"],
-                "numImages": data["imagesCount"]}
+        return {"processingTime": data.get("processingTime", 0), "progress": data.get("progress", 0),
+                "numImages": data.get("imagesCount", 0)}
 
     def get_thumbnail_path(self):
         return "./tmp/" + str(self.uuid) + "_thumbnail.png"
@@ -94,20 +97,30 @@ class Flight(models.Model):
                       headers={"Content-Type": "application/json"},
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
                       auth=HTTPBasicAuth('admin', 'geoserver'))
-        r = requests.put(
+        requests.put(
             "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/external.geotiff",
             headers={"Content-Type": "text/plain"},
             data="file:///media/input/" + str(self.uuid) + "/odm_orthophoto/odm_orthophoto.tif",
             auth=HTTPBasicAuth('admin', 'geoserver'))
-        print(r.status_code, r.text)
 
 
 def create_nodeodm_task(sender, instance, created, **kwargs):
     if created:
         requests.post('http://localhost:3000/task/new/init',
                       headers={"set-uuid": str(instance.uuid)},
-                      data={"name": instance.name,
-                            "webhook": "http://localhost:8000/api/webhook-processing-complete"})
+                      files={
+                          "name": (None, instance.name),
+                          "webhook": (None, "http://localhost:8000/api/webhook-processing-complete"),
+                          "options": (
+                              None, json.dumps([{"name": "dsm", "value": True}, {"name": "time", "value": True}])
+                          )
+                      })
+
+
+def link_demo_flight_to_active_users(sender, instance, created, **kwargs):
+    if created and instance.is_demo:
+        for user in User.objects.filter(is_active=True).all():
+            user.demo_flights.add(instance)
 
 
 def delete_nodeodm_task(sender, instance, **kwargs):
@@ -129,6 +142,7 @@ def delete_thumbnail(sender, instance, **kwargs):
 
 
 post_save.connect(create_nodeodm_task, sender=Flight)
+post_save.connect(link_demo_flight_to_active_users, sender=Flight)
 post_delete.connect(delete_nodeodm_task, sender=Flight)
 post_delete.connect(delete_thumbnail, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=Flight)

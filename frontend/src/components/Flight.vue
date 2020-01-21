@@ -15,6 +15,7 @@
 import axios from 'axios';
 import FlightPartial from './FlightPartial'
 import AddNewFlightPartial from './AddNewFlightPartial'
+import forceLogin from './mixins/force_login'
 
 export default {
     data() {
@@ -40,10 +41,6 @@ export default {
         }
     },
     created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-
         this.updateFlights();
         this.polling = setInterval(() => {
             this.updateFlights();
@@ -52,6 +49,7 @@ export default {
     beforeDestroy() {
         clearInterval(this.polling)
     },
-    components: { FlightPartial, AddNewFlightPartial }
+    components: { FlightPartial, AddNewFlightPartial },
+    mixins: [forceLogin]
 }
 </script>
