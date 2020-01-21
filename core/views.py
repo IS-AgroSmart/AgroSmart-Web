@@ -49,6 +49,28 @@ class FlightViewSet(viewsets.ModelViewSet):
                 self.request.user.demo_flights.remove(instance)  # Remove demo flight ONLY FOR USER!
 
 
+class ArtifactViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ArtifactSerializer
+
+    def get_queryset(self):
+        return Artifact.objects.all()
+
+
+class UserProjectViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserProjectSerializer
+
+    def get_queryset(self):
+        return UserProject.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        if not self.request.user.is_staff or "target_user" not in self.request.POST:
+            serializer.save(user=self.request.user)
+        else:
+            serializer.save(user=User.objects.get(pk=self.request.POST["target_user"]))
+
+
 @csrf_exempt
 def upload_images(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
