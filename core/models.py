@@ -23,7 +23,7 @@ class User(AbstractUser):
     organization = models.CharField(max_length=20, blank=True)
     type = models.CharField(max_length=20,
                             choices=[(tag.name, tag.value) for tag in UserType],
-                            default=UserType.DEMO_USER)
+                            default=UserType.DEMO_USER.name)
     demo_flights = models.ManyToManyField('Flight', related_name='demo_users')
 
 
@@ -67,7 +67,7 @@ class Flight(models.Model):
     uuid = models.UUIDField(primary_key=True, default=u.uuid4, editable=False)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
     is_demo = models.BooleanField(default=False)
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50)
     date = models.DateField()
     camera = models.CharField(max_length=10, choices=[(tag.name, tag.value) for tag in Camera])
     multispectral_processing = models.BooleanField(default=False)
@@ -75,8 +75,13 @@ class Flight(models.Model):
     deleted = models.BooleanField(default=False)
     state = models.CharField(max_length=10,
                              choices=[(tag.name, tag.value) for tag in FlightState],
-                             default=FlightState.WAITING)
+                             default=FlightState.WAITING.name)
     processing_time = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'user'], name='unique name on same user')
+        ]
 
     def get_nodeodm_info(self):
         if self.state != FlightState.PROCESSING.name:
