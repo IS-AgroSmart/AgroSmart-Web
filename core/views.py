@@ -19,6 +19,9 @@ from core.models import *
 from core.permissions import OnlySelfUnlessAdminPermission
 from core.serializers import *
 
+import requests
+from requests.auth import HTTPBasicAuth
+
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, OnlySelfUnlessAdminPermission,)
