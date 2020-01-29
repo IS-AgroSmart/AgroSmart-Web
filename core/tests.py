@@ -30,3 +30,7 @@ class FlightModelTest(TestCase):
             self.user2.flight_set.create(name="title", date=datetime.now())
         except IntegrityError:
             self.fail("Attempt to create flight raised IntegrityError unexpectedly!")
+
+    def test_flight_initializes_as_waiting_for_images(self):
+        f = self.user.flight_set.create(name="flight", date=datetime.now())
+        self.assertEqual(f.state, FlightState.WAITING.name)
