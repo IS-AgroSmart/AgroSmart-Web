@@ -1,7 +1,7 @@
 # MVP
 
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=IS-AgroSmart_MVP)](https://sonarcloud.io/dashboard?id=IS-AgroSmart_MVP)
-
+![CI](https://github.com/IS-AgroSmart/AgroSmart-Web/workflows/CI/badge.svg)
 
 # Development environment setup
 
