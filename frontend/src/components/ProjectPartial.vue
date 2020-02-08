@@ -3,7 +3,7 @@
         <b-card :title="project.name" class="my-3">
     
             <b-card-text>
-                <p class="col-2 text-truncate">{{ project.description }}</p>
+                <p class="white-space: pre;">{{ project.description }}</p>
             </b-card-text>
     
             <b-button :to="{name: 'projectDetails', params: {uuid: project.uuid}}" variant="primary">Ver detalles</b-button>

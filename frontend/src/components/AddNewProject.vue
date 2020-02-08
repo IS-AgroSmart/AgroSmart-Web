@@ -2,7 +2,7 @@
     <div class="my-4">
         <b-card title="" class="mb-2">
             <div class="text-center">
-            <b-button :to="{name: 'newProject'}" variant="primary">Crear projecto</b-button></div>
+            <b-button :to="{name: 'newProject'}" variant="primary">Crear proyecto</b-button></div>
         </b-card>
     </div>
 </template>
