@@ -20,7 +20,7 @@
           required
         ></b-form-textarea>
       </b-form-group>
-      <b-form-group id="input-group-3" label="Proyectos:" label-for="input-3">
+      <b-form-group id="input-group-3" label="Vuelos:" label-for="input-3">
         <b-form-select
           id="input-3"
           v-model="form.flights"
@@ -29,6 +29,7 @@
           text-field="name"
           multiple
         ></b-form-select>
+        <small class="form-text text-muted">Seleccione uno o varios vuelos con Ctrl.</small>
       </b-form-group>
       <b-form-group id="input-group-4" label="Artefactos:" label-for="input-4">
         <b-form-select
@@ -54,7 +55,8 @@ export default {
   data() {
     return {
       form: {
-        user: "",
+        name: "",
+        description: "",
         flights: {},
         artifacts: {}
       },
@@ -69,8 +71,17 @@ export default {
       if (!this.$isLoggedIn()) {
         this.$router.push("/login");
       }
+      var fd = new FormData();
+      fd.set("name", this.form.name);
+      fd.set("description", this.form.description);
+      // HACK: DRF needs this for ManyToMany, otherwise it gets nervous
+      for(var flight of this.form.flights){
+        fd.append("flights", flight);
+      }
+      // TODO: artifacts
+
       axios
-        .post("api/projects/", this.form, {
+        .post("api/projects/", fd, {
           headers: { Authorization: "Token " + this.storage.token }
         })
         .then(response => {

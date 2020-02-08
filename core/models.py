@@ -40,13 +40,13 @@ class BaseProject(models.Model):
 class DemoProject(BaseProject):
     users = models.ManyToManyField(User, related_name="demo_projects")
     flights = models.ManyToManyField("Flight", related_name="demo_projects")
-    artifacts = models.ManyToManyField("Artifact", related_name="demo_projects")
+    artifacts = models.ManyToManyField("Artifact", related_name="demo_projects", blank=True)
 
 
 class UserProject(BaseProject):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_projects")
     flights = models.ManyToManyField("Flight", related_name="user_projects")
-    artifacts = models.ManyToManyField("Artifact", related_name="user_projects")
+    artifacts = models.ManyToManyField("Artifact", related_name="user_projects", blank=True)
 
 
 class Camera(Enum):

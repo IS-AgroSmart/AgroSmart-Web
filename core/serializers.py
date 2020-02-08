@@ -29,12 +29,13 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 class UserProjectSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all())
+        queryset=User.objects.all(),
+        default=serializers.CurrentUserDefault())
     flights = serializers.PrimaryKeyRelatedField(many=True,
-        queryset=Flight.objects.all())
+                                                 queryset=Flight.objects.all())
     artifacts = serializers.PrimaryKeyRelatedField(many=True,
-        queryset=Artifact.objects.all())
+                                                   queryset=Artifact.objects.all())
 
     class Meta:
         model = UserProject
-        fields = ['pk','user', 'flights', 'artifacts']
+        fields = ['pk', 'user', 'flights', 'artifacts', "name", "description"]
