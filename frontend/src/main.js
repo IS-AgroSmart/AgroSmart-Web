@@ -5,6 +5,7 @@ import ReactiveStorage from "vue-reactive-localstorage";
 import VueClipboard from 'vue-clipboard2';
 import VueChatScroll from 'vue-chat-scroll';
 import VueLayers from 'vuelayers'
+import Multiselect from 'vue-multiselect'
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
@@ -36,7 +37,8 @@ Vue.use(require('vue-moment'), {
 });
 Vue.use(VueClipboard);
 Vue.use(VueChatScroll);
-Vue.use(VueLayers)
+Vue.use(VueLayers);
+Vue.component('multiselect', Multiselect);
 
 const router = new VueRouter({
   routes: [

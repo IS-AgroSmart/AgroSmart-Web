@@ -54,7 +54,7 @@ export default {
                 .then((response) => {
                     window.console.log(response)
                     this.projection = response.data.srs;
-                    this.$refs.mapView.$view.projection = response.data.srs;
+                    //this.$refs.mapView.$view.projection = response.data.srs;
                     let newExtents = [response.data.bbox.minx, response.data.bbox.miny, response.data.bbox.maxx, response.data.bbox.maxy]
                     window.setTimeout(() => this.$refs.mapView.$view.fit(newExtents, {
                         size: this.$refs.map.$map.getSize(),

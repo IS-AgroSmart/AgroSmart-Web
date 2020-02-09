@@ -1,0 +1,16 @@
+build/
+dist/
+node_modules/
+sencha-error-*.log
+bootstrap.json
+sass/example/bootstrap.js
+sass/example/bootstrap.json
+sass/example/bootstrap.jsonp
+docs/
+coverage/
+resources/external/
+src_instrumented/
+package-lock.json
+
+__download/
+__install/

@@ -170,13 +170,13 @@ export default {
 
             if (this.flight.state == "COMPLETE") {
                 axios.get("/api/preview/" + this.flight.uuid, {
-                    headers: { "Authorization": "Token " + this.storage.token }
-                })
-                .then(response => {
-                    window.console.log(response)
-                    this.orthomosaicGeoserverPreviewUrl = response.data.url;
-                });
-            }   
+                        headers: { "Authorization": "Token " + this.storage.token }
+                    })
+                    .then(response => {
+                        window.console.log(response)
+                        this.orthomosaicGeoserverPreviewUrl = response.data.url;
+                    });
+            }
         }
     },
     created() {

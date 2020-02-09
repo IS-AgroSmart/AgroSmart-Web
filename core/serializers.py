@@ -36,6 +36,15 @@ class UserProjectSerializer(serializers.ModelSerializer):
     artifacts = serializers.PrimaryKeyRelatedField(many=True,
                                                    queryset=Artifact.objects.all())
 
+    def create(self, validated_data):
+        flights = validated_data.pop("flights")
+        artifacts = validated_data.pop("artifacts")
+        proj = UserProject.objects.create(**validated_data)
+        proj.flights.set(flights)
+        proj.artifacts.set(artifacts)
+        proj._create_geoserver_proj_workspace()
+        return proj
+
     class Meta:
         model = UserProject
-        fields = ['pk', 'user', 'flights', 'artifacts', "name", "description"]
+        fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description"]
