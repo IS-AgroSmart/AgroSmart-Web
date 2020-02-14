@@ -6,7 +6,7 @@
                 <p class="white-space: pre;">{{ project.description }}</p>
             </b-card-text>
     
-            <b-button :to="{name: 'projectDetails', params: {uuid: project.uuid}}" variant="primary">Ver detalles</b-button>
+            <b-button :href="mapper_url" variant="primary">Ver mapa</b-button>
         </b-card>
     </div>
 </template>
@@ -30,6 +30,9 @@ export default {
             }
             return " (" + this.flight.nodeodm_info.progress.toFixed(0) + "%) ";
         },
+        mapper_url() {
+            return "/mapper/" + this.project.uuid;
+        }
         
     },
     props: ["project"]

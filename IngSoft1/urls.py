@@ -36,4 +36,9 @@ urlpatterns = [
     path('api/webhook-processing-complete', webhook_processing_complete),
     path('api/downloads/<uuid:uuid>/<artifact>', download_artifact),
     path('api/preview/<uuid:uuid>', preview_flight_url),
+    path('mapper/<uuid:uuid>', mapper),
+    path('mapper/<uuid:uuid>/bbox', mapper_bbox),
+    path('mapper/panel.js', mapper_paneljs),
+    path('mapper/ol/<path:path>', mapper_ol),
+    path('mapper/geoext/src/<path:path>', mapper_src),
 ]

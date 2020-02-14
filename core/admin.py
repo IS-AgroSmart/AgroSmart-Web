@@ -11,8 +11,12 @@ class FlightAdmin(admin.ModelAdmin):
     list_display = ("name", "uuid", "user", "date", "camera", "multispectral_processing", "state")
 
 
+class UserProjectAdmin(admin.ModelAdmin):
+    list_display = ("name", "uuid",)
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(Flight, FlightAdmin)
 admin.site.register(Artifact)
-admin.site.register(UserProject)
+admin.site.register(UserProject, UserProjectAdmin)
 admin.site.register(DemoProject)

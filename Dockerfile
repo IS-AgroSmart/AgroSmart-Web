@@ -24,5 +24,5 @@ ENV PATH /env/bin:$PATH
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", ":8000", "--workers", "3", "--worker-class", "eventlet", "IngSoft1.wsgi:application"]
-#CMD ["python", "manage.py", "runserver"]
+#CMD ["gunicorn", "--bind", ":8000", "--workers", "3", "--worker-class", "eventlet", "IngSoft1.wsgi:application"]
+CMD ["python", "manage.py", "runserver"]

@@ -1,0 +1,44 @@
+{% load greaterthan %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ project_name }}</title>
+    <link rel="stylesheet" type="text/css" href="ol/ol.css">
+    <link rel="stylesheet" type="text/css"
+          href="https://cdnjs.cloudflare.com/ajax/libs/extjs/6.2.0/classic/theme-crisp/resources/theme-crisp-all.css"/>
+</head>
+
+<body>
+
+<div id='description'>
+    <p>
+        {{ project_notes }}
+    </p>
+    <ul>
+        {% for flight in flights %}
+            <li>{{ flight.name }} ({{ flight.date }})</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<script src="ol/ol.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.15/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/extjs/6.2.0/ext-all.js"></script>
+<script>
+    Ext.Loader.setConfig({
+        enabled: true,
+        paths: {
+            'GeoExt': 'geoext/src'
+        }
+    });
+
+    const project_name = "{{ project_name }}";
+    const uuid = "{{ uuid }}";
+    const project_path = "{{ project_geoserver_path }}";
+    const moreThanOneFlight = {{ flights|length|gt:1|yesno:"true,false" }};
+</script>
+<script src="panel.js"></script>
+</body>
+</html>

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import JsonResponse, HttpResponse, Http404
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
 from rest_framework import viewsets
@@ -109,7 +109,7 @@ def upload_images(request, uuid):
 def _try_create_thumbnail(flight):
     size = (512, 512)
 
-    infile = "../flights/" + str(flight.uuid) + "/odm_orthophoto/odm_orthophoto.png"
+    infile = flight.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
     outfile = "./tmp/" + str(flight.uuid) + "_thumbnail.png"
     print(outfile)
     if infile != outfile:
@@ -187,3 +187,40 @@ def preview_flight_url(request, uuid):
            "&width=1000&height=1000&srs=EPSG:32617&format=application/openlayers"
 
     return JsonResponse({"url": base, "bbox": bbox, "srs": ans["coverage"]["srs"]})
+
+
+def mapper(request, uuid):
+    project = UserProject.objects.get(uuid=uuid)
+
+    return render(request, "geoext/examples/tree/panel.html",
+                  {"project_name": project.name,
+                   "project_notes": project.description,
+                   "project_geoserver_path": project._get_geoserver_ws_name(),
+                   "uuid": project.uuid,
+                   "flights": project.flights.all().order_by("date")})
+
+
+def mapper_bbox(request, uuid):
+    project = UserProject.objects.get(uuid=uuid)
+
+    ans = requests.get(
+        "http://localhost/geoserver/geoserver/rest/workspaces/" + project._get_geoserver_ws_name() +
+        "/coveragestores/mainortho/coverages/mainortho.json",
+        auth=HTTPBasicAuth('admin', 'geoserver')).json()
+
+    return JsonResponse({"bbox": ans["coverage"]["nativeBoundingBox"], "srs": ans["coverage"]["srs"]})
+
+
+def mapper_paneljs(request):
+    filepath = "./templates/geoext/examples/tree/panel.js"
+    return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
+
+def mapper_ol(request, path):
+    filepath = "./templates/geoext/examples/lib/ol/" + path
+    return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
+
+def mapper_src(request, path):
+    filepath = "./templates/geoext/src/" + path
+    return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
