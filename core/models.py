@@ -64,32 +64,34 @@ class UserProject(BaseProject):
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
                       auth=HTTPBasicAuth('admin', 'geoserver'))
 
-        os.makedirs(self.get_disk_path() + "/mainortho")
+        self._create_mainortho_datastore()
+        # For multispectral: repeat for any bands apart from RGB
 
+    def _create_mainortho_datastore(self):
+        os.makedirs(self.get_disk_path() + "/mainortho")
+        # For multispectral: slice GeoTIFF bands 0:2, save on /projects/uuid/mainortho
+        # Otherwise: just copy GeoTIFFs to /projects/uuid/mainortho
         for flight in self.flights.all():
+            # Copy all TIFFs to project folder, rename them
             shutil.copy(flight.get_disk_path() + "/odm_orthophoto/odm_orthophoto.tif",
                         self.get_disk_path() + "/mainortho")
             os.rename(self.get_disk_path() + "/mainortho/odm_orthophoto.tif",
                       self.get_disk_path() + "/mainortho/" + "ortho_{:04d}{:02d}{:02d}.tif".format(flight.date.year,
                                                                                                    flight.date.month,
                                                                                                    flight.date.day))
-            # Copy all TIFFs to project folder, rename them
-
         with open(self.get_disk_path() + "/mainortho/indexer.properties", "w") as f:
             f.write("""TimeAttribute=ingestion
 Schema=*the_geom:Polygon,location:String,ingestion:java.util.Date
 PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
-
         with open(self.get_disk_path() + "/mainortho/timeregex.properties", "w") as f:
             f.write("regex=[0-9]{8},format=yyyyMMdd")
-
+        # For multispectral: slice multispectral bands, save on /projects/uuid/nir and /projects/uuid/rededge
         # Create datastore and ImageMosaic
         requests.put(
             "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/mainortho/external.imagemosaic",
             headers={"Content-Type": "text/plain"},
             data="file:///media/USB/" + str(self.uuid) + "/mainortho/",
             auth=HTTPBasicAuth('admin', 'geoserver'))
-
         # Enable time dimension
         requests.put(
             "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/mainortho/coverages/mainortho.json",
