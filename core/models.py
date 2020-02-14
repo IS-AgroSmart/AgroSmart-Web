@@ -87,34 +87,26 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
             f.write("regex=[0-9]{8},format=yyyyMMdd")
         # For multispectral: slice multispectral bands, save on /projects/uuid/nir and /projects/uuid/rededge
         # Create datastore and ImageMosaic
+        GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
         requests.put(
-            "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/mainortho/external.imagemosaic",
+            GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/mainortho/external.imagemosaic",
             headers={"Content-Type": "text/plain"},
             data="file:///media/USB/" + str(self.uuid) + "/mainortho/",
             auth=HTTPBasicAuth('admin', 'geoserver'))
         # Enable time dimension
         requests.put(
-            "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/mainortho/coverages/mainortho.json",
+            GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/mainortho/coverages/mainortho.json",
             headers={"Content-Type": "application/json"},
             data='{"coverage": { "enabled": true, "metadata": { "entry": [ { "@key": "time", ' +
                  '"dimensionInfo": { "enabled": true, "presentation": "LIST", "units": "ISO8601", ' +
                  '"defaultValue": "" }} ] } }} ',
             auth=HTTPBasicAuth('admin', 'geoserver'))
 
-    # def save(self, *args, **kwargs):
-    #     # WARNING: Apparently self._state.adding must be checked BEFORE super(...), see
-    #     # https://stackoverflow.com/questions/907695/in-a-django-model-custom-save-method-how-should-you-identify-a-new-object/35647389#comment63511207_35647389
-    #     created = self._state.adding
-    #
-    #     super(UserProject, self).save(*args, **kwargs)
-    #     if created:
-    #         self._create_geoserver_proj_workspace()
-
     def delete(self, using=None, keep_parents=False):
         querystring = {"recurse": "true"}
-        r = requests.delete("http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name(),
-                            params=querystring,
-                            auth=HTTPBasicAuth('admin', 'geoserver'))
+        requests.delete("http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name(),
+                        params=querystring,
+                        auth=HTTPBasicAuth('admin', 'geoserver'))
         shutil.rmtree(self.get_disk_path())
 
         super(UserProject, self).delete(using, keep_parents)
