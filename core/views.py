@@ -107,23 +107,36 @@ def upload_images(request, uuid):
 
 
 def _try_create_thumbnail(flight):
+    if flight.camera == Camera.REDEDGE.name:
+        original_dir = os.getcwd()
+        os.chdir(flight.get_disk_path() + "/odm_orthophoto/")
+        os.system(
+            'gdal_translate -b 3 -b 2 -b 1 -mask "6" odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"')
+        os.chdir(original_dir)
+
+        source_image = "rgb.tif"
+        mask = source_image + ".msk"
+    else:
+        source_image = "odm_orthophoto.tif"
+        mask = None
+    print("THUMBNAIL: ", source_image, mask)
+
     size = (512, 512)
 
-    infile = flight.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
-    outfile = "./tmp/" + str(flight.uuid) + "_thumbnail.png"
-    print(outfile)
-    if infile != outfile:
-        try:
-            background = Image.new('RGBA', size, (0, 0, 0, 0))
-            im = Image.open(infile)
-            im.thumbnail(size)
-            im = ImageOps.fit(im, size)
-            (w, h) = im.size
-            background.paste(im, ((size[0] - w) // 2, (size[1] - h) // 2))
+    infile = flight.get_disk_path() + "/odm_orthophoto/" + source_image
+    try:
+        im = Image.open(infile)
+        im.thumbnail(size)
+        im = ImageOps.fit(im, size)
+        if mask:
+            msk = Image.open(flight.get_disk_path() + "/odm_orthophoto/" + mask).split()[0]
+            msk.thumbnail(size)
+            msk = ImageOps.fit(msk, size)
+            im.putalpha(msk)
 
-            im.save(outfile, "PNG")
-        except IOError as e:
-            print(e)
+        im.save(flight.get_thumbnail_path(), "PNG")
+    except IOError as e:
+        print(e)
 
 
 @csrf_exempt
@@ -141,7 +154,7 @@ def webhook_processing_complete(request):
     flight.save()
 
     _try_create_thumbnail(flight)
-    flight.create_geoserver_workspace_and_upload_geotiff()
+    flight.create_geoserver_workspace_and_upload_geotiff() # _try_create_thumbnail must have been invoked here!
 
     return HttpResponse()
 

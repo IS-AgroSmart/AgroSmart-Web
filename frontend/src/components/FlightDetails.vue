@@ -72,6 +72,10 @@ export default {
                     headers: { "Authorization": "Token " + this.storage.token }
                 })
                 .then(response => (this.console = ("error" in response.data) ? response.data.error : response.data))
+                .then(() => {
+                    var textarea = document.getElementById('textarea');
+                    textarea.scrollTop = textarea.scrollHeight;
+                })
                 .catch(error => this.error = error);
 
             axios.get("nodeodm/task/" + this.$route.params.uuid + "/info", {

@@ -5,8 +5,9 @@
         <b-alert variant="danger" show v-if="processingError">No pudo iniciarse el procesamiento</b-alert>
     
         <b-form @submit="onSubmit">
-            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" accept="image/jpeg, image/png"></b-form-file>
-            <div class="mt-3">{{ anyFiles ? "" : '¡No hay archivos seleccionados!' }}</div>
+            <p class="small text-muted">{{ validFormats }}</p>
+            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" :accept="validFormats"></b-form-file>
+            <div class="my-3 text-danger">{{ anyFiles ? "" : '¡No hay archivos seleccionados!' }}</div>
     
             <b-button :disabled="!anyFiles || uploading" type="submit" variant="primary">
                 Subir <span v-if="uploading">({{uploadProgress}} %)</span>
@@ -17,10 +18,13 @@
 
 <script>
 import axios from "axios"
+import forceLogin from './mixins/force_login'
 
 export default {
     data() {
         return {
+            flight: {},
+            flightLoaded: false,
             files: [],
             uploadOK: false,
             uploadError: false,
@@ -32,7 +36,8 @@ export default {
     computed: {
         anyFiles() {
             return this.files.length > 0;
-        }
+        },
+        validFormats() { return this.flight.camera == "RGB" ? "image/jpeg, image/png" : "image/tiff"; },
     },
     methods: {
         formatNames(files) {
@@ -66,6 +71,19 @@ export default {
                     that.uploading = false;
                 });
         },
-    }
+    },
+    created() {
+        axios
+            .get("api/flights/" + this.$route.params.uuid, {
+                headers: { "Authorization": "Token " + this.storage.token }
+            })
+            .then(response => {
+                this.flight = response.data;
+                this.flightLoaded = true;
+            })
+            .catch(error => this.error = error);
+
+    },
+    mixins: [forceLogin]
 }
 </script>

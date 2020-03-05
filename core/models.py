@@ -168,11 +168,21 @@ class Flight(models.Model):
                       headers={"Content-Type": "application/json"},
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
                       auth=HTTPBasicAuth('admin', 'geoserver'))
+        using_micasense = self.camera == Camera.REDEDGE.name
+        geotiff_name = "odm_orthophoto.tif" if not using_micasense else "rgb.tif"
         requests.put(
             "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/external.geotiff",
             headers={"Content-Type": "text/plain"},
-            data="file:///media/input/" + str(self.uuid) + "/odm_orthophoto/odm_orthophoto.tif",
+            data="file:///media/input/" + str(self.uuid) + "/odm_orthophoto/" + geotiff_name,
             auth=HTTPBasicAuth('admin', 'geoserver'))
+        if using_micasense:  # Change name to odm_orthomosaic and configure transparent color on black
+            requests.put(
+                "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/coverages/rgb.json",
+                headers={"Content-Type": "application/json"},
+                data='{"coverage": {"name": "odm_orthophoto", "title": "odm_orthophoto", "enabled": true, ' +
+                     '"parameters": { "entry": [ { "string": [ "InputTransparentColor", "#000000" ] }, ' +
+                     '{ "string": [ "SUGGESTED_TILE_SIZE", "512,512" ] } ] }}} ',
+                auth=HTTPBasicAuth('admin', 'geoserver'))
 
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
