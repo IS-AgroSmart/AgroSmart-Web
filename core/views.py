@@ -154,7 +154,7 @@ def webhook_processing_complete(request):
     flight.save()
 
     _try_create_thumbnail(flight)
-    flight.create_geoserver_workspace_and_upload_geotiff() # _try_create_thumbnail must have been invoked here!
+    flight.create_geoserver_workspace_and_upload_geotiff()  # _try_create_thumbnail must have been invoked here!
 
     return HttpResponse()
 
@@ -180,6 +180,39 @@ def download_artifact(request, uuid, artifact):
     else:
         raise Http404
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
+
+@csrf_exempt
+def upload_shapefile(request, uuid):
+    from django.core.files.uploadedfile import UploadedFile
+
+    project = UserProject.objects.get(pk=uuid)
+    file: UploadedFile = request.FILES["shapefile"]
+    shp_name = ".".join(file.name.split(".")[:-1])
+    project.artifacts.create(name=shp_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
+
+    # Write file to disk on project folder
+    os.makedirs(project.get_disk_path() + "/" + shp_name)
+    with open(project.get_disk_path() + "/" + shp_name + "/" + file.name, "wb") as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+
+    GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
+
+    requests.put(
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/"
+                                                                                            "external.shp",
+        headers={"Content-Type": "text/plain"},
+        data="file:///media/USB/" + str(project.uuid) + "/" + shp_name + "/" + file.name,
+        auth=HTTPBasicAuth('admin', 'geoserver'))
+
+    r = requests.put(
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/featuretypes/" + shp_name + ".json",
+        headers={"Content-Type": "application/json"},
+        data='{"featureType": {"enabled": true, "srs": "EPSG:4326" }}',
+        auth=HTTPBasicAuth('admin', 'geoserver'))
+    print(r.status_code, r.text)
+    return HttpResponse(status=201)
 
 
 def preview_flight_url(request, uuid):
@@ -209,6 +242,7 @@ def mapper(request, uuid):
                   {"project_name": project.name,
                    "project_notes": project.description,
                    "project_geoserver_path": project._get_geoserver_ws_name(),
+                   "upload_shapefiles_path": "/#/projects/" + str(project.uuid) + "/upload/shapefile",
                    "uuid": project.uuid,
                    "flights": project.flights.all().order_by("date")})
 
@@ -222,6 +256,16 @@ def mapper_bbox(request, uuid):
         auth=HTTPBasicAuth('admin', 'geoserver')).json()
 
     return JsonResponse({"bbox": ans["coverage"]["nativeBoundingBox"], "srs": ans["coverage"]["srs"]})
+
+
+def mapper_shapefiles(request, uuid):
+    project = UserProject.objects.get(uuid=uuid)
+
+    return JsonResponse({"shapefiles": [
+        {"name": art.title, "layer": project._get_geoserver_ws_name() + ":" + art.name}
+        for art in project.artifacts.all()
+        if art.type == ArtifactType.SHAPEFILE.name
+    ]})
 
 
 def mapper_paneljs(request):

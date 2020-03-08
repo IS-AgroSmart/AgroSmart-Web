@@ -12,9 +12,9 @@
                 <multiselect id="input-3" v-model="form.flights" :options="flights" label="name" track-by="uuid" value-field="uuid" placeholder="Escoja al menos un vuelo" multiple></multiselect>
                 <small class="form-text text-muted">Seleccione uno o varios vuelos con Ctrl.</small>
             </b-form-group>
-            <b-form-group id="input-group-4" label="Artefactos:" label-for="input-4">
+            <!--<b-form-group id="input-group-4" label="Artefactos:" label-for="input-4">
                 <b-form-select id="input-4" v-model="form.artifact" :options="artifacts" value-field="pk" text-field="type" multiple :select-size="2"></b-form-select>
-            </b-form-group>
+            </b-form-group>-->
     
             <b-button type="submit" variant="primary" :disabled="!anyFlights">Submit</b-button>
         </b-form>
@@ -55,7 +55,6 @@ export default {
             for (var flight of this.form.flights) {
                 fd.append("flights", flight.uuid);
             }
-            // TODO: artifacts
 
             axios
                 .post("api/projects/", fd, {
@@ -76,13 +75,6 @@ export default {
                 headers: { Authorization: "Token " + this.storage.token }
             })
             .then(response => (this.flights = response.data.filter(flight => flight.state == "COMPLETE")))
-            .catch(error => (this.error = error));
-
-        axios
-            .get("api/artifacts", {
-                headers: { Authorization: "Token " + this.storage.token }
-            })
-            .then(response => (this.artifacts = response.data))
             .catch(error => (this.error = error));
     }
 };

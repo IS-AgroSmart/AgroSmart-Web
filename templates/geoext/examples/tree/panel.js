@@ -3,42 +3,67 @@ Ext.require([
     'GeoExt.data.store.LayersTree'
 ]);
 
-var mapComponent;
-var mapPanel;
-var treePanel, timeSlider;
+let mapComponent;
+let mapPanel;
+let treePanel, timeSlider;
 
 // const TIMES = ["2019-10-15", "2019-10-23", "2019-10-28", "2019-10-30", "2019-11-06"];
-var TIMES = [];
+let TIMES = [];
+let shapefiles = [];
+
+let noCacheHeaders = new Headers(); // HACK: Force disable cache, otherwise timing problem when going back to screen
+noCacheHeaders.append('pragma', 'no-cache');
+noCacheHeaders.append('cache-control', 'no-cache');
 
 // fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/project_a4029f71-835b-474c-92a3-ccc05ce5de2e/mainortho/wms?service=WMS&version=1.3.0&request=GetCapabilities")
-fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/" + project_path + "/mainortho/wms?service=WMS&version=1.3.0&request=GetCapabilities")
+fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/" + project_path + "/mainortho/wms?service=WMS&version=1.3.0&request=GetCapabilities",
+    {headers: noCacheHeaders})
     .then(response => response.text())
     .then(str => (new window.DOMParser()).parseFromString(str, "text/xml"))
     .then(data => {
         let times;
         times = data.getElementsByTagName("WMS_Capabilities")[0].getElementsByTagName("Capability")[0].getElementsByTagName("Layer")[0].getElementsByTagName("Dimension")[0].innerHTML;
         TIMES = [];
-        for (var time of times.split(",")) {
+        for (let time of times.split(",")) {
             TIMES.push(time.substring(0, 10));
         }
     })
-    .then(() => initApp());
+    .then(function () {
+            fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/shapefiles",
+                {headers: noCacheHeaders})
+                .then(response => response.json())
+                .then(data => {
+                        for (let shp of data.shapefiles) {
+                            shapefiles.push(new ol.layer.Vector({
+                                name: shp.name,
+                                source: new ol.source.Vector({
+                                    format: new ol.format.GeoJSON(),
+                                    projection: 'EPSG:4326',
+                                    url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + shp.layer + "&maxFeatures=50&outputFormat=application/json&"
+                                    //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
+                                })
+                            }));
+                        }
+                    }
+                ).then(() => initApp());
+        }
+    );
 
 let olMap;
-proj4.defs('EPSG:32617', '+proj=utm +zone=17 +datum=WGS84 +units=m +no_defs')
-proj4.defs('EPSG:32717', '+proj=utm +zone=17 +south +datum=WGS84 +units=m +no_defs')
-proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs')
+proj4.defs('EPSG:32617', '+proj=utm +zone=17 +datum=WGS84 +units=m +no_defs');
+proj4.defs('EPSG:32717', '+proj=utm +zone=17 +south +datum=WGS84 +units=m +no_defs');
+proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
+
+let popup;
 
 function initApp() {
     Ext.application({
-        name: 'BasicTree',
         launch: function () {
-            var source1, source2, source3;
-            var layer1, layer2, layer3, layer4, layer5;
-            var group1, group2, group3;
-            var treeStore;
+            let rgbLayer;
+            let rasterGroup, basemapsGroup, shapefilesGroup;
+            let treeStore;
 
-            group3 = new ol.layer.Group({
+            basemapsGroup = new ol.layer.Group({
                 name: "Mapas base",
                 layers: [
                     new ol.layer.Tile({
@@ -59,40 +84,85 @@ function initApp() {
                 ],
             });
 
-            layer5 = new ol.layer.Image({
+            rgbLayer = new ol.layer.Image({
                 name: "Ortomosaico RGB",
                 source: new ol.source.ImageWMS({
                     url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
                     params: {"LAYERS": project_path + ":mainortho"}
                 })
             });
-            var vector = new ol.layer.Vector({
-                name: "Polígono",
-                source: new ol.source.Vector({
-                    format: new ol.format.GeoJSON(),
-                    projection: 'EPSG:4326',
-                    url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
-                    //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
-                })
+
+            rasterGroup = new ol.layer.Group({
+                name: "Imágenes",
+                layers: [rgbLayer],
             });
 
-            group2 = new ol.layer.Group({
-                name: "Imágenes",
-                layers: [layer5, vector],
+            shapefilesGroup = new ol.layer.Group({
+                name: "Shapefiles",
+                layers: shapefiles,
             });
 
             olMap = new ol.Map({
-                layers: [group3, group2],
+                layers: [basemapsGroup, rasterGroup, shapefilesGroup],
                 view: new ol.View({
                     center: [0, 0],
                     zoom: 2,
                     minZoom: 2,
                     maxZoom: 19
-                })
+                }),
+                target: 'map',
             });
 
-            var zoomslider = new ol.control.ZoomSlider();
+            let zoomslider = new ol.control.ZoomSlider();
+            let RotateNorthControl = function (opt_options) {
+
+                var options = opt_options || {};
+
+                var button = document.createElement('button');
+                button.innerHTML = 'N';
+
+                var this_ = this;
+                var handleClick = function () {
+                    this_.getMap().getView().setRotation(this_.getMap().getView().getRotation() == 0 ? 45 : 0);
+                };
+
+                button.addEventListener('click', handleClick, false);
+                button.addEventListener('touchstart', handleClick, false);
+
+                var element = document.createElement('div');
+                element.className = 'rotate-north ol-unselectable ol-control';
+                element.appendChild(button);
+
+                ol.control.Control.call(this, {
+                    element: element,
+                    target: options.target
+                });
+
+            };
+            ol.inherits(RotateNorthControl, ol.control.Control);
             olMap.addControl(zoomslider);
+            olMap.addControl(new RotateNorthControl());
+
+            popup = Ext.create('GeoExt.component.Popup', {
+                map: olMap,
+                width: 140
+            });
+            var selectClick = new ol.interaction.Select({
+                condition: ol.events.condition.click,
+                layers: (layer) => layer instanceof ol.layer.Vector,
+            });
+            selectClick.on('select', function (e) {
+                console.log(e.selected[0].getProperties());
+                let coordinate = e.coordinate;
+                // let hdms = ol.coordinate.toStringHDMS(ol.proj.transform(
+                //     coordinate, 'EPSG:3857', 'EPSG:4326'));
+
+                popup.setHtml('<p><strong>Pointer rested on</strong>' +
+                '<br /><code>' + "" + '</code></p>');
+                popup.position(coordinate);
+                popup.show();
+            });
+            olMap.addInteraction(selectClick);
 
 
             mapComponent = Ext.create('GeoExt.component.Map', {
@@ -111,16 +181,16 @@ function initApp() {
                 },
             });
 
-            var dateLabel = Ext.create('Ext.form.Label', {
+            let dateLabel = Ext.create('Ext.form.Label', {
                 text: "None"
             });
 
             timeSlider.on("change", function (slider, newValue, thumb, eOpts) {
-                updateTime(layer5, dateLabel, newValue);
+                updateTime(rgbLayer, dateLabel, newValue);
             });
-            updateTime(layer5, dateLabel, TIMES.length - 1);
+            updateTime(rgbLayer, dateLabel, TIMES.length - 1);
 
-            var timePanel;
+            let timePanel;
             if (moreThanOneFlight) {
                 timePanel = Ext.create('Ext.panel.Panel', {
                     bodyPadding: 5,  // Don't want content to crunch against the borders
@@ -153,7 +223,7 @@ function initApp() {
                 border: false
             });
 
-            var description = Ext.create('Ext.panel.Panel', {
+            let description = Ext.create('Ext.panel.Panel', {
                 contentEl: 'description',
                 title: 'Descripción',
                 height: 200,
@@ -177,17 +247,18 @@ function initApp() {
                     }
                 ]
             });
-        }
+        },
+        name: 'BasicTree'
     });
 
-    fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/bbox")
+
+    fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/bbox",
+        {headers: noCacheHeaders,})
         .then(response => response.json())
         .then(data => {
-            console.log(data);
-            const minCoords = ol.proj.transform([data.bbox.minx, data.bbox.miny], data.srs, "EPSG:3857")
-            console.log(minCoords);
-            const maxCoords = ol.proj.transform([data.bbox.maxx, data.bbox.maxy], data.srs, "EPSG:3857")
-            console.log(maxCoords);
+            const minCoords = ol.proj.transform([data.bbox.minx, data.bbox.miny], data.srs, "EPSG:3857");
+            const maxCoords = ol.proj.transform([data.bbox.maxx, data.bbox.maxy], data.srs, "EPSG:3857");
+            olMap.getView().fit(minCoords.concat(maxCoords), olMap.getSize());
             olMap.getView().fit(minCoords.concat(maxCoords), olMap.getSize());
         });
 }
