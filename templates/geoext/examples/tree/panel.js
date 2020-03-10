@@ -152,13 +152,19 @@ function initApp() {
                 layers: (layer) => layer instanceof ol.layer.Vector,
             });
             selectClick.on('select', function (e) {
-                console.log(e.selected[0].getProperties());
-                let coordinate = e.coordinate;
-                // let hdms = ol.coordinate.toStringHDMS(ol.proj.transform(
-                //     coordinate, 'EPSG:3857', 'EPSG:4326'));
+                if (e.selected.length == 0) {
+                    popup.hide();
+                    return;
+                }
+                let coordinate = e.mapBrowserEvent.coordinate;
 
-                popup.setHtml('<p><strong>Pointer rested on</strong>' +
-                '<br /><code>' + "" + '</code></p>');
+                let message = "<p>";
+                for (const [key, value] of Object.entries(e.selected[0].getProperties())) {
+                    if (["bbox", "geometry"].includes(key)) continue;
+                    message += key + " ⟶ " + value + "<br>";
+                }
+                message += "</p>";
+                popup.setHtml(message);
                 popup.position(coordinate);
                 popup.show();
             });

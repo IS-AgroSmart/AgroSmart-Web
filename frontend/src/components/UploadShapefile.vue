@@ -9,7 +9,8 @@
                 <b-input type="text" v-model="title" placeholder="Escriba el nombre de la capa" required/>
             </b-form-group>
             <b-form-group>
-                <b-form-file v-model="file" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre un archivo shapefile..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" accept=".shp"></b-form-file>
+                <p class="small text-muted">Escoja los tres archivos .shp, .shx y .dbf</p>
+                <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre un archivo shapefile..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" accept=".shp,.dbf,.shx"></b-form-file>
             </b-form-group>
             <div class="my-3 text-danger">{{ anyFiles ? "" : '¡No hay un shapefile seleccionado!' }}</div>
     
@@ -27,7 +28,7 @@ import forceLogin from './mixins/force_login'
 export default {
     data() {
         return {
-            file: null,
+            files: [],
             title: "",
             uploadOK: false,
             uploadError: false,
@@ -38,7 +39,7 @@ export default {
     },
     computed: {
         anyFiles() {
-            return this.file != null;
+            return this.files != null;
         },
     },
     methods: {
@@ -52,9 +53,10 @@ export default {
         onSubmit(evt) {
             evt.preventDefault()
             var data = new FormData();
-            data.append("shapefile", this.file);
+            for (var file of this.files) {
+                data.append("shapefile", file);
+            }
             data.append("title", this.title);
-
 
             var that = this;
             this.uploading = true;

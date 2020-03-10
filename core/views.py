@@ -187,15 +187,17 @@ def upload_shapefile(request, uuid):
     from django.core.files.uploadedfile import UploadedFile
 
     project = UserProject.objects.get(pk=uuid)
-    file: UploadedFile = request.FILES["shapefile"]
+    file: UploadedFile = request.FILES.getlist("shapefile")[0]
     shp_name = ".".join(file.name.split(".")[:-1])
     project.artifacts.create(name=shp_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
 
-    # Write file to disk on project folder
+    # Write file(s) to disk on project folder
     os.makedirs(project.get_disk_path() + "/" + shp_name)
-    with open(project.get_disk_path() + "/" + shp_name + "/" + file.name, "wb") as f:
-        for chunk in file.chunks():
-            f.write(chunk)
+    for file in request.FILES.getlist("shapefile"):
+        extension = file.name.split(".")[-1]
+        with open(project.get_disk_path() + "/" + shp_name + "/" + shp_name + "." + extension, "wb") as f:
+            for chunk in file.chunks():
+                f.write(chunk)
 
     GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
 
@@ -203,15 +205,14 @@ def upload_shapefile(request, uuid):
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/"
                                                                                             "external.shp",
         headers={"Content-Type": "text/plain"},
-        data="file:///media/USB/" + str(project.uuid) + "/" + shp_name + "/" + file.name,
+        data="file:///media/USB/" + str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
-    r = requests.put(
+    requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/featuretypes/" + shp_name + ".json",
         headers={"Content-Type": "application/json"},
         data='{"featureType": {"enabled": true, "srs": "EPSG:4326" }}',
         auth=HTTPBasicAuth('admin', 'geoserver'))
-    print(r.status_code, r.text)
     return HttpResponse(status=201)
 
 
