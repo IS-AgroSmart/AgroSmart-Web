@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import shutil
+from typing import Union
 
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
@@ -43,13 +44,11 @@ class BaseProject(models.Model):
 class DemoProject(BaseProject):
     users = models.ManyToManyField(User, related_name="demo_projects")
     flights = models.ManyToManyField("Flight", related_name="demo_projects")
-    artifacts = models.ManyToManyField("Artifact", related_name="demo_projects", blank=True)
 
 
 class UserProject(BaseProject):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_projects")
     flights = models.ManyToManyField("Flight", related_name="user_projects")
-    artifacts = models.ManyToManyField("Artifact", related_name="user_projects", blank=True)
     must_create_workspace = models.BooleanField(default=True)
 
     def _get_geoserver_ws_name(self):
@@ -73,9 +72,10 @@ class UserProject(BaseProject):
         # Otherwise: just copy GeoTIFFs to /projects/uuid/mainortho
         for flight in self.flights.all():
             # Copy all TIFFs to project folder, rename them
-            shutil.copy(flight.get_disk_path() + "/odm_orthophoto/odm_orthophoto.tif",
+            ortho_name = "rgb.tif" if flight.camera == Camera.REDEDGE.name else "odm_orthophoto.tif"
+            shutil.copy(flight.get_disk_path() + "/odm_orthophoto/" + ortho_name,
                         self.get_disk_path() + "/mainortho")
-            os.rename(self.get_disk_path() + "/mainortho/odm_orthophoto.tif",
+            os.rename(self.get_disk_path() + "/mainortho/" + ortho_name,
                       self.get_disk_path() + "/mainortho/" + "ortho_{:04d}{:02d}{:02d}.tif".format(flight.date.year,
                                                                                                    flight.date.month,
                                                                                                    flight.date.day))
@@ -99,17 +99,9 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
             headers={"Content-Type": "application/json"},
             data='{"coverage": { "enabled": true, "metadata": { "entry": [ { "@key": "time", ' +
                  '"dimensionInfo": { "enabled": true, "presentation": "LIST", "units": "ISO8601", ' +
-                 '"defaultValue": "" }} ] } }} ',
+                 '"defaultValue": "" }} ] }, "parameters": { "entry": [ { "string": [ ' +
+                 '"OutputTransparentColor", "#000000" ] } ] } }} ',
             auth=HTTPBasicAuth('admin', 'geoserver'))
-
-    def delete(self, using=None, keep_parents=False):
-        querystring = {"recurse": "true"}
-        requests.delete("http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name(),
-                        params=querystring,
-                        auth=HTTPBasicAuth('admin', 'geoserver'))
-        shutil.rmtree(self.get_disk_path())
-
-        super(UserProject, self).delete(using, keep_parents)
 
 
 class Camera(Enum):
@@ -210,11 +202,15 @@ def delete_nodeodm_task(sender, instance: Flight, **kwargs):
                   data="uuid=" + str(instance.uuid), )
 
 
-def delete_geoserver_workspace(sender, instance: Flight, **kwargs):
+def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **kwargs):
     querystring = {"recurse": "true"}
-    requests.delete("http://localhost/geoserver/geoserver/rest/workspaces/flight_" + str(instance.uuid),
+    requests.delete("http://localhost/geoserver/geoserver/rest/workspaces/" + instance._get_geoserver_ws_name(),
                     params=querystring,
                     auth=HTTPBasicAuth('admin', 'geoserver'))
+
+
+def delete_on_disk(sender, instance: UserProject, **kwargs):
+    shutil.rmtree(instance.get_disk_path())
 
 
 def delete_thumbnail(sender, instance: Flight, **kwargs):
@@ -227,13 +223,25 @@ post_save.connect(link_demo_flight_to_active_users, sender=Flight)
 post_delete.connect(delete_nodeodm_task, sender=Flight)
 post_delete.connect(delete_thumbnail, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=Flight)
+post_delete.connect(delete_geoserver_workspace, sender=UserProject)
+post_delete.connect(delete_on_disk, sender=UserProject)
 
 
 class ArtifactType(Enum):
     ORTHOMOSAIC = "Orthomosaic"
     SHAPEFILE = "Shapefile"
 
+    @classmethod
+    def filename(cls, t):
+        if t == ArtifactType.SHAPEFILE.name:
+            return "poly.shp"
+
 
 class Artifact(models.Model):
     type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in ArtifactType])
-    flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name="artifacts")
+    name = models.CharField(max_length=256)
+    title = models.CharField(max_length=256)
+    project = models.ForeignKey(UserProject, on_delete=models.CASCADE, related_name="artifacts", null=True)
+
+    def get_disk_path(self):
+        return self.project.get_disk_path() + "/" + self.name + "/" + ArtifactType.filename(self.type)

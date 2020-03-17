@@ -21,7 +21,6 @@ export default {
         return {
             projects: [],
             error: "",
-            polling: null
         }
     },
     computed: {
@@ -45,12 +44,6 @@ export default {
         }
 
         this.updateProjects();
-        this.polling = setInterval(() => {
-            this.updateProjects();
-        }, 2000);
-    },
-    beforeDestroy() {
-        clearInterval(this.polling)
     },
     components: { ProjectPartial, AddNewProject }
 }

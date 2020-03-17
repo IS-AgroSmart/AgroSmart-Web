@@ -11,7 +11,7 @@
 </head>
 
 <body>
-
+<div id="map" class="map"></div>
 <div id='description'>
     <p>
         {{ project_notes }}
@@ -21,7 +21,35 @@
             <li>{{ flight.name }} ({{ flight.date }})</li>
         {% endfor %}
     </ul>
+    <button onclick="window.location.href='{{ upload_shapefiles_path }}'">Agregar Shapefile</button>
 </div>
+
+<style>
+    .rotate-north {
+        top: 265px;
+        left: .5em;
+    }
+
+    .gx-popup {
+        position: absolute;
+        background-color: transparent;
+        padding: 0 0 15px 0;
+        bottom: 0;
+        left: -50px;
+        {#background-image: url(../../resources/images/anchor.png);#}
+        background-repeat: no-repeat;
+        background-position: 34px 100%;
+    }
+
+    .gx-popup p {
+        padding: 5px 5px 0 5px;
+        border-radius: 7px;
+        background-color: rgba(255, 255, 255, 0.85);
+        border: 3px solid white;
+        margin: 0;
+        text-align: center;
+    }
+</style>
 
 <script src="ol/ol.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.15/proj4.js"></script>

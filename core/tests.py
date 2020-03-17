@@ -19,6 +19,8 @@ class FlightModelTest(TestCase):
         post_delete.disconnect(delete_nodeodm_task, sender=Flight)
         post_delete.disconnect(delete_thumbnail, sender=Flight)
         post_delete.disconnect(delete_geoserver_workspace, sender=Flight)
+        post_delete.disconnect(delete_geoserver_workspace, sender=UserProject)
+        post_delete.disconnect(delete_on_disk, sender=UserProject)
 
     def test_cannot_repeat_flight_name_on_same_user(self):
         self.user.flight_set.create(name="title", date=datetime.now())
