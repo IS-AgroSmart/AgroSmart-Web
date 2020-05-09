@@ -187,8 +187,9 @@ def upload_shapefile(request, uuid):
     from django.core.files.uploadedfile import UploadedFile
 
     project = UserProject.objects.get(pk=uuid)
-    file: UploadedFile = request.FILES.getlist("shapefile")[0]
-    shp_name = ".".join(file.name.split(".")[:-1])
+    # shapefile is an array with files [X.shp, X.shx, X.dbf], in some order
+    file: UploadedFile = request.FILES.getlist("shapefile")[0]  # gets name X.Y (cannot guarantee Y)
+    shp_name = ".".join(file.name.split(".")[:-1])  # remove extension to get only X
     project.artifacts.create(name=shp_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
 
     # Write file(s) to disk on project folder
@@ -216,12 +217,49 @@ def upload_shapefile(request, uuid):
     return HttpResponse(status=201)
 
 
+@csrf_exempt
+def upload_geotiff(request, uuid):
+    from django.core.files.uploadedfile import UploadedFile
+
+    project = UserProject.objects.get(pk=uuid)
+    file: UploadedFile = request.FILES.get("geotiff")  # file is called X.tiff
+    geotiff_name = ".".join(file.name.split(".")[:-1])  # Remove extension, get X
+    project.artifacts.create(name=geotiff_name, type=ArtifactType.ORTHOMOSAIC.name, title=request.POST["title"])
+
+    # Write file to disk on project folder
+    os.makedirs(project.get_disk_path() + "/" + geotiff_name)
+    with open(project.get_disk_path() + "/" + geotiff_name + "/" + geotiff_name + ".tiff", "wb") as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+
+    GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
+
+    requests.put(
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" + geotiff_name + "/"
+                                                                                                    "external.geotiff",
+        headers={"Content-Type": "text/plain"},
+        data="file:///media/USB/" + str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
+        auth=HTTPBasicAuth('admin', 'geoserver'))
+
+    requests.put(
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" + geotiff_name + "/coverages/" + geotiff_name + ".json",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"coverage": {
+            "enabled": True,
+            "parameters": {"entry": [
+                {"string": ["InputTransparentColor", "#000000"]},
+                {"string": ["SUGGESTED_TILE_SIZE", "512,512"]}
+            ]}
+        }}),
+        auth=HTTPBasicAuth('admin', 'geoserver'))
+    return HttpResponse(status=201)
+
+
 def preview_flight_url(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
     # user = Token.objects.get(key=request.headers["Authorization"][6:]).user
     # if not user.is_staff and not flight.user == user:
     #     return HttpResponse(status=403)
-
     ans = requests.get(
         "http://localhost/geoserver/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
         "/coveragestores/ortho/coverages/odm_orthophoto.json",
@@ -244,6 +282,7 @@ def mapper(request, uuid):
                    "project_notes": project.description,
                    "project_geoserver_path": project._get_geoserver_ws_name(),
                    "upload_shapefiles_path": "/#/projects/" + str(project.uuid) + "/upload/shapefile",
+                   "upload_geotiff_path": "/#/projects/" + str(project.uuid) + "/upload/geotiff",
                    "uuid": project.uuid,
                    "flights": project.flights.all().order_by("date")})
 
@@ -259,13 +298,14 @@ def mapper_bbox(request, uuid):
     return JsonResponse({"bbox": ans["coverage"]["nativeBoundingBox"], "srs": ans["coverage"]["srs"]})
 
 
-def mapper_shapefiles(request, uuid):
+def mapper_artifacts(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
 
-    return JsonResponse({"shapefiles": [
-        {"name": art.title, "layer": project._get_geoserver_ws_name() + ":" + art.name}
+    return JsonResponse({"artifacts": [
+        {"name": art.title,
+         "layer": project._get_geoserver_ws_name() + ":" + art.name,
+         "type": art.type}
         for art in project.artifacts.all()
-        if art.type == ArtifactType.SHAPEFILE.name
     ]})
 
 
