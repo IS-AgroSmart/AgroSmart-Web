@@ -29,20 +29,30 @@ fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geose
         }
     })
     .then(function () {
-            fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/shapefiles",
+            fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/artifacts",
                 {headers: noCacheHeaders})
                 .then(response => response.json())
                 .then(data => {
-                        for (let shp of data.shapefiles) {
-                            shapefiles.push(new ol.layer.Vector({
-                                name: shp.name,
-                                source: new ol.source.Vector({
-                                    format: new ol.format.GeoJSON(),
-                                    projection: 'EPSG:4326',
-                                    url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + shp.layer + "&maxFeatures=50&outputFormat=application/json&"
-                                    //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
-                                })
-                            }));
+                        for (let art of data.artifacts) {
+                            if (art.type === "SHAPEFILE")
+                                shapefiles.push(new ol.layer.Vector({
+                                    name: art.name,
+                                    source: new ol.source.Vector({
+                                        format: new ol.format.GeoJSON(),
+                                        projection: 'EPSG:4326',
+                                        url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + art.layer + "&maxFeatures=50&outputFormat=application/json&"
+                                        //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
+                                    })
+                                }));
+                            else if (art.type === "ORTHOMOSAIC")
+                                shapefiles.push(new ol.layer.Image({
+                                    name: art.name,
+                                    source: new ol.source.ImageWMS({
+                                        url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
+                                        params: {"LAYERS": art.layer}
+                                    })
+                                }));
+                            else alert(`DEBUG: type ${art.type} not recognized`)
                         }
                     }
                 ).then(() => initApp());
@@ -98,7 +108,7 @@ function initApp() {
             });
 
             shapefilesGroup = new ol.layer.Group({
-                name: "Shapefiles",
+                name: "Shapefiles & GeoTIFFs",
                 layers: shapefiles,
             });
 
@@ -108,7 +118,7 @@ function initApp() {
                     center: [0, 0],
                     zoom: 2,
                     minZoom: 2,
-                    maxZoom: 19
+                    maxZoom: 23
                 }),
                 target: 'map',
             });

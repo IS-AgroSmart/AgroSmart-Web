@@ -19,6 +19,7 @@ import FlightResults from './components/FlightResults'
 import FlightOrthoPreview2 from './components/FlightOrthoPreview2'
 import UploadImages from './components/UploadImages'
 import UploadShapefile from './components/UploadShapefile'
+import UploadGeotiff from './components/UploadGeotiff'
 import NewFlight from './components/NewFlight'
 import Project from './components/Project'
 import ProjectDetails from './components/ProjectDetails'
@@ -53,6 +54,7 @@ const router = new VueRouter({
     { path: '/projects', name: "listProjects" ,component: Project },
     { path: '/projects/:uuid', name: "projectDetails", component: ProjectDetails },
     { path: '/projects/:uuid/upload/shapefile', name: "uploadShapefile", component: UploadShapefile },
+    { path: '/projects/:uuid/upload/geotiff', name: "uploadGeotiff", component: UploadGeotiff },
     { path: '/projects/new', name: 'newProject', component: NewProject },
     { path: '/login', component: Login },
     { path: '/logout', component: Logout },
