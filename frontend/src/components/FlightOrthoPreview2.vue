@@ -25,6 +25,7 @@ import { ModelObj } from 'vue-3d-model';
 
 proj4.defs('EPSG:32617', '+proj=utm +zone=17 +datum=WGS84 +units=m +no_defs')
 proj4.defs('EPSG:32717', '+proj=utm +zone=17 +south +datum=WGS84 +units=m +no_defs')
+proj4.defs('EPSG:32634', '+proj=utm +zone=34 +datum=WGS84 +units=m +no_defs')
 proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs')
 register(proj4)
 

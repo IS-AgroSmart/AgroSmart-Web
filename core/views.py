@@ -1,9 +1,9 @@
 # ViewSets define the view behavior.
 import json
 import os
+import re
 import sys
 
-from PIL import Image, ImageOps
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -11,11 +11,13 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
+from lark.exceptions import LarkError
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 
 from core.models import *
+from core.parser import FormulaParser
 from core.permissions import OnlySelfUnlessAdminPermission
 from core.serializers import *
 
@@ -106,39 +108,6 @@ def upload_images(request, uuid):
     return HttpResponse()
 
 
-def _try_create_thumbnail(flight):
-    if flight.camera == Camera.REDEDGE.name:
-        original_dir = os.getcwd()
-        os.chdir(flight.get_disk_path() + "/odm_orthophoto/")
-        os.system(
-            'gdal_translate -b 3 -b 2 -b 1 -mask "6" odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"')
-        os.chdir(original_dir)
-
-        source_image = "rgb.tif"
-        mask = source_image + ".msk"
-    else:
-        source_image = "odm_orthophoto.tif"
-        mask = None
-    print("THUMBNAIL: ", source_image, mask)
-
-    size = (512, 512)
-
-    infile = flight.get_disk_path() + "/odm_orthophoto/" + source_image
-    try:
-        im = Image.open(infile)
-        im.thumbnail(size)
-        im = ImageOps.fit(im, size)
-        if mask:
-            msk = Image.open(flight.get_disk_path() + "/odm_orthophoto/" + mask).split()[0]
-            msk.thumbnail(size)
-            msk = ImageOps.fit(msk, size)
-            im.putalpha(msk)
-
-        im.save(flight.get_thumbnail_path(), "PNG")
-    except IOError as e:
-        print(e)
-
-
 @csrf_exempt
 def webhook_processing_complete(request):
     data = json.loads(request.body.decode("utf-8"))
@@ -153,7 +122,7 @@ def webhook_processing_complete(request):
     flight.processing_time = data.get("processingTime", 0)
     flight.save()
 
-    _try_create_thumbnail(flight)
+    flight.try_create_thumbnail()
     flight.create_geoserver_workspace_and_upload_geotiff()  # _try_create_thumbnail must have been invoked here!
 
     return HttpResponse()
@@ -255,6 +224,25 @@ def upload_geotiff(request, uuid):
     return HttpResponse(status=201)
 
 
+def upload_shapefile(request, uuid):
+    project = UserProject.objects.get(pk=uuid)
+    # Add Artifact record to Project
+    # Save file on project.get_disk_path() + "/" + filename
+    # Rename file to poly.shp
+
+    # PUT request to {{url}}/workspaces/project_{{uuid}}/datastores/{{filename}}/featuretypes/poly.json
+    # Content-Type = text/plain
+    # Body = file:///media/USB/{{uuid}}/{{filename}}/poly.shp
+
+    # PUT to {{url}}/workspaces/project_{{uuid}}/datastores/{{filename}}/featuretypes/poly.json
+    # Content-Type = application/json
+    # Body = {"featureType": {
+    # 	"enabled": true,
+    # 	"srs": "EPSG:4326"
+    # }}
+    return HttpResponse
+
+
 def preview_flight_url(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
     # user = Token.objects.get(key=request.headers["Authorization"][6:]).user
@@ -274,6 +262,38 @@ def preview_flight_url(request, uuid):
     return JsonResponse({"url": base, "bbox": bbox, "srs": ans["coverage"]["srs"]})
 
 
+def check_formula(request):
+    parser = FormulaParser()
+    print(request.GET["formula"])
+    try:
+        parser.parse(request.GET["formula"])
+        return HttpResponse(status=200)
+    except LarkError:
+        return HttpResponse(status=400)
+
+
+@csrf_exempt
+def create_raster_index(request, uuid):
+    project = UserProject.objects.get(uuid=uuid)
+
+    if not project.all_flights_multispectral():
+        return HttpResponse("Not all flights are multispectral!", status=400)
+
+    data = json.loads(request.body.decode('utf-8'))
+    print(data)
+
+    index = data.get("index", "custom")
+    clean_index = re.sub(r"[^a-z0-9_-]", "", index)
+    formula = data.get("formula", "")
+
+    print("FORMULA->" + formula)
+    for flight in project.flights.all():
+        flight.create_index_raster(clean_index, formula)
+    project._create_index_datastore(clean_index)
+    project.artifacts.create(name=clean_index, type=ArtifactType.INDEX.name, title=clean_index.upper())
+    return HttpResponse(status=200)
+
+
 def mapper(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
 
@@ -283,6 +303,8 @@ def mapper(request, uuid):
                    "project_geoserver_path": project._get_geoserver_ws_name(),
                    "upload_shapefiles_path": "/#/projects/" + str(project.uuid) + "/upload/shapefile",
                    "upload_geotiff_path": "/#/projects/" + str(project.uuid) + "/upload/geotiff",
+                   "upload_new_index_path": "/#/projects/" + str(project.uuid) + "/upload/index",
+                   "is_multispectral": project.all_flights_multispectral(),
                    "uuid": project.uuid,
                    "flights": project.flights.all().order_by("date")})
 
@@ -306,6 +328,16 @@ def mapper_artifacts(request, uuid):
          "layer": project._get_geoserver_ws_name() + ":" + art.name,
          "type": art.type}
         for art in project.artifacts.all()
+    ]})
+
+
+def mapper_indices(request, uuid):
+    project = UserProject.objects.get(uuid=uuid)
+
+    return JsonResponse({"indices": [
+        {"name": art.name, "title": art.title, "layer": project._get_geoserver_ws_name() + ":" + art.name}
+        for art in project.artifacts.all()
+        if art.type == ArtifactType.INDEX.name
     ]})
 
 

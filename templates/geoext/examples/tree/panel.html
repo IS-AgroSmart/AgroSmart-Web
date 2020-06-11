@@ -23,6 +23,18 @@
     </ul>
     <button onclick="window.location.href='{{ upload_shapefiles_path }}'">Agregar Shapefile</button>
     <button onclick="window.location.href='{{ upload_geotiff_path }}'">Agregar GeoTIFF</button>
+    {% if is_multispectral %}
+        <div class="dropdown">
+
+            <button class="dropbtn">Agregar índice</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="addIndex('ndvi')">NDVI</a>
+                <a href="#" onclick="addIndex('ndre')">NDRE</a>
+                {#            <a href="#" onclick="addIndex('evi')">EVI</a>#}
+                <a href="#" onclick="window.location.href='{{ upload_new_index_path }}'">Otro...</a>
+            </div>
+        </div>
+    {% endif %}
 </div>
 
 <style>
@@ -49,6 +61,40 @@
         margin: 0;
         text-align: center;
     }
+
+    /* The container <div> - needed to position the dropdown content */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    /* Dropdown Content (Hidden by Default) */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        min-width: 100%;
+        z-index: 1000;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+        color: black;
+        background-color: white;
+        padding: 4px 10px;
+        text-decoration: none;
+        display: block;
+    }
+
+    /* Change color of dropdown links on hover */
+    .dropdown-content a:hover {
+        background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+        display: block;
+    }
 </style>
 
 <script src="ol/ol.js"></script>
@@ -66,6 +112,7 @@
     const uuid = "{{ uuid }}";
     const project_path = "{{ project_geoserver_path }}";
     const moreThanOneFlight = {{ flights|length|gt:1|yesno:"true,false" }};
+    const isMultispectral = {{ is_multispectral|yesno:"true,false" }};
 </script>
 <script src="panel.js"></script>
 </body>

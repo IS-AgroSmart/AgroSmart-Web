@@ -6,6 +6,7 @@ import VueClipboard from 'vue-clipboard2';
 import VueChatScroll from 'vue-chat-scroll';
 import VueLayers from 'vuelayers'
 import Multiselect from 'vue-multiselect'
+import vueDebounce from 'vue-debounce'
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
@@ -20,6 +21,7 @@ import FlightOrthoPreview2 from './components/FlightOrthoPreview2'
 import UploadImages from './components/UploadImages'
 import UploadShapefile from './components/UploadShapefile'
 import UploadGeotiff from './components/UploadGeotiff'
+import CreateIndex from './components/CreateIndex'
 import NewFlight from './components/NewFlight'
 import Project from './components/Project'
 import ProjectDetails from './components/ProjectDetails'
@@ -41,6 +43,7 @@ Vue.use(VueClipboard);
 Vue.use(VueChatScroll);
 Vue.use(VueLayers);
 Vue.component('multiselect', Multiselect);
+Vue.use(vueDebounce)
 
 const router = new VueRouter({
   routes: [
@@ -55,6 +58,7 @@ const router = new VueRouter({
     { path: '/projects/:uuid', name: "projectDetails", component: ProjectDetails },
     { path: '/projects/:uuid/upload/shapefile', name: "uploadShapefile", component: UploadShapefile },
     { path: '/projects/:uuid/upload/geotiff', name: "uploadGeotiff", component: UploadGeotiff },
+    { path: '/projects/:uuid/upload/index', name: "createIndex", component: CreateIndex },
     { path: '/projects/new', name: 'newProject', component: NewProject },
     { path: '/login', component: Login },
     { path: '/logout', component: Logout },

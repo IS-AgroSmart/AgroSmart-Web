@@ -7,9 +7,8 @@ let mapComponent;
 let mapPanel;
 let treePanel, timeSlider;
 
-// const TIMES = ["2019-10-15", "2019-10-23", "2019-10-28", "2019-10-30", "2019-11-06"];
 let TIMES = [];
-let shapefiles = [];
+let shapefiles = [], indices = [];
 
 let noCacheHeaders = new Headers(); // HACK: Force disable cache, otherwise timing problem when going back to screen
 noCacheHeaders.append('pragma', 'no-cache');
@@ -28,40 +27,14 @@ fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geose
             TIMES.push(time.substring(0, 10));
         }
     })
-    .then(function () {
-            fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/artifacts",
-                {headers: noCacheHeaders})
-                .then(response => response.json())
-                .then(data => {
-                        for (let art of data.artifacts) {
-                            if (art.type === "SHAPEFILE")
-                                shapefiles.push(new ol.layer.Vector({
-                                    name: art.name,
-                                    source: new ol.source.Vector({
-                                        format: new ol.format.GeoJSON(),
-                                        projection: 'EPSG:4326',
-                                        url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + art.layer + "&maxFeatures=50&outputFormat=application/json&"
-                                        //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
-                                    })
-                                }));
-                            else if (art.type === "ORTHOMOSAIC")
-                                shapefiles.push(new ol.layer.Image({
-                                    name: art.name,
-                                    source: new ol.source.ImageWMS({
-                                        url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
-                                        params: {"LAYERS": art.layer}
-                                    })
-                                }));
-                            else alert(`DEBUG: type ${art.type} not recognized`)
-                        }
-                    }
-                ).then(() => initApp());
-        }
-    );
+    .then(fillShapefiles)
+    .then(fillRasters)
+    .then(initApp);
 
 let olMap;
 proj4.defs('EPSG:32617', '+proj=utm +zone=17 +datum=WGS84 +units=m +no_defs');
 proj4.defs('EPSG:32717', '+proj=utm +zone=17 +south +datum=WGS84 +units=m +no_defs');
+proj4.defs('EPSG:32634', '+proj=utm +zone=34 +datum=WGS84 +units=m +no_defs')
 proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
 
 let popup;
@@ -70,7 +43,7 @@ function initApp() {
     Ext.application({
         launch: function () {
             let rgbLayer;
-            let rasterGroup, basemapsGroup, shapefilesGroup;
+            let rasterGroup, basemapsGroup, shapefilesGroup, indicesGroup;
             let treeStore;
 
             basemapsGroup = new ol.layer.Group({
@@ -112,16 +85,23 @@ function initApp() {
                 layers: shapefiles,
             });
 
+            indicesGroup = new ol.layer.Group({
+                name: "Índices",
+                layers: indices,
+            });
+
             olMap = new ol.Map({
-                layers: [basemapsGroup, rasterGroup, shapefilesGroup],
+                layers: [basemapsGroup, rasterGroup, shapefilesGroup].concat(isMultispectral ? [indicesGroup] : []),
                 view: new ol.View({
                     center: [0, 0],
                     zoom: 2,
                     minZoom: 2,
-                    maxZoom: 23
+                    maxZoom: 19
                 }),
                 target: 'map',
             });
+
+            fitMap(); // Must happen after olMap is defined!
 
             let zoomslider = new ol.control.ZoomSlider();
             let RotateNorthControl = function (opt_options) {
@@ -266,8 +246,47 @@ function initApp() {
         },
         name: 'BasicTree'
     });
+}
 
+function fillShapefiles() {
+    return fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/shapefiles",
+        {headers: noCacheHeaders})
+        .then(response => response.json())
+        .then(data => {
+                for (let shp of data.shapefiles) {
+                    shapefiles.push(new ol.layer.Vector({
+                        name: shp.name,
+                        source: new ol.source.Vector({
+                            format: new ol.format.GeoJSON(),
+                            projection: 'EPSG:4326',
+                            url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + shp.layer + "&maxFeatures=50&outputFormat=application/json&"
+                            //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
+                        })
+                    }));
+                }
+            }
+        );
+}
 
+function fillRasters() {
+    return fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/indices",
+        {headers: noCacheHeaders})
+        .then(response => response.json())
+        .then(data => {
+                for (let index of data.indices) {
+                    indices.push(new ol.layer.Image({
+                        name: index.title,
+                        source: new ol.source.ImageWMS({
+                            url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
+                            params: {"LAYERS": index.layer}
+                        })
+                    }));
+                }
+            }
+        );
+}
+
+function fitMap() {
     fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/bbox",
         {headers: noCacheHeaders,})
         .then(response => response.json())
@@ -282,4 +301,18 @@ function initApp() {
 function updateTime(layer, label, val) {
     layer.getSource().updateParams({'TIME': TIMES[val]});
     label.setText(TIMES[val]);
+}
+
+function addIndex(index) {
+    fetch(window.location.protocol + "//" + window.location.host + "/api/rastercalcs/" + uuid, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({index: index})
+    }).then(function (response) {
+        if (response.status === 200) {
+            window.location.reload(true); // Reload page if index created successfully
+        } else throw response.text();
+    }).catch((msg) => alert(msg));
 }

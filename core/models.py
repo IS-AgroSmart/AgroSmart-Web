@@ -14,6 +14,9 @@ from django.db.models.signals import post_save, post_delete, m2m_changed
 import requests
 from django.dispatch import receiver
 from requests.auth import HTTPBasicAuth
+from PIL import Image, ImageOps
+
+from core.parser import FormulaParser
 
 
 class UserType(Enum):
@@ -56,6 +59,9 @@ class UserProject(BaseProject):
 
     def get_disk_path(self):
         return "/projects/" + str(self.uuid)
+
+    def all_flights_multispectral(self):
+        return all(flight.camera == Camera.REDEDGE.name for flight in self.flights.all())
 
     def _create_geoserver_proj_workspace(self):
         requests.post("http://localhost/geoserver/geoserver/rest/workspaces",
@@ -101,6 +107,48 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
                  '"dimensionInfo": { "enabled": true, "presentation": "LIST", "units": "ISO8601", ' +
                  '"defaultValue": "" }} ] }, "parameters": { "entry": [ { "string": [ ' +
                  '"OutputTransparentColor", "#000000" ] } ] } }} ',
+            auth=HTTPBasicAuth('admin', 'geoserver'))
+
+    def _create_index_datastore(self, index):
+        index_folder = self.get_disk_path() + "/" + index
+        os.makedirs(index_folder)
+        for flight in self.flights.all():
+            # Copy all TIFFs to project folder, rename them
+            ortho_name = index + ".tif"
+            shutil.copy(flight.get_disk_path() + "/odm_orthophoto/" + ortho_name,
+                        index_folder)
+            os.rename(index_folder + "/" + ortho_name,
+                      index_folder + "/" + "ortho_{:04d}{:02d}{:02d}.tif".format(flight.date.year,
+                                                                                 flight.date.month,
+                                                                                 flight.date.day))
+        with open(index_folder + "/indexer.properties", "w") as f:
+            f.write("""TimeAttribute=ingestion
+        Schema=*the_geom:Polygon,location:String,ingestion:java.util.Date
+        PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
+        with open(index_folder + "/timeregex.properties", "w") as f:
+            f.write("regex=[0-9]{8},format=yyyyMMdd")
+
+        GEOSERVER_API_ENTRYPOINT = "http://localhost/geoserver/geoserver/rest/"
+        GEOSERVER_BASE_URL = GEOSERVER_API_ENTRYPOINT + "workspaces/"
+        requests.put(
+            GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/" + index + "/external.imagemosaic",
+            headers={"Content-Type": "text/plain"},
+            data="file:///media/USB/" + str(self.uuid) + "/" + index + "/",
+            auth=HTTPBasicAuth('admin', 'geoserver'))
+        # Enable time dimension
+        requests.put(
+            GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/" + index + "/coverages/" + index + ".json",
+            headers={"Content-Type": "application/json"},
+            data='{"coverage": { "enabled": true, "metadata": { "entry": [ { "@key": "time", ' +
+                 '"dimensionInfo": { "enabled": true, "presentation": "LIST", "units": "ISO8601", ' +
+                 '"defaultValue": "" }} ] }, "parameters": { "entry": [ { "string": [ ' +
+                 '"OutputTransparentColor", "#000000" ] } ] } }} ',
+            auth=HTTPBasicAuth('admin', 'geoserver'))
+        # Enable gradient (is on a different URL because... reasons???)
+        requests.put(
+            GEOSERVER_API_ENTRYPOINT + "layers/" + self._get_geoserver_ws_name() + ":" + index + ".json",
+            headers={"Content-Type": "application/json"},
+            data='{"layer": {"defaultStyle": {"name": "gradient"}}}',
             auth=HTTPBasicAuth('admin', 'geoserver'))
 
 
@@ -154,6 +202,53 @@ class Flight(models.Model):
 
     def _get_geoserver_ws_name(self):
         return "flight_" + str(self.uuid)
+
+    def try_create_thumbnail(self):
+        if self.state != FlightState.COMPLETE.name:
+            return
+        if self.camera == Camera.REDEDGE.name:
+            original_dir = os.getcwd()
+            os.chdir(self.get_disk_path() + "/odm_orthophoto/")
+            os.system(
+                'gdal_translate -b 3 -b 2 -b 1 -mask "6" odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"')
+            os.chdir(original_dir)
+
+            source_image = "rgb.tif"
+            mask = source_image + ".msk"
+        else:
+            source_image = "odm_orthophoto.tif"
+            mask = None
+        print("THUMBNAIL: ", source_image, mask)
+
+        size = (512, 512)
+
+        infile = self.get_disk_path() + "/odm_orthophoto/" + source_image
+        try:
+            im = Image.open(infile)
+            im.thumbnail(size)
+            im = ImageOps.fit(im, size)
+            if mask:
+                msk = Image.open(self.get_disk_path() + "/odm_orthophoto/" + mask).split()[0]
+                msk.thumbnail(size)
+                msk = ImageOps.fit(msk, size)
+                im.putalpha(msk)
+
+            im.save(self.get_thumbnail_path(), "PNG")
+        except IOError as e:
+            print(e)
+
+    def create_index_raster(self, index: str, formula: str):
+        COMMANDS = {
+            "ndvi": 'gdal_calc.py -A odm_orthophoto.tif --A_band=3 -B odm_orthophoto.tif --B_band=4 --calc="((asarray(B,dtype=float32)-asarray(A, dtype=float32))/(asarray(B, dtype=float32)+asarray(A, dtype=float32)) + 1.) * 127." --outfile=ndvi.tif --type=Byte --co="TILED=YES" --overwrite --NoDataValue=-1',
+            "ndre": 'gdal_calc.py -A odm_orthophoto.tif --A_band=5 -B odm_orthophoto.tif --B_band=4 --calc="((asarray(B,dtype=float32)-asarray(A, dtype=float32))/(asarray(B, dtype=float32)+asarray(A, dtype=float32)) + 1.) * 127." --outfile=ndre.tif --type=Byte --co="TILED=YES" --overwrite --NoDataValue=-1'}
+        if self.state != FlightState.COMPLETE.name or self.camera != Camera.REDEDGE.name:
+            return
+        original_dir = os.getcwd()
+        os.chdir(self.get_disk_path() + "/odm_orthophoto/")
+        # NDVI and NDRE are built-in, anything else gets parsed
+        command = COMMANDS.get(index, None) or FormulaParser().generate_gdal_calc_command(formula, index)
+        os.system(command)  # Create raster, save it to <index>.tif on folder <flight_uuid>/odm_orthophoto
+        os.chdir(original_dir)
 
     def create_geoserver_workspace_and_upload_geotiff(self):
         requests.post("http://localhost/geoserver/geoserver/rest/workspaces",
@@ -230,11 +325,14 @@ post_delete.connect(delete_on_disk, sender=UserProject)
 class ArtifactType(Enum):
     ORTHOMOSAIC = "Orthomosaic"
     SHAPEFILE = "Shapefile"
+    INDEX = "Index"
 
     @classmethod
-    def filename(cls, t):
-        if t == ArtifactType.SHAPEFILE.name:
+    def filename(cls, art):
+        if art.type == ArtifactType.SHAPEFILE.name:
             return "poly.shp"
+        elif art.type == ArtifactType.INDEX.name:
+            return art.name + ".tif"
 
 
 class Artifact(models.Model):
@@ -244,4 +342,4 @@ class Artifact(models.Model):
     project = models.ForeignKey(UserProject, on_delete=models.CASCADE, related_name="artifacts", null=True)
 
     def get_disk_path(self):
-        return self.project.get_disk_path() + "/" + self.name + "/" + ArtifactType.filename(self.type)
+        return self.project.get_disk_path() + "/" + self.name + "/" + ArtifactType.filename(self)
