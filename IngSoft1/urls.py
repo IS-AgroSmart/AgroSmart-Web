@@ -42,7 +42,7 @@ urlpatterns = [
     path('api/rastercalcs/<uuid:uuid>', create_raster_index),
     path('mapper/<uuid:uuid>', mapper),
     path('mapper/<uuid:uuid>/bbox', mapper_bbox),
-    path('mapper/<uuid:uuid>/shapefiles', mapper_shapefiles),
+    # path('mapper/<uuid:uuid>/shapefiles', mapper_shapefiles),
     path('mapper/<uuid:uuid>/indices', mapper_indices),
     path('mapper/<uuid:uuid>/artifacts', mapper_artifacts),
     path('mapper/panel.js', mapper_paneljs),

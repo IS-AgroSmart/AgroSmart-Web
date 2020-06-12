@@ -249,20 +249,21 @@ function initApp() {
 }
 
 function fillShapefiles() {
-    return fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/shapefiles",
+    return fetch(window.location.protocol + "//" + window.location.host + "/mapper/" + uuid + "/artifacts",
         {headers: noCacheHeaders})
         .then(response => response.json())
         .then(data => {
-                for (let shp of data.shapefiles) {
-                    shapefiles.push(new ol.layer.Vector({
-                        name: shp.name,
-                        source: new ol.source.Vector({
-                            format: new ol.format.GeoJSON(),
-                            projection: 'EPSG:4326',
-                            url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + shp.layer + "&maxFeatures=50&outputFormat=application/json&"
-                            //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
-                        })
-                    }));
+                for (let art of data.artifacts) {
+                    if (art.type === "SHAPEFILE")
+                        shapefiles.push(new ol.layer.Vector({
+                            name: shp.name,
+                            source: new ol.source.Vector({
+                                format: new ol.format.GeoJSON(),
+                                projection: 'EPSG:4326',
+                                url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + shp.layer + "&maxFeatures=50&outputFormat=application/json&"
+                                //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
+                            })
+                        }));
                 }
             }
         );
