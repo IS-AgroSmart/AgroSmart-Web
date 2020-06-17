@@ -1,0 +1,9 @@
+[run]
+omit =
+    */__init__.py
+    */migrations/*
+    IngSoft1/*.py
+    manage.py
+    */tests.py
+    */test_*.py
+    */*_tests.py
