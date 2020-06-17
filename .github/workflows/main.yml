@@ -16,6 +16,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run tests
-        run: pytest
+        run: pytest --cov .
       - name: Generate coverage report
-        run: pwd; ls -al; coverage xml
+        run: coverage xml
