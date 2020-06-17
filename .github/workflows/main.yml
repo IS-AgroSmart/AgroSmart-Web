@@ -18,4 +18,4 @@ jobs:
       - name: Run tests
         run: pytest
       - name: Generate coverage report
-        run: coverage xml
+        run: pwd; ls; coverage xml
