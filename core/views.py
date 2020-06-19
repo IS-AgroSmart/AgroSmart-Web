@@ -263,13 +263,7 @@ def preview_flight_url(request, uuid):
 
 
 def check_formula(request):
-    parser = FormulaParser()
-    print(request.GET["formula"])
-    try:
-        parser.parse(request.GET["formula"])
-        return HttpResponse(status=200)
-    except LarkError:
-        return HttpResponse(status=400)
+    return HttpResponse(status=200 if FormulaParser().is_valid(request.GET["formula"]) else 400)
 
 
 @csrf_exempt

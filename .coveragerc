@@ -7,3 +7,4 @@ omit =
     */tests.py
     */test_*.py
     */*_tests.py
+    */apps.py

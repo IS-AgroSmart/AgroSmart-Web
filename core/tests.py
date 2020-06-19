@@ -1,13 +1,18 @@
 import signal
 from datetime import datetime
 
+import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
+from lark import LarkError
+
 from .models import *
 
-
 # Create your tests here.
+from .templatetags.greaterthan import gt
+
+
 class FlightModelTest(TestCase):
     def setUp(self):
         User = get_user_model()
@@ -36,3 +41,49 @@ class FlightModelTest(TestCase):
     def test_flight_initializes_as_waiting_for_images(self):
         f = self.user.flight_set.create(name="flight", date=datetime.now())
         self.assertEqual(f.state, FlightState.WAITING.name)
+
+
+class TestParser:
+    @pytest.fixture
+    def parser(self):
+        return FormulaParser()
+
+    def test_simple(self, parser):
+        assert parser.make_string("blue+red") == "asarray(A, dtype=float32)+asarray(C, dtype=float32)"
+
+    def test_parens(self, parser):
+        assert parser.make_string("((green+nir))") == "((asarray(B, dtype=float32)+asarray(D, dtype=float32)))"
+
+    def test_complex(self, parser):
+        assert parser.make_string("((nir-red)/(nir+red))") == \
+               "((asarray(D, dtype=float32)-asarray(C, dtype=float32))/" \
+               "(asarray(D, dtype=float32)+asarray(C, dtype=float32)))"
+
+    def test_float_conversion(self, parser):
+        assert parser.make_string("nir+1") == "asarray(D, dtype=float32)+1.0"
+
+    def test_spaces_ignored(self, parser):
+        assert parser.make_string("red +    green") == "asarray(C, dtype=float32)+asarray(B, dtype=float32)"
+
+    def test_unknown_channel(self, parser):
+        with pytest.raises(LarkError):
+            parser.make_string("blue+foobar")
+
+    def test_unbalanced_parens(self, parser):
+        with pytest.raises(LarkError):
+            parser.make_string("((blue+nir)")
+
+    def test_unknown_operator(self, parser):
+        with pytest.raises(LarkError):
+            parser.make_string("red?1")
+
+    def test_wrong_parens_close(self, parser):
+        with pytest.raises(LarkError):
+            parser.make_string("((blue+)nir)")
+
+
+class TestGreaterThanTemplateTag:
+    def test_tag(self):
+        assert not gt(1, 2)
+        assert not gt(0, 1)
+        assert gt(2, -1)
