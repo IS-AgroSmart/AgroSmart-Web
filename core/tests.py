@@ -60,7 +60,7 @@ class TestParser:
                "(asarray(D, dtype=float32)+asarray(C, dtype=float32)))"
 
     def test_float_conversion(self, parser):
-        assert parser.make_string("nir+1") == "asarray(D, dtype=float32)+1.0"
+        assert parser.make_string("nir**2") == "asarray(D, dtype=float32)**2.0"
 
     def test_spaces_ignored(self, parser):
         assert parser.make_string("red +    green") == "asarray(C, dtype=float32)+asarray(B, dtype=float32)"
@@ -80,6 +80,17 @@ class TestParser:
     def test_wrong_parens_close(self, parser):
         with pytest.raises(LarkError):
             parser.make_string("((blue+)nir)")
+
+    def test_unary_minus(self, parser):
+        assert parser.make_string("-red") == "-1.0*asarray(C, dtype=float32)"
+
+    def test_is_valid(self, parser):
+        assert parser.is_valid("blue")
+        assert parser.is_valid("-blue")
+        assert not parser.is_valid("blue+")
+
+    def test_unary_minus_complex(self, parser):
+        assert parser.make_string("blue/(-red)") == "asarray(A, dtype=float32)/(-1.0*asarray(C, dtype=float32))"
 
 
 class TestGreaterThanTemplateTag:

@@ -57,7 +57,7 @@ class FormulaTransformer(Transformer):
         return items[0] + str(items[1]) + items[2]
 
     def plusminus(self, items):
-        return (1 if items[0] == "+" else -1) * items[1]
+        return items[1] if items[0] == "+" else "-1.0*" + items[1]
 
     def factor(self, items):
         return items[0]

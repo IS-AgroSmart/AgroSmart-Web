@@ -38,6 +38,8 @@ class FlightViewSet(viewsets.ModelViewSet):
     serializer_class = FlightSerializer
 
     def get_queryset(self):
+        if self.request.user.is_staff:
+            return Flight.objects.all()
         return Flight.objects.filter(user=self.request.user) | self.request.user.demo_flights.all()
 
     def perform_create(self, serializer):
