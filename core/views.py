@@ -129,13 +129,10 @@ def webhook_processing_complete(request):
 
 
 def download_artifact(request, uuid, artifact):
-    # flight = get_object_or_404(Flight, uuid=uuid)
-    # user = Token.objects.get(key=request.headers["Authorization"][6:]).user
-    # if not user.is_staff and not flight.user == user:
-    #     return HttpResponse(status=403)
+    flight = get_object_or_404(Flight, uuid=uuid)
 
     print(artifact)
-    filepath = "/flights/" + str(uuid)
+    filepath = flight.get_disk_path()
     if artifact == "orthomosaic.png":
         filepath += "/odm_orthophoto/odm_orthophoto.png"
     elif artifact == "orthomosaic.tiff":
@@ -224,30 +221,9 @@ def upload_geotiff(request, uuid):
     return HttpResponse(status=201)
 
 
-def upload_shapefile(request, uuid):
-    project = UserProject.objects.get(pk=uuid)
-    # Add Artifact record to Project
-    # Save file on project.get_disk_path() + "/" + filename
-    # Rename file to poly.shp
-
-    # PUT request to {{url}}/workspaces/project_{{uuid}}/datastores/{{filename}}/featuretypes/poly.json
-    # Content-Type = text/plain
-    # Body = file:///media/USB/{{uuid}}/{{filename}}/poly.shp
-
-    # PUT to {{url}}/workspaces/project_{{uuid}}/datastores/{{filename}}/featuretypes/poly.json
-    # Content-Type = application/json
-    # Body = {"featureType": {
-    # 	"enabled": true,
-    # 	"srs": "EPSG:4326"
-    # }}
-    return HttpResponse
-
-
 def preview_flight_url(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
-    # user = Token.objects.get(key=request.headers["Authorization"][6:]).user
-    # if not user.is_staff and not flight.user == user:
-    #     return HttpResponse(status=403)
+
     ans = requests.get(
         "http://localhost/geoserver/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
         "/coveragestores/ortho/coverages/odm_orthophoto.json",

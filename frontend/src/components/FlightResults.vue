@@ -30,9 +30,11 @@ export default {
         return {
             flight: {},
             error: "",
-            artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D"],
+            //artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D"],
+            artifacts: ["Ortomosaico (GeoTIFF)", "Modelo 3D"],
             downloads: [false, false],
-            urls: ["/orthomosaic.png", "/orthomosaic.tiff", "/3dmodel"]
+            //urls: ["/orthomosaic.png", "/orthomosaic.tiff", "/3dmodel"]
+            urls: ["/orthomosaic.tiff", "/3dmodel"]
         };
     },
     methods: {
