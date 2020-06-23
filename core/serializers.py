@@ -24,7 +24,7 @@ class FlightSerializer(serializers.ModelSerializer):
 class ArtifactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Artifact
-        fields = ["pk", "type", "flight"]
+        fields = ["pk", "type", "project", "name", "type"]
 
 
 class UserProjectSerializer(serializers.ModelSerializer):
