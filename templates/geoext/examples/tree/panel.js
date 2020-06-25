@@ -183,8 +183,14 @@ function initApp() {
 
             timeSlider.on("change", function (slider, newValue, thumb, eOpts) {
                 updateTime(rgbLayer, dateLabel, newValue);
+                for (let index of indices) {
+                    updateTime(index, dateLabel, newValue);
+                }
             });
             updateTime(rgbLayer, dateLabel, TIMES.length - 1);
+            for (let index of indices) {
+                updateTime(index, dateLabel, TIMES.length - 1);
+            }
 
             let timePanel;
             if (moreThanOneFlight) {
