@@ -14,7 +14,7 @@ from django.views.static import serve
 from lark.exceptions import LarkError
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from core.models import *
 from core.parser import FormulaParser
@@ -28,6 +28,11 @@ from requests.auth import HTTPBasicAuth
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, OnlySelfUnlessAdminPermission,)
     serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = (AllowAny,)
+        return super(UserViewSet, self).get_permissions()
 
     def get_queryset(self):
         return User.objects.all() if self.request.user.is_staff else User.objects.filter(pk=self.request.user.pk)

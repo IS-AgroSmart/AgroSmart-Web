@@ -28,6 +28,7 @@ import ProjectDetails from './components/ProjectDetails'
 import NewProject from './components/NewProject'
 import Login from './components/Login'
 import Logout from './components/Logout'
+import SignUp from './components/SignUp'
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -62,6 +63,7 @@ const router = new VueRouter({
     { path: '/projects/new', name: 'newProject', component: NewProject },
     { path: '/login', component: Login },
     { path: '/logout', component: Logout },
+    { path: '/signup', name: 'signUp', component: SignUp },
   ]
 })
 
