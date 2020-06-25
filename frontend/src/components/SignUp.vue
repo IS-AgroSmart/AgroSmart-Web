@@ -28,6 +28,9 @@
                     <b-col cols="5" class="text-center">
                         <b-button type="submit" variant="primary">Crear cuenta</b-button>
                     </b-col>
+                    <b-col cols="5" class="text-center">
+                        <b-button @click="goBack" variant="secondary">Cancelar</b-button>
+                    </b-col>
                 </b-row>
             </b-container>
         </b-form>
@@ -68,7 +71,7 @@ export default {
                 })
                 .then(response => {
                     if (response.status == 201)
-                        this.$router.go(-1);
+                        this.goBack();
                     else
                         this.error = response.body;
                 })
@@ -76,6 +79,9 @@ export default {
                     window.console.log(error);
                     this.error = error.response.data;
                 });
+        },
+        goBack() {
+            this.$router.go(-1);
         },
     }
 }
