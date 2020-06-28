@@ -11,7 +11,7 @@ def cameraname(cam):
     if cam == Camera.REDEDGE.name:
         return "Micasense RedEdge"
     elif cam == Camera.RGB.name:
-        return "Cámara RGB normal"
+        return "Cámara RGB"
     else:
         return "Cámara no reconocida: <" + cam + ">"
 

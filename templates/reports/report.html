@@ -42,7 +42,8 @@
 <!-- Page 1: Title, orthomosaic -->
 <h1> Reporte: {{ flight.name }}</h1>
 
-<img src="http://localhost:8000{% url "download_artifact" flight.uuid "thumbnail" %}" class="center">
+<img src="http://localhost:8000{% url "download_artifact" flight.uuid "thumbnail" %}" class="center"
+     alt="ortomosaico RGB">
 
 {% if extras.generaldata %}
     <!-- Page 2: General details -->
@@ -68,7 +69,8 @@
     <p style="page-break-before: always"></p>
     <h3>Ortomosaico RGB</h3>
 
-    <img src="http://localhost:8000{% url "download_artifact" flight.uuid "thumbnail" %}" class="center">
+    <img src="http://localhost:8000{% url "download_artifact" flight.uuid "thumbnail" %}" class="center"
+         alt="ortomosaico RGB">
 {% endif %}
 
 <!-- Page 4: ??? -->

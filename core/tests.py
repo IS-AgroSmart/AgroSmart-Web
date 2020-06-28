@@ -98,3 +98,27 @@ class TestGreaterThanTemplateTag:
         assert not gt(1, 2)
         assert not gt(0, 1)
         assert gt(2, -1)
+
+
+class TestCameraNameTemplateTag:
+    def test_tag(self):
+        from .templatetags.reporttags import cameraname
+        assert cameraname("REDEDGE") == "Micasense RedEdge"
+        assert cameraname("RGB") == "Cámara RGB"
+        assert "Cámara no reconocida" in cameraname("FOOBAR") and "FOOBAR" in cameraname("FOOBAR")
+
+
+class TestStateNameTemplateTag:
+    def test_tag(self):
+        from .templatetags.reporttags import statename
+        assert statename("COMPLETE") == "Completado con éxito"
+        assert statename("ERROR") == "Completado con errores"
+        assert statename("CANCELED") == "Cancelado por el usuario"
+        assert "Estado no reconocido" in statename("FOOBAR") and "FOOBAR" in statename("FOOBAR")
+
+
+class TestMillisToStringTemplateTag:
+    def test_tag(self):
+        from .templatetags.reporttags import millistostring
+        assert millistostring(1000) == "0 h, 0 min, 1 s"
+        assert millistostring(1000 * 60) == "0 h, 1 min, 0 s"
