@@ -150,6 +150,10 @@ def download_artifact(request, uuid, artifact):
         filepath += "/odm_texturing/odm_textured_model.obj"
     elif artifact == "thumbnail":
         filepath = "./tmp/" + str(uuid) + "_thumbnail.png"
+    elif artifact == "report.pdf"
+        flight.create_report(request.GET)
+        filepath += "/reports/report.pdf"
+        serve(request, os.path.basename(pdfpath), os.path.dirname(pdfpath))
     else:
         raise Http404
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))

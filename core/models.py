@@ -6,6 +6,7 @@ from typing import Union
 
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
+from django.template.loader import render_to_string
 from enum import Enum
 import uuid as u
 
@@ -15,6 +16,7 @@ import requests
 from django.dispatch import receiver
 from requests.auth import HTTPBasicAuth
 from PIL import Image, ImageOps
+from weasyprint import HTML
 
 from core.parser import FormulaParser
 
@@ -270,7 +272,11 @@ class Flight(models.Model):
                      '"parameters": { "entry": [ { "string": [ "InputTransparentColor", "#000000" ] }, ' +
                      '{ "string": [ "SUGGESTED_TILE_SIZE", "512,512" ] } ] }}} ',
                 auth=HTTPBasicAuth('admin', 'geoserver'))
-
+    
+    def create_report(self):
+        report = render_to_string('report_template.html', {<context>}) 
+        pdfpath = flight.get_disk_path()  + "/reports/report.pdf"
+        HTML(string=report).write_pdf(pdfpath)
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:
