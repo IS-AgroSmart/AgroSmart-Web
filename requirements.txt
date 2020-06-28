@@ -1,8 +1,13 @@
 asgiref==3.2.3
 attrs==19.3.0
+cairocffi==1.1.0
+CairoSVG==2.4.2
 certifi==2019.11.28
+cffi==1.14.0
 chardet==3.0.4
 coverage==5.1
+cssselect2==0.3.0
+defusedxml==0.6.0
 Django==3.0.1
 django-cors-headers==3.2.0
 djangorestframework==3.11.0
@@ -10,8 +15,10 @@ dnspython==1.16.0
 eventlet==0.25.1
 greenlet==0.4.15
 gunicorn==20.0.4
+html5lib==1.1
 httpretty==1.0.2
 idna==2.8
+importlib-metadata==1.7.0
 lark-parser==0.8.6
 monotonic==1.5
 more-itertools==8.4.0
@@ -21,8 +28,10 @@ Pillow==6.2.1
 pluggy==0.13.1
 psycopg2==2.8.4
 py==1.8.2
+pycparser==2.20
 pyfakefs==4.0.2
 pyparsing==2.4.7
+Pyphen==0.9.5
 pytest==5.4.3
 pytest-cov==2.10.0
 pytest-django==3.9.0
@@ -31,5 +40,9 @@ pytz==2019.3
 requests==2.22.0
 six==1.13.0
 sqlparse==0.3.0
+tinycss2==1.0.2
 urllib3==1.25.7
 wcwidth==0.2.4
+WeasyPrint==51
+webencodings==0.5.1
+zipp==3.1.0

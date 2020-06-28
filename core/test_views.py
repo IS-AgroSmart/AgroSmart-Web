@@ -58,25 +58,27 @@ def test_upload_images_succesful(c, users, flights, fs):
 
 def test_upload_images_error_on_creation(c, users, flights, fs):
     import inspect
-    import django
+    import django, pytz
 
     _auth(c, users[0])
     httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/upload/" + str(flights[0].uuid), "",
                            status=500)
     fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
+    fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
     resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}))
     assert resp.status_code == 500
 
 
 def test_upload_images_error_on_commit(c, users, flights, fs):
     import inspect
-    import django
+    import django, pytz
 
     _auth(c, users[0])
     httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/upload/" + str(flights[0].uuid), "")
     httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/commit/" + str(flights[0].uuid), "",
                            status=500)
     fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
+    fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
     resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}))
     assert resp.status_code == 500
 

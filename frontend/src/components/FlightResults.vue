@@ -9,12 +9,9 @@
                 <b-button :href="link(index)" download variant="outline-primary">{{artifact}}</b-button>
             </div>
         </div>
-        <div class="row my-5">
-            <div class="col-md-6 text-right">
-                <b-button class="my-3 mx-5" variant="primary">Descargar</b-button>
-            </div>
-            <div class="col-md-6 text-left">
-                <b-button class="my-3 mx-5" variant="primary">Reporte</b-button>
+        <div class="row my-3">
+            <div class="col text-center">
+                <b-button variant="outline-primary" :to="{name: 'flightReport', params: {uuid: this.flight.uuid}}">Reporte</b-button>
             </div>
         </div>
     </div>
