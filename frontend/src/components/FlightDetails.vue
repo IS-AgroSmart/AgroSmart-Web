@@ -4,6 +4,7 @@
             {{ flight.name }}
             <small v-if="flightDate">{{ flightDate }}</small>
             <small class="mx-5"><b-button variant="danger" @click="deleteFlight">Eliminar</b-button></small>
+            <small class="mx-7"><b-button v-if="isBusy" variant="danger" @click="cancelFlight">Cancelar</b-button></small>
         </h1>
     
     
@@ -116,6 +117,9 @@ export default {
             } else { // At least one day, add day format
                 return this.$moment.utc(duration.as('milliseconds')).format('DDD [d] HH [h] mm [min] ss [s]')
             }
+        },
+        cancelFlight(){
+            axios.post(/nodeodm/task/cancel + this.flight.uuid)
         },
     },
     computed: {
