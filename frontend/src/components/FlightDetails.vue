@@ -3,20 +3,19 @@
         <h1>
             {{ flight.name }}
             <small v-if="flightDate">{{ flightDate }}</small>
-            <small class="mx-5"><b-button variant="danger" @click="deleteFlight">Eliminar</b-button></small>
+            <small class="mx-5"><b-button v-if="isStopped" variant="danger" @click="deleteFlight">Eliminar</b-button></small>
             <small class="mx-7"><b-button v-if="isBusy" variant="danger" @click="cancelFlight">Cancelar</b-button></small>
         </h1>
     
     
-        <div class="row my-5">
+        <div v-if="flightLoaded" class="row my-5">
             <div class="col-sm-4">
                 <b-progress v-if="isBusy" height="0.3rem">
                     <b-progress-bar :value="info.progress" animated></b-progress-bar>
                 </b-progress>
     
-                <!--<b-link v-if="isDone" :href="orthomosaicGeoserverPreviewUrl">-->
-                <b-link v-if="isDone" :to="{name: 'flightOrthoPreview', params: {uuid: flight.uuid}}">
-                    <b-img v-if="isDone" :src="orthomosaicThumbUrl" fluid rounded="circle" /></b-link>
+                <b-link v-if="isDoneSuccessfully" :to="{name: 'flightOrthoPreview', params: {uuid: flight.uuid}}">
+                    <b-img v-if="isDoneSuccessfully" :src="orthomosaicThumbUrl" fluid rounded="circle" /></b-link>
                 <h4 class="my-3 text-center">Notas</h4>
                 <span style="white-space: pre;">{{flight.annotations}}</span>
             </div>
@@ -40,7 +39,7 @@
                 </b-list-group>
     
                 <div v-if="flightLoaded" class="text-center">
-                    <b-button v-if="isDone" class="my-3 mx-auto" variant="outline-primary" :to="{name: 'flightResults', params: {uuid: flight.uuid}}">Resultados</b-button>
+                    <b-button v-if="isDoneSuccessfully" class="my-3 mx-auto" variant="outline-primary" :to="{name: 'flightResults', params: {uuid: flight.uuid}}">Resultados</b-button>
                 </div>
     
             </div>
@@ -90,6 +89,9 @@ export default {
                 headers: { "Authorization": "Token " + this.storage.token }
             }).then(() => this.$router.push("/flights"))
         },
+        cancelFlight() {
+            axios.post("/nodeodm/task/cancel", { uuid: this.flight.uuid });
+        },
         onCopySuccess: function() {
             this.$refs.tooltip.$emit("open");
             this.tooltipVariant = "success";
@@ -117,10 +119,7 @@ export default {
             } else { // At least one day, add day format
                 return this.$moment.utc(duration.as('milliseconds')).format('DDD [d] HH [h] mm [min] ss [s]')
             }
-        },
-        cancelFlight(){
-            axios.post(/nodeodm/task/cancel + this.flight.uuid)
-        },
+        }
     },
     computed: {
         cameras() {
@@ -151,11 +150,12 @@ export default {
         progress() {
             return this.isBusy ? " (" + this.info.progress.toFixed(0) + "%)" : "";
         },
-        isBusy() {
-            return this.info.status.code == 20
-        },
-        isDone() {
-            return this.info.status.code == 40 || this.flight.state == "COMPLETE";
+        isBusy() { return this.info.status.code == 20; },
+        isDoneSuccessfully() { return this.info.status.code == 40 || this.flight.state == "COMPLETE"; },
+        isDoneError() { return this.info.status.code == 30 || this.flight.state == "ERROR"; },
+        isDoneCanceled() { return this.info.status.code == 50 || this.flight.state == "CANCELED"; },
+        isStopped() {
+            return this.isDoneSuccessfully || this.isDoneCanceled || this.isDoneError;
         },
         flightDate() {
             return this.flight.date ? this.$moment(this.flight.date, "YYYY-MM-DD").format("dddd D [de] MMMM, YYYY") : ""
