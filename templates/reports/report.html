@@ -1,23 +1,78 @@
 {% load static %}
+{% load reporttags %}
 
 <!DOCTYPE html>
 <html lang="en-US">
-    <head>
-        <title>Report</title>
-    </head>
-    <body>
-        <h3>
-            Reporte Vuelo : Nombre Vuelo
-        </h3>
-        <h3>
-            Detalles Generales Vuelo : Nombre Vuelo
-        </h3>
-        <h4>
-            Fecha : Fecha Generacion
-        </h4>
-        <div>
-            Imagen
-        </div>
-    </body>
+<head>
+    <title>Report</title>
+</head>
+
+<style type="text/css">
+    .center {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    @page {
+        @bottom-right {
+            content: "Página " counter(page) " de " counter(pages);
+        }
+
+        @bottom-left {
+            content: "Generado el {% now "DATETIME_FORMAT" %}";
+        }
+    }
+
+    @page :first {
+        @bottom-right {
+            content: "";
+        }
+        @bottom-left {
+            content: "";
+        }
+    }
+</style>
+<body>
+<!-- Page 1: Title, orthomosaic -->
+<h1> Reporte: {{ flight.name }}</h1>
+
+<img src="http://localhost:8000{% url "download_artifact" flight.uuid "thumbnail" %}" class="center">
+
+{% if extras.generaldata %}
+    <!-- Page 2: General details -->
+    <p style="page-break-before: always"></p>
+    <h3>Detalles generales del vuelo</h3>
+
+    <h5>Fecha</h5>
+    <p>{{ flight.date|date:"DATE_FORMAT" }}</p>
+    <h5>UUID</h5>
+    <p>{{ flight.uuid }}</p>
+    <h5>Usuario</h5>
+    <p>{{ flight.user.username }} {% if flight.user.email %}({{ flight.user.email }}){% endif %}</p>
+    <h5>Tiempo de procesamiento</h5>
+    <p>{{ flight.processing_time|millistostring }}</p>
+    <h5>Cámara</h5>
+    <p>{{ flight.camera|cameraname }}</p>
+    <h5>Estado</h5>
+    <p>{{ flight.state|statename }}</p>
+{% endif %}
+
+{% if extras.orthomosaic %}
+    <!-- Page 3: Orthomosaic -->
+    <p style="page-break-before: always"></p>
+    <h3>Ortomosaico RGB</h3>
+
+    <img src="http://localhost:8000{% url "download_artifact" flight.uuid "thumbnail" %}" class="center">
+{% endif %}
+
+<!-- Page 4: ??? -->
+<p style="page-break-before: always"></p>
+</body>
 
 </html>

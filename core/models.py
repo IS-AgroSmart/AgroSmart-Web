@@ -272,11 +272,13 @@ class Flight(models.Model):
                      '"parameters": { "entry": [ { "string": [ "InputTransparentColor", "#000000" ] }, ' +
                      '{ "string": [ "SUGGESTED_TILE_SIZE", "512,512" ] } ] }}} ',
                 auth=HTTPBasicAuth('admin', 'geoserver'))
-    
-    def create_report(self):
-        report = render_to_string('report_template.html', {<context>}) 
-        pdfpath = flight.get_disk_path()  + "/reports/report.pdf"
+
+    def create_report(self, context):
+        report = render_to_string('reports/report.html', {"flight": self, "extras": context})
+        pdfpath = self.get_disk_path() + "/report.pdf"
         HTML(string=report).write_pdf(pdfpath)
+        return pdfpath
+
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:

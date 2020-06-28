@@ -17,6 +17,7 @@ import Home from './components/Home'
 import Flight from './components/Flight'
 import FlightDetails from './components/FlightDetails'
 import FlightResults from './components/FlightResults'
+import FlightReport from './components/FlightReport.vue'
 import FlightOrthoPreview2 from './components/FlightOrthoPreview2'
 import UploadImages from './components/UploadImages'
 import UploadShapefile from './components/UploadShapefile'
@@ -53,6 +54,7 @@ const router = new VueRouter({
     { path: '/flights/:uuid', name: "flightDetails", component: FlightDetails },
     { path: '/flights/:uuid/upload', name: "uploadImages", component: UploadImages },
     { path: '/flights/:uuid/results', name: "flightResults", component: FlightResults },
+    { path: '/flights/:uuid/report', name:"flightReport", component:FlightReport },
     { path: '/flights/:uuid/preview', name: "flightOrthoPreview", component: FlightOrthoPreview2 },
     { path: '/flights/new', name: "newFlight", component: NewFlight },
     { path: '/projects', name: "listProjects" ,component: Project },
