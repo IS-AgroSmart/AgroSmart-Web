@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
+from django.http import QueryDict
 from lark.exceptions import LarkError
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
@@ -138,7 +139,6 @@ def webhook_processing_complete(request):
 def download_artifact(request, uuid, artifact):
     flight = get_object_or_404(Flight, uuid=uuid)
 
-    print(artifact)
     filepath = flight.get_disk_path()
     if artifact == "orthomosaic.png":
         filepath += "/odm_orthophoto/odm_orthophoto.png"
@@ -152,6 +152,30 @@ def download_artifact(request, uuid, artifact):
         filepath = "./tmp/" + str(uuid) + "_thumbnail.png"
     elif artifact == "report.pdf":
         filepath = flight.create_report(request.GET)
+    else:
+        raise Http404
+    return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
+def download_artifact_movil(request, uuid, options, artifact):
+    flight = get_object_or_404(Flight, uuid=uuid)
+    content = {}
+    option_values =  {
+        "c" : 'pointcloud',
+        "m" : 'orthomosaic',
+        "g" : 'generaldata',
+        "n" : 'ndviortho',
+        "3" : '3dmodel'
+    }
+
+    for i in options :
+        content[option_values[i]] = True
+
+    dict_content = QueryDict('', mutable=True)
+    dict_content.update(content)
+
+    filepath = flight.get_disk_path()
+    if artifact == "report.pdf":
+        filepath = flight.create_report_movil(dict_content)
     else:
         raise Http404
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
