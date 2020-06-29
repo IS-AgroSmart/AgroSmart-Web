@@ -279,6 +279,12 @@ class Flight(models.Model):
         HTML(string=report).write_pdf(pdfpath)
         return pdfpath
 
+    def create_report_movil(self, context):
+        report = render_to_string('reports/report.html', {"flight": self, "extras": context})
+        pdfpath = self.get_disk_path() + "/report.pdf"
+        HTML(string=report).write_pdf(pdfpath)
+        return pdfpath
+
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:

@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/upload-files/<uuid:uuid>', upload_images, name='upload_files'),
     path('api/webhook-processing-complete', webhook_processing_complete, name='webhook'),
     path('api/downloads/<uuid:uuid>/<artifact>', download_artifact, name="download_artifact"),
+    path('api/downloads/<uuid:uuid>/<options>/<artifact>', download_artifact_movil, name="download_artifact"),
     path('api/uploads/<uuid:uuid>/shapefile', upload_shapefile),
     path('api/uploads/<uuid:uuid>/geotiff', upload_geotiff),
     path('api/preview/<uuid:uuid>', preview_flight_url),
