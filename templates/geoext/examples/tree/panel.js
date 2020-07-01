@@ -133,6 +133,27 @@ function initApp() {
             olMap.addControl(zoomslider);
             olMap.addControl(new RotateNorthControl());
 
+            // Add legend, only if there is at least one index
+            if (indices.length > 0) {
+                let LegendControl = function (opt_options) {
+                    var options = opt_options || {};
+                    var img = document.createElement('img');
+                    var someIndexLayer = indices[0].getSource().getParams()["LAYERS"];
+                    img.setAttribute("src", window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=wms&version=1.3.0&request=GetLegendGraphic&format=image/png&layer=" + someIndexLayer);
+                    var element = document.createElement('div');
+                    element.className = 'legend ol-unselectable ol-control';
+
+                    element.appendChild(img);
+
+                    ol.control.Control.call(this, {
+                        element: element,
+                        target: options.target
+                    });
+                };
+                ol.inherits(LegendControl, ol.control.Control);
+                olMap.addControl(new LegendControl());
+            }
+
             popup = Ext.create('GeoExt.component.Popup', {
                 map: olMap,
                 width: 140
