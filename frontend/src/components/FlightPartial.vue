@@ -45,9 +45,19 @@ export default {
     },
     methods: {
         deleteFlight() {
-            axios.delete("api/flights/" + this.flight.uuid, {
-                headers: { "Authorization": "Token " + this.storage.token }
-            }).then(() => this.$router.replace("/flights/deleted"))
+            this.$bvModal.msgBoxConfirm('Este vuelo NO podrá ser recuperado.', {
+                    title: '¿Realmente desea eliminar el vuelo?',
+                    okVariant: 'danger',
+                    okTitle: 'Sí',
+                    cancelTitle: 'No',
+                    // hideHeaderClose: false
+                })
+                .then(value => {
+                    if (value)
+                        axios.delete("api/flights/" + this.flight.uuid, {
+                            headers: { "Authorization": "Token " + this.storage.token }
+                        }).then(() => this.$router.replace("/flights/deleted"))
+                })
         }
     },
     props: {
