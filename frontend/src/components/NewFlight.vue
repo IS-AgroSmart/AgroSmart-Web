@@ -51,7 +51,7 @@ export default {
                     headers: { "Authorization": "Token " + this.storage.token },
                 })
                 .then(response => {
-                    this.$router.push({ "name": "uploadImages", params: { "uuid": response.data.uuid } })
+                    this.$router.replace({ "name": "uploadImages", params: { "uuid": response.data.uuid } })
                 })
                 .catch(error => this.error = "ERROR: " + error.response.data.name[0])
         }

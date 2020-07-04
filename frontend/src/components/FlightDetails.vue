@@ -87,7 +87,7 @@ export default {
         deleteFlight() {
             axios.delete("api/flights/" + this.flight.uuid, {
                 headers: { "Authorization": "Token " + this.storage.token }
-            }).then(() => this.$router.push("/flights"))
+            }).then(() => this.$router.replace("/flights"))
         },
         cancelFlight() {
             axios.post("/nodeodm/task/cancel", { uuid: this.flight.uuid });
