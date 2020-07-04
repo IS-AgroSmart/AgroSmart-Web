@@ -95,16 +95,12 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_user_can_delete_own_flight(self, c, users, flights):
         c.force_authenticate(users[0])
-        workspace_url = "http://localhost/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
-        httpretty.register_uri(httpretty.DELETE, workspace_url)
         resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))
         assert resp.status_code == 204
 
     @pytest.mark.xfail
     def test_user_cant_delete_other_flight(self, c, users, flights):
         c.force_authenticate(users[1])
-        workspace_url = "http://localhost/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
-        httpretty.register_uri(httpretty.DELETE, workspace_url)
         resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))
         assert resp.status_code == 404
 
@@ -114,10 +110,43 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         from rest_framework.authtoken.models import Token
         token = Token.objects.create(user=users[0])
         c.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
-        workspace_url = "http://localhost/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[2].uuid)
-        httpretty.register_uri(httpretty.DELETE, workspace_url)
         resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[2].uuid)}))
         assert resp.status_code == 204
+
+    def test_soft_delete(self, c, users, flights):
+        c.force_authenticate(users[0])
+        workspace_url = "http://localhost/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
+        httpretty.register_uri(httpretty.DELETE, workspace_url)
+        c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Send one DELETE request
+        try:
+            flight = users[0].flight_set.get(uuid=flights[0].uuid)
+            assert flight.deleted
+        except Flight.DoesNotExist:
+            pytest.fail("Flight should have existed")
+        resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Repeat the DELETE request
+        print(resp.status_code)
+        assert len(users[0].flight_set.filter(uuid=flights[0].uuid)) == 0  # Should not find the Flight
+
+    def test_soft_delete_already_deleted(self, c, users, flights):
+        c.force_authenticate(users[0])
+        workspace_url = "http://localhost/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
+        httpretty.register_uri(httpretty.DELETE, workspace_url)
+        flights[0].deleted = True  # Manually "delete" the Flight
+        flights[0].save()
+        c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Issue single DELETE request
+        assert len(users[0].flight_set.filter(uuid=flights[0].uuid)) == 0  # Should not find the Flight
+
+    def test_deleted_list(self, c, users, flights):
+        c.force_authenticate(users[0])
+        flights[0].deleted = True  # Manually "delete" the Flight
+        flights[0].save()
+
+        resp = c.get(reverse('flights-list')).json()  # GET the /api/flights endpoint
+        assert str(flights[0].uuid) not in [f["uuid"] for f in resp]  # flights[0] should NOT be there
+        assert str(flights[1].uuid) in [f["uuid"] for f in resp]  # flights[1] should be there
+        resp = c.get(reverse('flights-deleted')).json()  # GET the /api/flights/deleted endpoint
+        assert str(flights[0].uuid) in [f["uuid"] for f in resp]  # flights[0] should be there
+        assert str(flights[1].uuid) not in [f["uuid"] for f in resp]  # flights[1] should NOT be there
 
 
 @pytest.mark.django_db

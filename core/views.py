@@ -15,7 +15,9 @@ from django.http import QueryDict
 from lark.exceptions import LarkError
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
 
 from core.models import *
 from core.parser import FormulaParser
@@ -43,6 +45,16 @@ class FlightViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = FlightSerializer
 
+    @action(detail=False)
+    def deleted(self, request):
+        serializer = self.get_serializer(Flight.objects.filter(user=self.request.user, deleted=True), many=True)
+        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset().filter(deleted=False))
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_queryset(self):
         if self.request.user.is_staff:
             return Flight.objects.all()
@@ -54,9 +66,13 @@ class FlightViewSet(viewsets.ModelViewSet):
         else:
             serializer.save(user=User.objects.get(pk=self.request.POST["target_user"]))
 
-    def perform_destroy(self, instance):
+    def perform_destroy(self, instance: Flight):
         if self.request.user.is_staff or instance.user == self.request.user:
-            instance.delete()
+            if instance.deleted:
+                instance.delete()
+            else:
+                instance.deleted = True
+                instance.save()
         else:  # User is not admin nor file owner
             if instance.is_demo:
                 self.request.user.demo_flights.remove(instance)  # Remove demo flight ONLY FOR USER!
@@ -156,18 +172,19 @@ def download_artifact(request, uuid, artifact):
         raise Http404
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
+
 def download_artifact_movil(request, uuid, options, artifact):
     flight = get_object_or_404(Flight, uuid=uuid)
     content = {}
-    option_values =  {
-        "c" : 'pointcloud',
-        "m" : 'orthomosaic',
-        "g" : 'generaldata',
-        "n" : 'ndviortho',
-        "3" : '3dmodel'
+    option_values = {
+        "c": 'pointcloud',
+        "m": 'orthomosaic',
+        "g": 'generaldata',
+        "n": 'ndviortho',
+        "3": '3dmodel'
     }
 
-    for i in options :
+    for i in options:
         content[option_values[i]] = True
 
     dict_content = QueryDict('', mutable=True)

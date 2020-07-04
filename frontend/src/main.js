@@ -15,6 +15,7 @@ import 'vuelayers/lib/style.css' // needs css-loader
 import App from './App'
 import Home from './components/Home'
 import Flight from './components/Flight'
+import DeletedFlights from './components/DeletedFlights'
 import FlightDetails from './components/FlightDetails'
 import FlightResults from './components/FlightResults'
 import FlightReport from './components/FlightReport.vue'
@@ -51,6 +52,7 @@ const router = new VueRouter({
   routes: [
     { path: '/', component: Home },
     { path: '/flights', component: Flight },
+    { path: '/flights/deleted', component: DeletedFlights },
     { path: '/flights/:uuid', name: "flightDetails", component: FlightDetails },
     { path: '/flights/:uuid/upload', name: "uploadImages", component: UploadImages },
     { path: '/flights/:uuid/results', name: "flightResults", component: FlightResults },

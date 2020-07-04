@@ -8,6 +8,7 @@
             <b-collapse id="nav-collapse" is-nav>
                 <b-navbar-nav>
                     <b-nav-item to="/flights">Vuelos</b-nav-item>
+                    <b-nav-item to="/flights/deleted">Vuelos eliminados</b-nav-item>
                     <b-nav-item to="/projects">Proyectos</b-nav-item>
                 </b-navbar-nav>
     

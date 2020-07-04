@@ -10,12 +10,14 @@
                 <span style="white-space: pre;">{{flight.annotations}}</span>
             </b-card-text>
     
-            <b-button :to="{name: 'flightDetails', params: {uuid: flight.uuid}}" variant="primary">Ver detalles</b-button>
+            <b-button v-if="!deleted" :to="{name: 'flightDetails', params: {uuid: flight.uuid}}" variant="primary">Ver detalles</b-button>
+            <b-button v-else @click="deleteFlight" variant="danger">Eliminar</b-button>
         </b-card>
     </div>
 </template>
 
 <script>
+import axios from 'axios'
 import forceLogin from './mixins/force_login'
 
 export default {
@@ -41,7 +43,27 @@ export default {
             return this.flight.state == "ERROR"
         },
     },
-    props: ["flight"],
+    methods: {
+        deleteFlight() {
+            this.$bvModal.msgBoxConfirm('Este vuelo NO podrá ser recuperado.', {
+                    title: '¿Realmente desea eliminar el vuelo?',
+                    okVariant: 'danger',
+                    okTitle: 'Sí',
+                    cancelTitle: 'No',
+                    // hideHeaderClose: false
+                })
+                .then(value => {
+                    if (value)
+                        axios.delete("api/flights/" + this.flight.uuid, {
+                            headers: { "Authorization": "Token " + this.storage.token }
+                        }).then(() => this.$router.replace("/flights/deleted"))
+                })
+        }
+    },
+    props: {
+        flight: { type: Object },
+        deleted: { type: Boolean, default: false }
+    },
     mixins: [forceLogin]
 }
 </script>
