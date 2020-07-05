@@ -288,8 +288,10 @@ def preview_flight_url(request, uuid):
     return JsonResponse({"url": base, "bbox": bbox, "srs": ans["coverage"]["srs"]})
 
 
+
+@csrf_exempt
 def check_formula(request):
-    return HttpResponse(status=200 if FormulaParser().is_valid(request.GET["formula"]) else 400)
+    return HttpResponse(status=200 if FormulaParser().is_valid(request.POST["formula"]) else 400)
 
 
 @csrf_exempt

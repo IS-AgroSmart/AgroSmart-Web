@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div v-if="flight">
         <h1>Artefactos de {{ flight.name }}</h1>
     
         <b-alert variant="danger" v-if="error" show>{{error}}</b-alert>
@@ -25,7 +25,7 @@ const baseUrl = window.location.protocol + "//" + window.location.hostname + "/a
 export default {
     data() {
         return {
-            flight: {},
+            flight: null,
             error: "",
             //artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D"],
             artifacts: ["Ortomosaico (GeoTIFF)", "Modelo 3D"],

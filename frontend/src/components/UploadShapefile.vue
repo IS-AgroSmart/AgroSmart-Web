@@ -10,11 +10,11 @@
             </b-form-group>
             <b-form-group>
                 <p class="small text-muted">Escoja los tres archivos .shp, .shx y .dbf</p>
-                <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre un archivo shapefile..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" accept=".shp,.dbf,.shx"></b-form-file>
+                <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="validFiles" placeholder="Escoja o arrastre un archivo shapefile..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" accept=".shp,.dbf,.shx"></b-form-file>
             </b-form-group>
-            <div class="my-3 text-danger">{{ anyFiles ? "" : '¡No hay un shapefile seleccionado!' }}</div>
+            <div class="my-3 text-danger">{{ validFiles ? "" : 'Seleccione tres archivos con el mismo nombre y extensiones .shp, .shx y .dbf' }}</div>
     
-            <b-button :disabled="!anyFiles || uploading" type="submit" variant="primary">
+            <b-button :disabled="!validFiles || uploading" type="submit" variant="primary">
                 Subir <span v-if="uploading">({{uploadProgress}} %)</span>
             </b-button>
         </b-form>
@@ -38,8 +38,14 @@ export default {
         }
     },
     computed: {
-        anyFiles() {
-            return this.files != null;
+        validFiles() {
+            if (this.files.length != 3) return false;
+            var filePaths = this.files.map(file => file.name);
+            var fileNames = filePaths.map(path => path.substring(0, path.lastIndexOf("."))) // Filenames array (no extension)
+            var extensions = filePaths.map(path => path.substring(path.lastIndexOf(".") + 1)); // Extensions array
+            var fileNamesValid = fileNames.every(name => name === fileNames[0]); // True if all filenames are equal
+            var fileExtensionsValid = extensions.every(extension => ["shp", "shx", "dbf"].includes(extension));
+            return fileNamesValid && fileExtensionsValid;
         },
     },
     methods: {

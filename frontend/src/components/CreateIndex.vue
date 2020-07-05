@@ -27,7 +27,7 @@
                         <b-input v-debounce:1s="checkFormula" type="text" v-model="formula" placeholder="Escriba la fórmula" required/>
                     </b-form-group>
     
-                    <b-button :disabled="uploading" type="submit" variant="primary">
+                    <b-button :disabled="!indexOK || uploading" type="submit" variant="primary">
                         <div class="spinner-border spinner-border-sm" role="status" v-if="uploading">
                             <span class="sr-only">Checking...</span>
                         </div>
@@ -109,7 +109,9 @@ export default {
         checkFormula() {
             var that = this;
             this.uploading = true;
-            axios.get('/api/rastercalcs/check?formula=' + this.formula, {
+            var formdata = new FormData();
+            formdata.set("formula", this.formula);
+            axios.post('/api/rastercalcs/check', formdata, {
                     headers: { "Authorization": "Token " + this.storage.token },
                 })
                 .then(function(response) {

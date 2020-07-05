@@ -56,7 +56,7 @@ export default {
                     if (value)
                         axios.delete("api/flights/" + this.flight.uuid, {
                             headers: { "Authorization": "Token " + this.storage.token }
-                        }).then(() => this.$router.replace("/flights/deleted"))
+                        }).then(() => this.$emit("delete-confirmed"))
                 })
         }
     },

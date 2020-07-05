@@ -8,10 +8,15 @@
             <b-col class="d-flex">
                 <b-form @submit="downloadReport" class="mx-auto">
                     <b-form-group>
-                        <b-form-checkbox-group v-model="selected" :options="options" switches stacked></b-form-checkbox-group>
+                        <b-form-checkbox-group v-model="selected" switches stacked>
+                            <!-- Wrap on div to show Disabled tooltip -->
+                            <div v-for="option in options" :key="option.value" :title="option.disabled ? 'Esta sección no está disponible en este vuelo' : ''" b-v-tooltip>
+                                <b-form-checkbox :value="option.value" :disabled="option.disabled">{{option.text}}</b-form-checkbox>
+                            </div>
+                        </b-form-checkbox-group>
                     </b-form-group>
     
-                    <b-button type="submit" variant="primary">Descargar</b-button>
+                    <b-button :disabled="!someSectionsSelected" type="submit" variant="primary" :title="downloadButtonTooltip" b-v-tooltip>Descargar</b-button>
                 </b-form>
             </b-col>
         </b-row>
@@ -40,10 +45,12 @@ export default {
     },
     computed: {
         selectedSections() {
-            var dict = {}
+            var dict = {};
             for (let section of this.selected) dict[section] = "true";
             return dict;
         },
+        someSectionsSelected() { return this.selected.length > 0; },
+        downloadButtonTooltip() { return this.someSectionsSelected ? "" : "Seleccione al menos una sección" }
     },
     methods: {
         link(index) {
@@ -64,6 +71,7 @@ export default {
                     document.body.appendChild(fileLink);
                     fileLink.click();
                 })
+                .catch(error => this.error = error);
         }
     },
     created() {

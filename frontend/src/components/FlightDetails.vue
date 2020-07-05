@@ -97,10 +97,20 @@ export default {
                         axios.delete("api/flights/" + this.flight.uuid, {
                             headers: { "Authorization": "Token " + this.storage.token }
                         }).then(() => this.$router.replace("/flights/deleted"))
-                })
+                });
         },
         cancelFlight() {
-            axios.post("/nodeodm/task/cancel", { uuid: this.flight.uuid });
+            this.$bvModal.msgBoxConfirm('¿Realmente desea cancelar el procesamiento del vuelo?', {
+                    okVariant: 'danger',
+                    okTitle: 'Sí',
+                    cancelTitle: 'No',
+                    // hideHeaderClose: false
+                })
+                .then(value => {
+                    if (value)
+                        axios.post("/nodeodm/task/cancel", { uuid: this.flight.uuid });
+                });
+
         },
         onCopySuccess: function() {
             this.$refs.tooltip.$emit("open");
