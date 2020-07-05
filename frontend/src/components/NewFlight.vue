@@ -53,7 +53,7 @@ export default {
                 .then(response => {
                     this.$router.replace({ "name": "uploadImages", params: { "uuid": response.data.uuid } })
                 })
-                .catch(error => this.error = "ERROR: " + error.response.data.name[0])
+                .catch(() => this.error = "ERROR: Verifique que no exista un vuelo con el mismo nombre");
         }
     },
     mixins: [forceLogin]
