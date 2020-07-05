@@ -202,10 +202,13 @@ class Flight(models.Model):
     def get_thumbnail_path(self):
         return "./tmp/" + str(self.uuid) + "_thumbnail.png"
 
+    def get_png_ortho_path(self):
+        return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
+
     def _get_geoserver_ws_name(self):
         return "flight_" + str(self.uuid)
 
-    def try_create_thumbnail(self):
+    def _try_create_image(self, out_path, thumbnail):
         if self.state != FlightState.COMPLETE.name:
             return
         if self.camera == Camera.REDEDGE.name:
@@ -220,24 +223,31 @@ class Flight(models.Model):
         else:
             source_image = "odm_orthophoto.tif"
             mask = None
-        print("THUMBNAIL: ", source_image, mask)
 
         size = (512, 512)
 
         infile = self.get_disk_path() + "/odm_orthophoto/" + source_image
         try:
             im = Image.open(infile)
-            im.thumbnail(size)
-            im = ImageOps.fit(im, size)
+            if thumbnail:
+                im.thumbnail(size)
+                im = ImageOps.fit(im, size)
             if mask:
                 msk = Image.open(self.get_disk_path() + "/odm_orthophoto/" + mask).split()[0]
-                msk.thumbnail(size)
-                msk = ImageOps.fit(msk, size)
+                if thumbnail:
+                    msk.thumbnail(size)
+                    msk = ImageOps.fit(msk, size)
                 im.putalpha(msk)
 
-            im.save(self.get_thumbnail_path(), "PNG")
+            im.save(out_path, "PNG")
         except IOError as e:
             print(e)
+
+    def try_create_thumbnail(self):
+        self._try_create_image(self.get_thumbnail_path(), True)
+
+    def try_create_png_ortho(self):
+        self._try_create_image(self.get_png_ortho_path(), False)
 
     def create_index_raster(self, index: str, formula: str):
         COMMANDS = {

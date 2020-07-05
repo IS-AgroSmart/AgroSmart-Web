@@ -147,6 +147,7 @@ def webhook_processing_complete(request):
     flight.save()
 
     flight.try_create_thumbnail()
+    flight.try_create_png_ortho()
     flight.create_geoserver_workspace_and_upload_geotiff()  # _try_create_thumbnail must have been invoked here!
 
     return HttpResponse()

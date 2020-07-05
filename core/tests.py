@@ -42,6 +42,11 @@ class FlightModelTest(TestCase):
         f = self.user.flight_set.create(name="flight", date=datetime.now())
         self.assertEqual(f.state, FlightState.WAITING.name)
 
+    def test_flight_png_ortho_path(self):
+        f = self.user.flight_set.create(name="flight", date=datetime.now())
+        self.assertTrue(str(f.uuid) in f.get_png_ortho_path())
+        self.assertTrue(f.get_png_ortho_path().endswith("/odm_orthophoto/odm_orthophoto.png"))
+
 
 class TestParser:
     @pytest.fixture

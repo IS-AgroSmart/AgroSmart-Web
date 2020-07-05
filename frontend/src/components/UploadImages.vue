@@ -6,10 +6,10 @@
     
         <b-form @submit="onSubmit">
             <p class="small text-muted">{{ validFormats }}</p>
-            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="anyFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" :accept="validFormats"></b-form-file>
-            <div class="my-3 text-danger">{{ anyFiles ? "" : '¡No hay archivos seleccionados!' }}</div>
+            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="enoughFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" :accept="validFormats"></b-form-file>
+            <div class="my-3 text-danger">{{ enoughFiles ? "" : '¡No hay suficientes archivos seleccionados!' }}</div>
     
-            <b-button :disabled="!anyFiles || uploading" type="submit" variant="primary">
+            <b-button :disabled="!enoughFiles || uploading" type="submit" variant="primary">
                 Subir <span v-if="uploading">({{uploadProgress}} %)</span>
             </b-button>
         </b-form>
