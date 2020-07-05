@@ -34,8 +34,8 @@ export default {
         }
     },
     computed: {
-        anyFiles() {
-            return this.files.length > 0;
+        enoughFiles() {
+            return this.files.length >= 3;
         },
         validFormats() { return this.flight.camera == "RGB" ? "image/jpeg, image/png" : "image/tiff"; },
     },

@@ -151,6 +151,6 @@ def test_download_artifact(c, flights, fs):
 
 
 def test_formula_checker_endpoint(c):
-    assert c.get(reverse("check_formula") + "?formula=%28red%2Bblue%29").status_code == 200
-    assert c.get(reverse("check_formula") + "?formula=%28red%2Bblue").status_code == 400
-    assert c.get(reverse("check_formula") + "?formula=foobar").status_code == 400
+    assert c.post(reverse("check_formula"), {"formula": "(red+  blue)"}).status_code == 200
+    assert c.post(reverse("check_formula"), {"formula": "(red+  blue"}).status_code == 400
+    assert c.post(reverse("check_formula"), {"formula": "foobar"}).status_code == 400
