@@ -9,20 +9,26 @@
                 <b-form-textarea id="input-2" v-model="form.description" placeholder="Describa el proyecto" rows="4" required></b-form-textarea>
             </b-form-group>
             <b-form-group id="input-group-3" label="Vuelos:" label-for="input-3">
-                <multiselect id="input-3" v-model="form.flights" :options="flights" label="name" track-by="uuid" value-field="uuid" placeholder="Escoja al menos un vuelo" multiple></multiselect>
-                <small class="form-text text-muted">Seleccione uno o varios vuelos con Ctrl.</small>
+                <div :class="{ 'invalid': !sameCamera }">
+                    <multiselect id="input-3" v-model="form.flights" :options="flights" label="name" :custom-label="flightLabel" track-by="uuid" value-field="uuid" placeholder="Escoja al menos un vuelo" multiple :state="sameCamera"></multiselect>
+                    <small class="form-text text-danger" v-if="!sameCamera">Todos los vuelos de un mismo proyecto deben haber usado la misma cámara</small>
+                    <small class="form-text text-muted">Seleccione uno o varios vuelos con Ctrl.</small>
+                </div>
             </b-form-group>
-            <!--<b-form-group id="input-group-4" label="Artefactos:" label-for="input-4">
-                <b-form-select id="input-4" v-model="form.artifact" :options="artifacts" value-field="pk" text-field="type" multiple :select-size="2"></b-form-select>
-            </b-form-group>-->
     
-            <b-button type="submit" variant="primary" :disabled="!anyFlights">Submit</b-button>
+            <b-button type="submit" variant="primary" :disabled="!anyFlights || !sameCamera">Submit</b-button>
         </b-form>
     </div>
 </template>
 
 <style src="vue-multiselect/dist/vue-multiselect.min.css">
 
+</style>
+
+<style>
+.invalid .multiselect__tags {
+    border-color: red;
+}
 </style>
 
 <script>
@@ -62,11 +68,19 @@ export default {
                 })
                 .then(() => this.$router.push("/projects"))
                 .catch(error => (this.error = "ERROR: " + error.response.data.name[0]));
-        }
+        },
+        flightLabel(flight) {
+            let cameraName = this.$cameras.find((x) => x.value == flight.camera).text;
+            return `${flight.name} (${cameraName})`
+        },
     },
     computed: {
         anyFlights: function() {
             return this.form.flights.length > 0;
+        },
+        sameCamera: function() {
+            if (!this.anyFlights) return true;
+            return this.form.flights.every((flight) => flight.camera == this.form.flights[0].camera);
         }
     },
     created() {

@@ -2,7 +2,7 @@
     <div>
         <b-alert v-if="error" show variant="danger">
             <p>Error en la creación de cuenta</p>
-            {{ error }}
+            <span style="white-space: pre;">{{ error }}</span>
         </b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Usuario:" label-for="input-1">
@@ -73,16 +73,24 @@ export default {
                     if (response.status == 201)
                         this.goBack();
                     else
-                        this.error = response.body;
+                        this.error = this.errorToLines(response.body);
                 })
                 .catch(error => {
-                    window.console.log(error);
-                    this.error = error.response.data;
+                    this.error = error.response ? this.errorToLines(error.response.data) : error;
                 });
         },
         goBack() {
             this.$router.go(-1);
         },
+        errorToLines(body) {
+            var err = "";
+            for (var field in body) {
+                for (var error of body[field]) {
+                    err += field + ": " + error + "\n";
+                }
+            }
+            return err;
+        }
     }
 }
 </script>
