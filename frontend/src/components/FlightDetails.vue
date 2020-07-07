@@ -97,6 +97,13 @@ export default {
                         axios.delete("api/flights/" + this.flight.uuid, {
                             headers: { "Authorization": "Token " + this.storage.token }
                         }).then(() => this.$router.replace("/flights/deleted"))
+                        .catch(() => {
+                            this.$bvToast.toast('Error al eliminar el vuelo', {
+                                title: "Error",
+                                autoHideDelay: 3000,
+                                variant: "danger",
+                            });
+                        });
                 });
         },
         cancelFlight() {

@@ -1,10 +1,12 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from core.models import *
 
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    email = serializers.EmailField(validators=[UniqueValidator(queryset=User.objects.all())])
 
     def create(self, validated_data):
         user = User.objects.create(
