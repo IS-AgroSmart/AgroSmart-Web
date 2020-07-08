@@ -32,7 +32,7 @@ class FlightSerializer(serializers.ModelSerializer):
     class Meta:
         model = Flight
         fields = ["uuid", "name", "user", "date", "camera", "annotations", "state", "nodeodm_info", "processing_time",
-                  "is_demo"]
+                  "is_demo", "deleted"]
 
 
 class ArtifactSerializer(serializers.ModelSerializer):

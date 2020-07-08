@@ -4,7 +4,7 @@
     
         <div v-if="error">Error!</div>
         <div class="row">
-            <flight-partial v-for="flight in flights" :flight="flight" :key="flight.uuid" deleted @delete-confirmed="deleted"></flight-partial>
+            <flight-partial v-for="flight in flights" :flight="flight" :key="flight.uuid" deleted @delete-confirmed="updateFlights"  @restore-confirmed="updateFlights"></flight-partial>
         </div>
         <b-alert v-if="noFlights" variant="info" show>No tiene vuelos eliminados</b-alert>
     </div>
@@ -36,7 +36,6 @@ export default {
                 .then(response => (this.flights = response.data))
                 .catch(error => this.error = error);
         },
-        deleted() { this.updateFlights(); }
     },
     created() {
         this.updateFlights();

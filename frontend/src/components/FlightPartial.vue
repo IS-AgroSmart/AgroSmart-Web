@@ -11,7 +11,10 @@
             </b-card-text>
     
             <b-button v-if="!deleted" :to="{name: 'flightDetails', params: {uuid: flight.uuid}}" variant="primary">Ver detalles</b-button>
-            <b-button v-else @click="deleteFlight" variant="danger">Eliminar</b-button>
+            <div v-else>
+                <b-button @click="deleteFlight" variant="danger" class="mx-1 my-1">Eliminar</b-button>
+                <b-button @click="restoreFlight" variant="success" class="mx-1 my-1">Restaurar</b-button>
+            </div>
         </b-card>
     </div>
 </template>
@@ -57,7 +60,26 @@ export default {
                         axios.delete("api/flights/" + this.flight.uuid, {
                             headers: { "Authorization": "Token " + this.storage.token }
                         }).then(() => this.$emit("delete-confirmed"))
+                        .catch(() => {
+                            this.$bvToast.toast('Error al eliminar el vuelo', {
+                                title: "Error",
+                                autoHideDelay: 3000,
+                                variant: "danger",
+                            });
+                        });
                 })
+        },
+        restoreFlight() {
+            axios.patch("api/flights/" + this.flight.uuid + "/", { deleted: false }, {
+                    headers: { "Authorization": "Token " + this.storage.token }
+                }).then(() => this.$emit("restore-confirmed"))
+                .catch(() => {
+                    this.$bvToast.toast('Error al restaurar el vuelo', {
+                        title: "Error",
+                        autoHideDelay: 3000,
+                        variant: "danger",
+                    });
+                });
         }
     },
     props: {
