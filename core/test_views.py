@@ -10,7 +10,7 @@ from httpretty import httpretty
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from core.models import FlightState
+from core.models import FlightState, UserType
 
 pytestmark = pytest.mark.django_db
 
@@ -20,7 +20,8 @@ def users():
     User = get_user_model()
     u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1")
     u2 = User.objects.create_user(username="u2", email="u2@example.com", password="u2")
-    admin = User.objects.create_user(username="admin", email="admin@example.com", password="admin", is_staff=True)
+    admin = User.objects.create_user(username="admin", email="admin@example.com", password="admin",
+                                     type=UserType.ADMIN.name)
 
     Token.objects.create(user=u1)
     Token.objects.create(user=u2)
