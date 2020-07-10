@@ -48,7 +48,7 @@ export default {
 
             axios
                 .post("api/flights/", this.form, {
-                    headers: { "Authorization": "Token " + this.storage.token },
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => {
                     this.$router.replace({ "name": "uploadImages", params: { "uuid": response.data.uuid } })

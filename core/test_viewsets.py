@@ -98,6 +98,13 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert str(flights[3].uuid) not in (f["uuid"] for f in resp)
         assert str(flights[4].uuid) not in (f["uuid"] for f in resp)
 
+    def test_admin_can_see_other_flight_details(self, c, users, flights):
+        c.force_authenticate(users[2])
+        resp = c.get(reverse('flights-detail', kwargs={"pk": flights[0].uuid}),
+                     HTTP_TARGETUSER=users[0].pk)
+        assert resp.status_code == 200
+        assert resp.json()["uuid"] == str(flights[0].uuid)
+
     def _create_flight(self, c, expected_status, as_user=None):
         kwargs = {"HTTP_TARGETUSER": as_user} if as_user else {}
         resp = c.post(reverse('flights-list'),

@@ -58,7 +58,7 @@ export default {
                 .then(value => {
                     if (value)
                         axios.delete("api/flights/" + this.flight.uuid, {
-                            headers: { "Authorization": "Token " + this.storage.token }
+                            headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                         }).then(() => this.$emit("delete-confirmed"))
                         .catch(() => {
                             this.$bvToast.toast('Error al eliminar el vuelo', {
@@ -71,7 +71,7 @@ export default {
         },
         restoreFlight() {
             axios.patch("api/flights/" + this.flight.uuid + "/", { deleted: false }, {
-                    headers: { "Authorization": "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 }).then(() => this.$emit("restore-confirmed"))
                 .catch(() => {
                     this.$bvToast.toast('Error al restaurar el vuelo', {

@@ -53,7 +53,7 @@ export default {
             var that = this;
             this.uploading = true;
             axios.post('/api/uploads/' + this.$route.params.uuid + '/geotiff', data, {
-                    headers: { "Authorization": "Token " + this.storage.token },
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(function() {
                     alert("Redirecting...");

@@ -64,7 +64,7 @@ export default {
 
             axios
                 .post("api/projects/", fd, {
-                    headers: { Authorization: "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(() => this.$router.push("/projects"))
                 .catch(error => (this.error = "ERROR: " + error.response.data.name[0]));
@@ -86,7 +86,7 @@ export default {
     created() {
         axios
             .get("api/flights", {
-                headers: { Authorization: "Token " + this.storage.token }
+                headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
             })
             .then(response => (this.flights = response.data.filter(flight => flight.state == "COMPLETE")))
             .catch(error => (this.error = error));

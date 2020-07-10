@@ -88,7 +88,7 @@ export default {
 
             data.append("title", this.title);
             axios.post('/api/rastercalcs/' + this.$route.params.uuid, { formula: this.formula, index: this.name }, {
-                    headers: { "Authorization": "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(function(response) {
                     that.uploading = false;
@@ -112,7 +112,7 @@ export default {
             var formdata = new FormData();
             formdata.set("formula", this.formula);
             axios.post('/api/rastercalcs/check', formdata, {
-                    headers: { "Authorization": "Token " + this.storage.token },
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(function(response) {
                     that.uploading = false;
