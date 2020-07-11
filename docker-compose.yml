@@ -31,7 +31,7 @@ services:
             - "--log_level"
             - "silly"
             - "--webhook"
-            - "http://localhost:8000/api/webhook-processing-complete"
+            - "http://container-nginx/api/webhook-processing-complete"
     postgres:
         image: postgres
         network_mode: host

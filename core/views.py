@@ -115,14 +115,14 @@ def upload_images(request, uuid):
         filenames.append(tmp_file)
         files.append(('images', open(tmp_file, "rb")))
     # upload files to NodeODM server
-    r = requests.post("http://localhost:3000/task/new/upload/" + str(flight.uuid), files=files)
+    r = requests.post("http://container-nodeodm:3000/task/new/upload/" + str(flight.uuid), files=files)
     if r.status_code != 200:
         return HttpResponse(status=500)
     for f in filenames:  # delete temp files from disk
         os.remove(f)
 
     # start processing Flight on NodeODM
-    r = requests.post("http://localhost:3000/task/new/commit/" + str(flight.uuid))
+    r = requests.post("http://container-nodeodm:3000/task/new/commit/" + str(flight.uuid))
     if r.status_code != 200:
         return HttpResponse(status=500)
 
@@ -217,7 +217,7 @@ def upload_shapefile(request, uuid):
             for chunk in file.chunks():
                 f.write(chunk)
 
-    GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
+    GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/"
@@ -249,7 +249,7 @@ def upload_geotiff(request, uuid):
         for chunk in file.chunks():
             f.write(chunk)
 
-    GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
+    GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" + geotiff_name + "/"
@@ -276,7 +276,7 @@ def preview_flight_url(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
 
     ans = requests.get(
-        "http://localhost/geoserver/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
+        "http://container-nginx/geoserver/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
         "/coveragestores/ortho/coverages/odm_orthophoto.json",
         auth=HTTPBasicAuth('admin', 'geoserver')).json()
     bbox = ans["coverage"]["nativeBoundingBox"]
@@ -336,7 +336,7 @@ def mapper_bbox(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
 
     ans = requests.get(
-        "http://localhost/geoserver/geoserver/rest/workspaces/" + project._get_geoserver_ws_name() +
+        "http://container-nginx/geoserver/geoserver/rest/workspaces/" + project._get_geoserver_ws_name() +
         "/coveragestores/mainortho/coverages/mainortho.json",
         auth=HTTPBasicAuth('admin', 'geoserver')).json()
 
