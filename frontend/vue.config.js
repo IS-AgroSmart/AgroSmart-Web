@@ -4,6 +4,7 @@ module.exports = {
     watchOptions: {
       poll: true
     },
+    disableHostCheck: true
   },
   runtimeCompiler: true,
 }

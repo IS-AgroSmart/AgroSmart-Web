@@ -31,7 +31,7 @@ def users():
 @pytest.fixture
 def flights(users):
     httpretty.enable()
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/init", body="")
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/init", body="")
     f1 = users[0].flight_set.create(name="flight1", date=datetime.now())
     return f1,
 
@@ -48,8 +48,8 @@ def _auth(c, user):
 
 def test_upload_images_succesful(c, users, flights, fs):
     _auth(c, users[0])
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/upload/" + str(flights[0].uuid), "")
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/commit/" + str(flights[0].uuid), "")
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid), "")
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid), "")
     fs.create_file("/tmp/image1.jpg", contents="foobar")
     with open("/tmp/image1.jpg") as f:
         resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
@@ -61,7 +61,7 @@ def test_upload_images_error_on_creation(c, users, flights, fs):
     import django, pytz
 
     _auth(c, users[0])
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/upload/" + str(flights[0].uuid), "",
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid), "",
                            status=500)
     fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
     fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
@@ -74,8 +74,8 @@ def test_upload_images_error_on_commit(c, users, flights, fs):
     import django, pytz
 
     _auth(c, users[0])
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/upload/" + str(flights[0].uuid), "")
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/commit/" + str(flights[0].uuid), "",
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid), "")
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid), "",
                            status=500)
     fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
     fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
@@ -91,8 +91,8 @@ def test_upload_images_other_user(c, users, flights):
 
 def test_upload_images_admin(c, users, flights, fs):
     _auth(c, users[2])
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/upload/" + str(flights[0].uuid), "")
-    httpretty.register_uri(httpretty.POST, "http://localhost:3000/task/new/commit/" + str(flights[0].uuid), "")
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid), "")
+    httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid), "")
     resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}))
     assert resp.status_code == 200
 
@@ -105,8 +105,8 @@ def _test_webhook(c, flight, code):
         executed = True
         return [200, response_headers, ""]
 
-    httpretty.register_uri(httpretty.POST, "http://localhost/geoserver/geoserver/rest/workspaces", "")
-    httpretty.register_uri(httpretty.PUT, "http://localhost/geoserver/geoserver/rest/workspaces/flight_" +
+    httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces", "")
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/external.geotiff", mark_executed)
     resp = c.post(reverse("webhook"), json.dumps(
         {"uuid": str(flight.uuid), "status": {"code": code}}), content_type="application/text")
