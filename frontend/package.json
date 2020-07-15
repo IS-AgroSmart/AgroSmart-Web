@@ -35,7 +35,11 @@
     "babel-eslint": "^10.0.3",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
-    "vue-template-compiler": "^2.6.10"
+    "html-webpack-exclude-assets-plugin": "0.0.7",
+    "html-webpack-skip-assets-plugin": "0.0.2",
+    "vue-template-compiler": "^2.6.10",
+    "webpack-bundle-analyzer": "^3.8.0",
+    "webpack-cdn-plugin": "^3.3.1"
   },
   "eslintConfig": {
     "root": true,
