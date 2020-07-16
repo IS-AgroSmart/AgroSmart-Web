@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run tests
-        run: pytest --cov .
+        run: pytest --cov . --junitxml=xunit-reports/xunit-result-main.xml
       - name: Generate coverage report
         run: coverage xml
       - name: SonarCloud Scan
