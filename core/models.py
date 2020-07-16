@@ -66,7 +66,7 @@ class UserProject(BaseProject):
         return all(flight.camera == Camera.REDEDGE.name for flight in self.flights.all())
 
     def _create_geoserver_proj_workspace(self):
-        requests.post("http://localhost/geoserver/geoserver/rest/workspaces",
+        requests.post("http://container-nginx/geoserver/geoserver/rest/workspaces",
                       headers={"Content-Type": "application/json"},
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
                       auth=HTTPBasicAuth('admin', 'geoserver'))
@@ -95,7 +95,7 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
             f.write("regex=[0-9]{8},format=yyyyMMdd")
         # For multispectral: slice multispectral bands, save on /projects/uuid/nir and /projects/uuid/rededge
         # Create datastore and ImageMosaic
-        GEOSERVER_BASE_URL = "http://localhost/geoserver/geoserver/rest/workspaces/"
+        GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
         requests.put(
             GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/mainortho/external.imagemosaic",
             headers={"Content-Type": "text/plain"},
@@ -130,7 +130,7 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
         with open(index_folder + "/timeregex.properties", "w") as f:
             f.write("regex=[0-9]{8},format=yyyyMMdd")
 
-        GEOSERVER_API_ENTRYPOINT = "http://localhost/geoserver/geoserver/rest/"
+        GEOSERVER_API_ENTRYPOINT = "http://container-nginx/geoserver/geoserver/rest/"
         GEOSERVER_BASE_URL = GEOSERVER_API_ENTRYPOINT + "workspaces/"
         requests.put(
             GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/" + index + "/external.imagemosaic",
@@ -192,7 +192,7 @@ class Flight(models.Model):
         if self.state != FlightState.PROCESSING.name:
             return {}
 
-        data = requests.get("http://localhost:3000/task/" + str(self.uuid) + "/info").json()
+        data = requests.get("http://container-nodeodm:3000/task/" + str(self.uuid) + "/info").json()
         return {"processingTime": data.get("processingTime", 0), "progress": data.get("progress", 0),
                 "numImages": data.get("imagesCount", 0)}
 
@@ -263,20 +263,20 @@ class Flight(models.Model):
         os.chdir(original_dir)
 
     def create_geoserver_workspace_and_upload_geotiff(self):
-        requests.post("http://localhost/geoserver/geoserver/rest/workspaces",
+        requests.post("http://container-nginx/geoserver/geoserver/rest/workspaces",
                       headers={"Content-Type": "application/json"},
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
                       auth=HTTPBasicAuth('admin', 'geoserver'))
         using_micasense = self.camera == Camera.REDEDGE.name
         geotiff_name = "odm_orthophoto.tif" if not using_micasense else "rgb.tif"
         requests.put(
-            "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/external.geotiff",
+            "http://container-nginx/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/external.geotiff",
             headers={"Content-Type": "text/plain"},
             data="file:///media/input/" + str(self.uuid) + "/odm_orthophoto/" + geotiff_name,
             auth=HTTPBasicAuth('admin', 'geoserver'))
         if using_micasense:  # Change name to odm_orthomosaic and configure transparent color on black
             requests.put(
-                "http://localhost/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/coverages/rgb.json",
+                "http://container-nginx/geoserver/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/coverages/rgb.json",
                 headers={"Content-Type": "application/json"},
                 data='{"coverage": {"name": "odm_orthophoto", "title": "odm_orthophoto", "enabled": true, ' +
                      '"parameters": { "entry": [ { "string": [ "InputTransparentColor", "#000000" ] }, ' +
@@ -298,11 +298,11 @@ class Flight(models.Model):
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:
-        requests.post('http://localhost:3000/task/new/init',
+        requests.post('http://container-nodeodm:3000/task/new/init',
                       headers={"set-uuid": str(instance.uuid)},
                       files={
                           "name": (None, instance.name),
-                          "webhook": (None, "http://localhost:8000/api/webhook-processing-complete"),
+                          "webhook": (None, "http://container-nginx/api/webhook-processing-complete"),
                           "options": (
                               None, json.dumps([{"name": "dsm", "value": True}, {"name": "time", "value": True}])
                           )
@@ -316,14 +316,14 @@ def link_demo_flight_to_active_users(sender, instance: Flight, created, **kwargs
 
 
 def delete_nodeodm_task(sender, instance: Flight, **kwargs):
-    requests.post("http://localhost:3000/task/remove",
+    requests.post("http://container-nodeodm:3000/task/remove",
                   headers={'Content-Type': "application/x-www-form-urlencoded"},
                   data="uuid=" + str(instance.uuid), )
 
 
 def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **kwargs):
     querystring = {"recurse": "true"}
-    requests.delete("http://localhost/geoserver/geoserver/rest/workspaces/" + instance._get_geoserver_ws_name(),
+    requests.delete("http://container-nginx/geoserver/geoserver/rest/workspaces/" + instance._get_geoserver_ws_name(),
                     params=querystring,
                     auth=HTTPBasicAuth('admin', 'geoserver'))
 
