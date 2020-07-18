@@ -35,11 +35,38 @@
             </div>
         </div>
     {% endif %}
+
+    <a id="geojson-download" download="map.png"></a>
 </div>
 
 <style>
     .rotate-north {
         top: 265px;
+        left: .5em;
+    }
+
+    .measure-length {
+        top: 298px;
+        left: .5em;
+    }
+
+    .measure-area {
+        top: 330px;
+        left: .5em;
+    }
+
+    .save-meas {
+        top: 362px;
+        left: .5em;
+    }
+
+    .clear-meas {
+        top: 394px;
+        left: .5em;
+    }
+
+    .remove-annotations {
+        top: 362px;
         left: .5em;
     }
 
@@ -99,6 +126,43 @@
     /* Show the dropdown menu on hover */
     .dropdown:hover .dropdown-content {
         display: block;
+    }
+
+    .tooltip {
+        position: relative;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 4px;
+        color: white;
+        padding: 4px 8px;
+        opacity: 0.7;
+        white-space: nowrap;
+    }
+
+    .tooltip-measure {
+        opacity: 1;
+        font-weight: bold;
+    }
+
+    .tooltip-static {
+        background-color: #ffcc33;
+        color: black;
+        border: 1px solid white;
+    }
+
+    .tooltip-measure:before,
+    .tooltip-static:before {
+        border-top: 6px solid rgba(0, 0, 0, 0.5);
+        border-right: 6px solid transparent;
+        border-left: 6px solid transparent;
+        content: "";
+        position: absolute;
+        bottom: -6px;
+        margin-left: -7px;
+        left: 50%;
+    }
+
+    .tooltip-static:before {
+        border-top-color: #ffcc33;
     }
 </style>
 
