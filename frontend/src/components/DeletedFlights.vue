@@ -31,7 +31,7 @@ export default {
         updateFlights() {
             axios
                 .get('api/flights/deleted', {
-                    headers: { "Authorization": "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => (this.flights = response.data))
                 .catch(error => this.error = error);

@@ -57,7 +57,7 @@ export default {
             var that = this;
             this.uploading = true;
             axios.post('/api/upload-files/' + this.$route.params.uuid, data, {
-                    headers: { "Authorization": "Token " + this.storage.token },
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                     onUploadProgress: function(progressEvent) {
                         var percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                         that.uploadProgress = percentCompleted;
@@ -75,7 +75,7 @@ export default {
     created() {
         axios
             .get("api/flights/" + this.$route.params.uuid, {
-                headers: { "Authorization": "Token " + this.storage.token }
+                headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
             })
             .then(response => {
                 this.flight = response.data;

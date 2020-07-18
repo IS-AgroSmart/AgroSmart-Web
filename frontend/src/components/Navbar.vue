@@ -17,10 +17,10 @@
                     <div v-if="isLoggedIn">
                         <b-nav-item-dropdown right>
                             <!-- Using 'button-content' slot -->
-                            <template v-slot:button-content>
-                                        <em>Mi cuenta</em>
+                            <template v-slot:button-content><em>Mi cuenta</em>
 </template>
                         <b-dropdown-item to="/profile">Perfil</b-dropdown-item>
+                        <b-dropdown-item v-if="isAdmin" to="/admin">Administración</b-dropdown-item>
                         <b-dropdown-item to="/logout">Cerrar sesión</b-dropdown-item>
                     </b-nav-item-dropdown>
                     </div>
@@ -42,7 +42,8 @@ export default {
         };
     },
     computed: {
-        isLoggedIn() { return this.storage.token != ""; }
+        isLoggedIn() { return this.storage.token != ""; },
+        isAdmin() { return this.storage.loggedInUser != null && this.storage.loggedInUser.type == "ADMIN"; },
     },
 }
 </script>

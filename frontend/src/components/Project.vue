@@ -32,7 +32,7 @@ export default {
         updateProjects() {
             axios
                 .get('api/projects', {
-                    headers: { "Authorization": "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => (this.projects = response.data))
                 .catch(error => this.error = error);

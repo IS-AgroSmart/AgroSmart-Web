@@ -38,7 +38,10 @@ class UserViewSet(viewsets.ModelViewSet):
         return super(UserViewSet, self).get_permissions()
 
     def get_queryset(self):
-        return User.objects.all() if self.request.user.is_staff else User.objects.filter(pk=self.request.user.pk)
+        if self.request.user.type == UserType.ADMIN.name:
+            return User.objects.all()
+        else:
+            return User.objects.filter(pk=self.request.user.pk)
 
 
 class FlightViewSet(viewsets.ModelViewSet):
@@ -47,7 +50,11 @@ class FlightViewSet(viewsets.ModelViewSet):
 
     @action(detail=False)
     def deleted(self, request):
-        serializer = self.get_serializer(Flight.objects.filter(user=self.request.user, deleted=True), many=True)
+        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
+            user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
+        else:
+            user = self.request.user
+        serializer = self.get_serializer(Flight.objects.filter(user=user, deleted=True), many=True)
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
@@ -56,18 +63,20 @@ class FlightViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Flight.objects.all()
-        return Flight.objects.filter(user=self.request.user) | self.request.user.demo_flights.all()
+        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
+            user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
+        else:
+            user = self.request.user
+        return Flight.objects.filter(user=user) | user.demo_flights.all()
 
     def perform_create(self, serializer):
-        if not self.request.user.is_staff or "target_user" not in self.request.POST:
-            serializer.save(user=self.request.user)
+        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
+            serializer.save(user=User.objects.get(pk=self.request.META["HTTP_TARGETUSER"]))
         else:
-            serializer.save(user=User.objects.get(pk=self.request.POST["target_user"]))
+            serializer.save(user=self.request.user)
 
     def perform_destroy(self, instance: Flight):
-        if self.request.user.is_staff or instance.user == self.request.user:
+        if self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
             if instance.deleted:
                 instance.delete()
             else:
@@ -91,20 +100,25 @@ class UserProjectViewSet(viewsets.ModelViewSet):
     serializer_class = UserProjectSerializer
 
     def get_queryset(self):
-        return UserProject.objects.filter(user=self.request.user)
+        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
+            return UserProject.objects.filter(user=User.objects.get(pk=self.request.META["HTTP_TARGETUSER"]))
+        else:
+            return UserProject.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        if not self.request.user.is_staff or "target_user" not in self.request.POST:
-            serializer.save(user=self.request.user)
+        all_flights = [Flight.objects.get(uuid=uuid) for uuid in self.request.POST.getlist("flights")]
+        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
+            target_user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
         else:
-            serializer.save(user=User.objects.get(pk=self.request.POST["target_user"]))
+            target_user = self.request.user
+        serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
 
 
 @csrf_exempt
 def upload_images(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
     user = Token.objects.get(key=request.headers["Authorization"][6:]).user
-    if not user.is_staff and not flight.user == user:
+    if not user.type == UserType.ADMIN.name and not flight.user == user:
         return HttpResponse(status=403)
 
     files = []
@@ -287,7 +301,6 @@ def preview_flight_url(request, uuid):
            "&width=1000&height=1000&srs=EPSG:32617&format=application/openlayers"
 
     return JsonResponse({"url": base, "bbox": bbox, "srs": ans["coverage"]["srs"]})
-
 
 
 @csrf_exempt

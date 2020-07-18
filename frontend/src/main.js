@@ -31,11 +31,15 @@ import NewProject from './components/NewProject'
 import Login from './components/Login'
 import Logout from './components/Logout'
 import SignUp from './components/SignUp'
+import AdminHomepage from './components/AdminHomepage'
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
 Vue.use(ReactiveStorage, {
   "token": "",
+  "isAdmin": false, 
+  "otherUserPk": 0,
+  "loggedInUser": {}
 });
 const moment = require('moment');
 require('moment/locale/es');
@@ -68,6 +72,7 @@ const router = new VueRouter({
     { path: '/login', component: Login },
     { path: '/logout', component: Logout },
     { path: '/signup', name: 'signUp', component: SignUp },
+    { path: '/admin', name: 'adminHome', component: AdminHomepage },
   ]
 })
 
@@ -75,7 +80,14 @@ Vue.config.productionTip = false;
 Vue.config.devtools = true;
 
 Vue.prototype.$isLoggedIn = function() {
-  return this.storage.token != "";
+  return this.storage.token != undefined && this.storage.token != "";
+}
+Vue.prototype.$isAdmin = function() {
+  return this.storage.isAdmin != undefined && this.storage.isAdmin;
+}
+Vue.prototype.$isMasquerading = function() {
+  if(this.storage.otherUserPk != undefined && this.storage.otherUserPk != "") return this.storage.otherUserPk;
+  else return null;
 }
 Vue.prototype.$cameras = [
   { text: 'Micasense Rededge', value: "REDEDGE" },

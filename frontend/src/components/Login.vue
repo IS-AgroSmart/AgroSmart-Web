@@ -46,8 +46,13 @@ export default {
                     "username": this.form.username,
                     "password": this.form.password
                 })
-                .then(response => {
-                    this.storage.token = response.data.token;
+                .then(tokenResponse => {
+                    this.storage.token = tokenResponse.data.token;
+                    axios.get("api/users", { headers: { "Authorization": "Token " + this.storage.token } })
+                        .then(response =>
+                            this.storage.loggedInUser = response.data.find((u) => u.username == this.form.username)
+                        )
+                        .catch(error => this.error = error);
                     this.$router.go(-1);
                 })
                 .catch(error => this.error = error);

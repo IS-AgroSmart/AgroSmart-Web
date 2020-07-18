@@ -69,7 +69,7 @@ export default {
     methods: {
         updateStatus() {
             axios.get("nodeodm/task/" + this.$route.params.uuid + "/output", {
-                    headers: { "Authorization": "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => (this.console = ("error" in response.data) ? response.data.error : response.data))
                 .then(() => {
@@ -79,7 +79,7 @@ export default {
                 .catch(error => this.error = error);
 
             axios.get("nodeodm/task/" + this.$route.params.uuid + "/info", {
-                    headers: { "Authorization": "Token " + this.storage.token }
+                    headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => (this.info = ("error" in response.data) ? response.data.error : response.data))
                 .catch(error => this.error = error);
@@ -95,7 +95,7 @@ export default {
                 .then(value => {
                     if (value)
                         axios.delete("api/flights/" + this.flight.uuid, {
-                            headers: { "Authorization": "Token " + this.storage.token }
+                            headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                         }).then(() => this.$router.replace("/flights/deleted"))
                         .catch(() => {
                             this.$bvToast.toast('Error al eliminar el vuelo', {
@@ -205,7 +205,7 @@ export default {
 
             if (this.flight.state == "COMPLETE") {
                 axios.get("/api/preview/" + this.flight.uuid, {
-                        headers: { "Authorization": "Token " + this.storage.token }
+                        headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                     })
                     .then(response => {
                         window.console.log(response)
@@ -217,7 +217,7 @@ export default {
     created() {
         axios
             .get("api/flights/" + this.$route.params.uuid, {
-                headers: { "Authorization": "Token " + this.storage.token }
+                headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
             })
             .then(response => {
                 this.flight = response.data;
