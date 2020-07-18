@@ -14,7 +14,7 @@
                         <b-dropdown text="Emular usuario" ref="dropdown" class="m-2">
                             <b-dropdown-form>
                                 <b-form-group class="mb-0">
-                                    <b-form-input v-model="search" id="tag-search-input" type="search" size="sm" autocomplete="off"></b-form-input>
+                                    <b-form-input v-model="search" id="tag-search-input" type="search" size="sm" autocomplete="off" placeholder="Buscar usuarios..."></b-form-input>
                                 </b-form-group>
                             </b-dropdown-form>
                             <b-dropdown-divider></b-dropdown-divider>
@@ -22,7 +22,7 @@
                                 {{ user.username }} ({{ user.email }})
                             </b-dropdown-item-button>
                             <b-dropdown-text v-if="availableUsers.length === 0">
-                                ¡Ningún usuario tiene este username!
+                                ¡Ningún usuario tiene este username o email!
                             </b-dropdown-text>
                         </b-dropdown>
                     </b-col>
@@ -31,7 +31,6 @@
             <b-col align="center">
                 <h4 class="my-2">Administración de vuelos</h4>
             </b-col>
-            <!-- <b-col> TODO </b-col> -->
         </b-row>
     </div>
 </template>
