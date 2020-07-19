@@ -19,6 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 from rest_framework.authtoken.views import obtain_auth_token
+from django.conf.urls import url, include
 
 from core.views import *
 
@@ -49,4 +50,5 @@ urlpatterns = [
     path('mapper/panel.js', mapper_paneljs),
     path('mapper/ol/<path:path>', mapper_ol),
     path('mapper/geoext/src/<path:path>', mapper_src),
+    url(r'^api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
 ]

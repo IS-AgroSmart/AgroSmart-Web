@@ -1,0 +1,78 @@
+<template>
+    <div>
+        <b-alert v-if="error" show variant="danger">
+            Error! 
+        </b-alert>
+        <b-form @submit="onSubmit">
+            <b-form-group id="input-group-1" label="Usuario:" label-for="input-1">
+                <b-form-input id="input-1" v-model="form.username" type="text" required placeholder="Nombre de usuario"></b-form-input>
+            </b-form-group>
+    
+            <b-form-group id="input-group-2" label="E-mail:" label-for="input-2">
+                <b-form-input id="input-2" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
+            </b-form-group>
+    
+            <b-container>
+                <b-row align-h="center">
+                    <b-col cols="5" class="text-center">
+                        <b-button type="submit" variant="primary">Enviar</b-button>
+                    </b-col>
+                    <b-col cols="5" class="text-center">
+                        <b-button @click="goBack" variant="secondary">Cancelar</b-button>
+                    </b-col>
+                </b-row>
+            </b-container>
+        </b-form>
+    </div> 
+</template>>
+
+<script>
+import axios from "axios";
+
+export default {
+    data() {
+        return {
+            form: {
+                username: '',
+                email: '',
+            },
+            error: false
+        }
+    },
+    computed: {
+        usernameState() {
+            if (this.form.username.length == 0) return null;
+            return this.form.username.indexOf(" ") == -1;
+        },
+    },
+    methods: {
+        onSubmit(evt) {
+            evt.preventDefault()
+            axios.post("api/password_reset/reset_password/", {
+                    "email": this.form.email,
+                })
+                .then(response => {
+                    if (response.status == 200)
+                        this.goBack();
+                    else
+                        this.error = this.errorToLines(response.body);
+                })
+                .catch(error => {
+                    this.error = error.response ? this.errorToLines(error.response.data) : error;
+                });
+        },
+        goBack() {
+            this.$router.go(-1);
+        },
+        errorToLines(body) {
+            var err = "";
+            for (var field in body) {
+                for (var error of body[field]) {
+                    err += field + ": " + error + "\n";
+                }
+            }
+            return err;
+        }
+    }
+}
+</script>
