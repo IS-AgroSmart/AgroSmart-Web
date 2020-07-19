@@ -7,7 +7,7 @@
 export default {
     created() {
         this.storage.token = "";
-        this.storage.loggedInUser = null;
+        this.storage.loggedInUser = {};
         this.$router.replace("/");
     }
 }
