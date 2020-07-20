@@ -398,7 +398,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     }
 
     # render email text
-    email_html_message = render_to_string('templates/email/user_reset_password.html', context)
+    email_html_message = render_to_string('email/user_reset_password.html', context)
     email_plaintext_message = render_to_string('templates/email/user_reset_password.txt', context)
 
     msg = EmailMultiAlternatives(
