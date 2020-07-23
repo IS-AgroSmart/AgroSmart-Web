@@ -7,7 +7,7 @@ from django.urls import reverse
 from httpretty import httpretty
 from rest_framework.test import APIClient
 
-from core.models import Flight, UserProject, Artifact, ArtifactType, Camera, UserType
+from core.models import Flight, UserProject, Artifact, ArtifactType, Camera, UserType, User
 
 
 class BaseTestViewSet:
@@ -72,6 +72,46 @@ class TestUserViewSet(BaseTestViewSet):
         assert any(users[0].email == u["email"] for u in resp)  # user0 in response
         assert any(users[1].email == u["email"] for u in resp)  # user1 also in response
         assert any(users[2].email == u["email"] for u in resp)  # admin in response
+
+    def test_user_creation(self, c, users):
+        resp = c.post(reverse('users-list'),
+                      {"email": "foo@example.com", "username": "foo", "password": "foo"})
+        assert resp.status_code == 201
+
+    @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
+    def test_user_creation_duplicate_email(self, c, users: List[User]):
+        resp = c.post(reverse('users-list'),
+                      {"email": users[0].email, "username": "foo", "password": "foo"})
+        assert resp.status_code == 400
+        assert "email" in resp.json()
+
+    @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
+    def test_user_creation_wrong_email(self, c, users: List[User]):
+        resp = c.post(reverse('users-list'),
+                      {"email": "foo@example", "username": "foo", "password": "foo"})
+        assert resp.status_code == 400
+        assert "email" in resp.json()  # response body is a dict with all failed fields
+
+    @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
+    def test_user_creation_no_username(self, c, ):
+        resp = c.post(reverse('users-list'),
+                      {"email": "foo@example.com", "password": "foo"})
+        assert resp.status_code == 400
+        assert "username" in resp.json()
+
+    @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
+    def test_user_creation_duplicate_username(self, c, users: List[User]):
+        resp = c.post(reverse('users-list'),
+                      {"email": "foo@example.com", "username": users[0].username, "password": "foo"})
+        assert resp.status_code == 400
+        assert "username" in resp.json()
+
+    @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
+    def test_user_creation_no_password(self, c, users: List[User]):
+        resp = c.post(reverse('users-list'),
+                      {"email": "foo@example.com", "username": "foo"})
+        assert resp.status_code == 400
+        assert "password" in resp.json()
 
 
 @pytest.mark.django_db
