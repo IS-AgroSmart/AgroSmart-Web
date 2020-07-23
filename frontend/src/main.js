@@ -32,6 +32,7 @@ import Login from './components/Login'
 import Logout from './components/Logout'
 import SignUp from './components/SignUp'
 import RestorePassword from './components/RestorePassword'
+import NewPassword from './components/NewPassword'
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -70,6 +71,7 @@ const router = new VueRouter({
     { path: '/logout', component: Logout },
     { path: '/signup', name: 'signUp', component: SignUp },
     { path: '/restorePassword', name: 'restorePassword', component: RestorePassword},
+    { path: '/restorePassword/reset', name: 'newPassword', component: NewPassword},
   ]
 })
 

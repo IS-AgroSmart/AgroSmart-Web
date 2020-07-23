@@ -1,17 +1,13 @@
 <template>
     <div>
         <b-alert v-if="error" show variant="danger">
-            Error! Verifique que el correo este relacionada con una cuenta de AgroSmart.
+            Error! 
         </b-alert>
         <b-form @submit="onSubmit">
-            <b-form-group id="input-group-1" label="Usuario:" label-for="input-1">
-                <b-form-input id="input-1" v-model="form.username" type="text" required placeholder="Nombre de usuario"></b-form-input>
+            <b-form-group id="input-group-1" label="Nueva Contraseña:" label-for="input-1">
+                <b-form-input id="input-1" v-model="form.password" type="password" required placeholder="Escriba su nueva contraseña"></b-form-input>
             </b-form-group>
-    
-            <b-form-group id="input-group-2" label="E-mail:" label-for="input-2">
-                <b-form-input id="input-2" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
-            </b-form-group>
-    
+        
             <b-container>
                 <b-row align-h="center">
                     <b-col cols="5" class="text-center">
@@ -33,23 +29,23 @@ export default {
     data() {
         return {
             form: {
-                username: '',
-                email: '',
+                password: '',
             },
             error: false
         }
     },
     computed: {
         usernameState() {
-            if (this.form.username.length == 0) return null;
-            return this.form.username.indexOf(" ") == -1;
+            if (this.form.password.length == 0) return null;
+            return this.form.password.indexOf(" ") == -1;
         },
     },
     methods: {
         onSubmit(evt) {
             evt.preventDefault()
-            axios.post("api/password_reset/reset_password/", {
-                    "email": this.form.email,
+            axios.post("/api/password_reset/reset_password/confirm/", {
+                    "token": this.$route.query.token, 
+                    "password": this.form.password,
                 })
                 .then(response => {
                     if (response.status == 200)
