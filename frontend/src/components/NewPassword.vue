@@ -1,7 +1,8 @@
 <template>
     <div>
         <b-alert v-if="error" show variant="danger">
-            Error! 
+            <p>Error al recuperar contraseña</p>
+            <span style="white-space: pre;">{{ error }}</span>
         </b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Nueva Contraseña:" label-for="input-1">
@@ -14,7 +15,7 @@
                         <b-button type="submit" variant="primary">Enviar</b-button>
                     </b-col>
                     <b-col cols="5" class="text-center">
-                        <b-button @click="goBack" variant="secondary">Cancelar</b-button>
+                        <b-button @click="goToLogin" variant="secondary">Cancelar</b-button>
                     </b-col>
                 </b-row>
             </b-container>
@@ -43,13 +44,13 @@ export default {
     methods: {
         onSubmit(evt) {
             evt.preventDefault()
-            axios.post("/api/password_reset/reset_password/confirm/", {
+            axios.post("/api/password_reset/confirm/", {
                     "token": this.$route.query.token, 
                     "password": this.form.password,
                 })
                 .then(response => {
                     if (response.status == 200)
-                        this.goBack();
+                        this.goToLogin();
                     else
                         this.error = this.errorToLines(response.body);
                 })
@@ -57,8 +58,8 @@ export default {
                     this.error = error.response ? this.errorToLines(error.response.data) : error;
                 });
         },
-        goBack() {
-            this.$router.go(-1);
+        goToLogin() {
+            this.$router.replace({ path: '/login' });
         },
         errorToLines(body) {
             var err = "";

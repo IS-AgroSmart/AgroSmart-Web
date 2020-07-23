@@ -4,10 +4,6 @@
             Error! Verifique que el correo este relacionada con una cuenta de AgroSmart.
         </b-alert>
         <b-form @submit="onSubmit">
-            <b-form-group id="input-group-1" label="Usuario:" label-for="input-1">
-                <b-form-input id="input-1" v-model="form.username" type="text" required placeholder="Nombre de usuario"></b-form-input>
-            </b-form-group>
-    
             <b-form-group id="input-group-2" label="E-mail:" label-for="input-2">
                 <b-form-input id="input-2" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
             </b-form-group>
@@ -33,7 +29,6 @@ export default {
     data() {
         return {
             form: {
-                username: '',
                 email: '',
             },
             error: false
@@ -48,7 +43,7 @@ export default {
     methods: {
         onSubmit(evt) {
             evt.preventDefault()
-            axios.post("api/password_reset/reset_password/", {
+            axios.post("api/password_reset/", {
                     "email": this.form.email,
                 })
                 .then(response => {

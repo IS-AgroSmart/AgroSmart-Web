@@ -51,7 +51,7 @@ export default {
                 })
                 .then(response => {
                     this.storage.token = response.data.token;
-                    this.$router.go(-1);
+                    this.$router.replace({ path: '/flights' });
                 })
                 .catch(error => this.error = error);
         },
