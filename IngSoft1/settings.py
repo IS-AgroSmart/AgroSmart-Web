@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "core",
     'rest_framework',
     'rest_framework.authtoken',
+    'django_rest_passwordreset',
 ]
 
 REST_FRAMEWORK = {
@@ -161,3 +162,12 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = 'staticfiles'
 # STATICFILES_DIRS = (os.path.join(BASE_DIR, "staticfiles"),)
+
+#Send Emails
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'appdrone1996@gmail.com'
+EMAIL_HOST_PASSWORD = 'p3pa3pyva1fp31hhdbd1mcn33pnus3t3cynns'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

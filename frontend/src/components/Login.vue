@@ -14,11 +14,14 @@
     
             <b-container>
                 <b-row align-h="center">
-                    <b-col cols="5" class="text-center">
+                    <b-col cols="3" class="text-center">
                         <b-button type="submit" variant="primary">Iniciar sesión</b-button>
                     </b-col>
-                    <b-col cols="5" class="text-center">
+                    <b-col cols="3" class="text-center">
                         <b-button to="signUp" variant="secondary">Crear cuenta</b-button>
+                    </b-col>
+                    <b-col cols="3" class="text-center">
+                        <b-button to="restorePassword" variant="warning">Olvide mi contraseña</b-button>
                     </b-col>
                 </b-row>
             </b-container>

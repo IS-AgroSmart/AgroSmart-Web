@@ -32,6 +32,8 @@ import Login from './components/Login'
 import Logout from './components/Logout'
 import SignUp from './components/SignUp'
 import AdminHomepage from './components/AdminHomepage'
+import RestorePassword from './components/RestorePassword'
+import NewPassword from './components/NewPassword'
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -72,6 +74,8 @@ const router = new VueRouter({
     { path: '/login', component: Login },
     { path: '/logout', component: Logout },
     { path: '/signup', name: 'signUp', component: SignUp },
+    { path: '/restorePassword', name: 'restorePassword', component: RestorePassword},
+    { path: '/restorePassword/reset', name: 'newPassword', component: NewPassword},
     { path: '/admin', name: 'adminHome', component: AdminHomepage },
   ]
 })
