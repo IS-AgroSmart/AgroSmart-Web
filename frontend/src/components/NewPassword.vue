@@ -1,10 +1,13 @@
 <template>
     <div>
+        <h1>Nueva Contraseña</h1>
+
         <b-alert v-if="error" show variant="danger">
             <p>Error al recuperar contraseña</p>
             <span style="white-space: pre;">{{ error }}</span>
         </b-alert>
         <b-form @submit="onSubmit">
+            <p>Recuerde escribir una contraseña con mas de 8 caracteres</p>
             <b-form-group id="input-group-1" label="Nueva Contraseña:" label-for="input-1">
                 <b-form-input id="input-1" v-model="form.password" type="password" required placeholder="Escriba su nueva contraseña"></b-form-input>
             </b-form-group>
@@ -37,7 +40,7 @@ export default {
     },
     computed: {
         usernameState() {
-            if (this.form.password.length == 0) return null;
+            if (this.form.password.length < 8) return null;
             return this.form.password.indexOf(" ") == -1;
         },
     },
@@ -50,7 +53,7 @@ export default {
                 })
                 .then(response => {
                     if (response.status == 200)
-                        this.goToLogin();
+                        this.goToLogin();                         
                     else
                         this.error = this.errorToLines(response.body);
                 })
