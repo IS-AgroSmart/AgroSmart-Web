@@ -122,3 +122,5 @@ frontend/coverage/**
 /staticfiles/
 /virtualenv/
 /tmp/
+
+frontend/test-report.xml
