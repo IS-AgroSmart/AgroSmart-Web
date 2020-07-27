@@ -34,6 +34,7 @@ import SignUp from './components/SignUp'
 import AdminHomepage from './components/AdminHomepage'
 import RestorePassword from './components/RestorePassword'
 import NewPassword from './components/NewPassword'
+import Profile from './components/Profile'
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -77,6 +78,7 @@ const router = new VueRouter({
     { path: '/restorePassword', name: 'restorePassword', component: RestorePassword},
     { path: '/restorePassword/reset', name: 'newPassword', component: NewPassword},
     { path: '/admin', name: 'adminHome', component: AdminHomepage },
+    { path: '/profile', name: 'profile',component: Profile },
   ]
 })
 

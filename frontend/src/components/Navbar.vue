@@ -18,7 +18,7 @@
                         <b-nav-item-dropdown right>
                             <!-- Using 'button-content' slot -->
                             <template v-slot:button-content><em>Mi cuenta</em>
-</template>
+                            </template>
                         <b-dropdown-item to="/profile">Perfil</b-dropdown-item>
                         <b-dropdown-item v-if="isAdmin" to="/admin">Administración</b-dropdown-item>
                         <b-dropdown-item to="/logout">Cerrar sesión</b-dropdown-item>
