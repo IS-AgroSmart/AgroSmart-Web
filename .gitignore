@@ -116,6 +116,11 @@ GitHub.sublime-settings
 !.vscode/launch.json 
 !.vscode/extensions.json 
 .history
+
+# JS coverage
+frontend/coverage/**
 /staticfiles/
 /virtualenv/
 /tmp/
+
+frontend/test-report.xml

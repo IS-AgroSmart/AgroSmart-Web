@@ -16,14 +16,30 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.x
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
       - name: Install mysql_config
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev libpq-dev
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run tests
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: ./frontend
+      - name: Run backend tests
         run: pytest --cov . --junitxml=xunit-reports/xunit-result-main.xml
-      - name: Generate coverage report
+      - name: Generate backend coverage report
         run: coverage xml
+      - name: Run frontend tests and generage coverage report
+        run: npm run test:unit --coverage
+        working-directory: ./frontend
+      # Ugly workaround, caused b/c Sonar runs on Docker: https://community.sonarsource.com/t/code-coverage-doesnt-work-with-github-action/16747/6
+      - name: Fix frontend code coverage paths
+        working-directory: ./frontend
+        run: |
+          sed -i 's/\/home\/runner\/work\/AgroSmart-Web\/AgroSmart-Web\//\/github\/workspace\//g' coverage/lcov.info
+          sed -i 's/\/home\/runner\/work\/AgroSmart-Web\/AgroSmart-Web\//\/github\/workspace\//g' test-report.xml
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:

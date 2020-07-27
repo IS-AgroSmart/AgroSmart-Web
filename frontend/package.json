@@ -5,7 +5,8 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "test:unit": "vue-cli-service test:unit --coverage"
   },
   "dependencies": {
     "@inkline/inkline": "^1.18.0",
@@ -33,12 +34,18 @@
     "@types/leaflet": "^1.5.17",
     "@vue/cli-plugin-babel": "^4.1.0",
     "@vue/cli-plugin-eslint": "^4.1.0",
+    "@vue/cli-plugin-unit-jest": "^4.4.6",
     "@vue/cli-service": "^4.1.0",
+    "@vue/test-utils": "^1.0.3",
+    "axios-mock-adapter": "^1.18.2",
     "babel-eslint": "^10.0.3",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
+    "flush-promises": "^1.0.2",
     "html-webpack-exclude-assets-plugin": "0.0.7",
     "html-webpack-skip-assets-plugin": "0.0.2",
+    "jest-sonar-reporter": "^2.0.0",
+    "vue-jest": "^3.0.6",
     "vue-template-compiler": "^2.6.10",
     "webpack-bundle-analyzer": "^3.8.0",
     "webpack-cdn-plugin": "^3.3.1"
@@ -60,5 +67,24 @@
   "browserslist": [
     "> 1%",
     "last 2 versions"
-  ]
+  ],
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "vue"
+    ],
+    "modulePaths": [
+      "<rootDir>/src",
+      "<rootDir>/node_modules"
+    ],
+    "transform": {
+      "^.+\\.js$": "babel-jest",
+      ".*\\.(vue)$": "vue-jest"
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "testResultsProcessor": "jest-sonar-reporter"
+  }
 }
