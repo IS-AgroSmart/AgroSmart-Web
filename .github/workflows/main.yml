@@ -36,8 +36,10 @@ jobs:
         working-directory: ./frontend
       # Ugly workaround, caused b/c Sonar runs on Docker: https://community.sonarsource.com/t/code-coverage-doesnt-work-with-github-action/16747/6
       - name: Fix frontend code coverage paths
-        working-directory: ./frontend/coverage
-        run: sed -i 's/\/home\/runner\/work\/AgroSmart-Web\/AgroSmart-Web\//\/github\/workspace\//g' lcov.info
+        working-directory: ./frontend
+        run: |
+          sed -i 's/\/home\/runner\/work\/AgroSmart-Web\/AgroSmart-Web\//\/github\/workspace\//g' coverage/lcov.info
+          sed -i 's/\/home\/runner\/work\/AgroSmart-Web\/AgroSmart-Web\//\/github\/workspace\//g' test-report.xml
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
