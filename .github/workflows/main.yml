@@ -34,6 +34,10 @@ jobs:
       - name: Run frontend tests and generage coverage report
         run: npm run test:unit --coverage
         working-directory: ./frontend
+      # Ugly workaround, caused b/c Sonar runs on Docker: https://community.sonarsource.com/t/code-coverage-doesnt-work-with-github-action/16747/6
+      - name: Fix frontend code coverage paths
+        working-directory: ./frontend/coverage
+        run: sed -i 's/\/home\/runner\/work\/AgroSmart-Web\/AgroSmart-Web\//\/github\/workspace\//g' lcov.info
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
