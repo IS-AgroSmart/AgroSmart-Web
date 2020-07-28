@@ -85,6 +85,7 @@ describe('Pending requests component', () => {
         expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
         expect(wrapper.text().includes("foo@example.com")).toBeFalsy();
         expect(wrapper.text().includes("admin@gmail.com")).toBeFalsy();
+        expect(wrapper.text().includes("bar@example.com")).toBeTruthy();
         expect(mock.history.get.length).toBe(1);
     });
 
@@ -99,6 +100,17 @@ describe('Pending requests component', () => {
         await flushPromises();
         expect(JSON.parse(mock.history.patch[0].data).type).toBe("ACTIVE");
     });
+
+    it("filters users if a search string is set", async () => {
+        await flushPromises();
+        wrapper.vm.opcionFilter = "myname";
+
+        wrapper.vm.$nextTick(() => { // Allow for recomputing 
+            expect(wrapper.findAll(".card").length).toBe(1);
+            expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
+            expect(wrapper.text().includes("bar@example.com")).toBeFalsy();
+        });
+    })
 
     /*it("can reject a user request", async () => {
         mock.onPatch(/api\/users\/\d+\//).replyOnce(200, {});
