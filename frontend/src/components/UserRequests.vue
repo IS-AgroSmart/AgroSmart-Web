@@ -49,9 +49,15 @@ import axios from "axios";
         return this.demoUser_img
       },
       accionRequest(user, accion) {
-        if(accion!="ACEPTAR"){
-            this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a '+user.username+" sera eliminada", {
-                    title: '¿Realmente desea eliminar la solictud?',
+        if(accion!="ACEPTAR"){  
+          let acciong='';
+          if(accion=="ELIMINAR"){
+            acciong='eliminada'
+          }else{
+            acciong="bloqueada"
+          }
+            this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a '+user.username+" sera " + acciong, {
+                    title: '¿Realmente desea '+accion+' la solictud?',
                     okVariant: 'danger',
                     okTitle: 'Sí',
                     cancelTitle: 'No',
@@ -66,7 +72,7 @@ import axios from "axios";
                         }).then(() => this.alert=true,
                         this.$router.go(),)
                         .catch(() => {
-                            this.$bvToast.toast('Error al eliminar la solicitud, intente mas tarde', {
+                            this.$bvToast.toast('Error al ' +accion+' la solicitud, intente mas tarde', {
                                 title: "Error",
                                 autoHideDelay: 3000,
                                 variant: "danger",
@@ -79,7 +85,7 @@ import axios from "axios";
                         },{
                           headers:{ "Authorization": "Token " + this.storage.token },  
                         }).then(() => this.alert=true,
-                        this.$router.go(),)
+                        this.$router.go(),/*this.created()*/)
                         .catch(() => {
                             this.$bvToast.toast('Error al aceptar la solicitud, intente mas tarde', {
                                 title: "Error",
