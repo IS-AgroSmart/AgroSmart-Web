@@ -76,7 +76,7 @@ export default {
                 acciong='bloqueada'
               }
                 this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a ' + user.username + " será "+acciong, {
-                        title: '¿Realmente desea eliminar la solicitud?',
+                        title: '¿Realmente desea '+accion+' la solicitud?',
                         okVariant: 'danger',
                         okTitle: 'Sí',
                         cancelTitle: 'No',
