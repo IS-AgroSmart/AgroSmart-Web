@@ -30,7 +30,9 @@ jobs:
       - name: Run backend tests
         run: pytest --cov . --junitxml=xunit-reports/xunit-result-main.xml
       - name: Generate backend coverage report
-        run: coverage xml
+        run: | 
+          coverage xml
+          coverage html
       - name: Run frontend tests and generage coverage report
         run: npm run test:unit --coverage
         working-directory: ./frontend
@@ -45,3 +47,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Publish frontend analysis results (PDF)
+        uses: fifsky/html-to-pdf-action@master
+        with:
+          htmlFile: ./frontend/coverage/lcov-report/index.html
+          outputFile: ./reports/frontend-coverage.pdf
+          pdfOptions: '{"format": "A4", "margin": {"top": "10mm", "left": "10mm", "right": "10mm", "bottom": "10mm"}}'
+      - name: Publish backend analysis results (PDF)
+        uses: fifsky/html-to-pdf-action@master
+        with:
+          htmlFile: ./htmlcov/index.html
+          outputFile: ./reports/backend-coverage.pdf
+          pdfOptions: '{"format": "A4", "margin": {"top": "10mm", "left": "10mm", "right": "10mm", "bottom": "10mm"}}'
+      - name: Publish artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-artifact
+          path: |
+            ./reports/frontend-coverage.pdf
+            ./reports/backend-coverage.pdf
