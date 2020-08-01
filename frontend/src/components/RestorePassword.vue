@@ -1,9 +1,12 @@
 <template>
     <div>
+        <h1>Resetar Contraseña</h1>
+
         <b-alert v-if="error" show variant="danger">
-            Error! Verifique que el correo este relacionada con una cuenta de AgroSmart.
+            Error! Verifique que el correo ingresado este vinculado con una cuenta de AgroSmart.
         </b-alert>
         <b-form @submit="onSubmit">
+            <p>Recuerde usar el correo vinculado a su cuenta de AgroSmart.</p>
             <b-form-group id="input-group-2" label="E-mail:" label-for="input-2">
                 <b-form-input id="input-2" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
             </b-form-group>
