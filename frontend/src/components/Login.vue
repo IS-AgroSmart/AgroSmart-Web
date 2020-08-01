@@ -56,7 +56,7 @@ export default {
                             this.storage.loggedInUser = response.data.find((u) => u.username == this.form.username)
                         )
                         .catch(error => this.error = error);
-                    this.$router.go(-1);
+                    this.$router.replace({ path: '/flights' });
                 })
                 .catch(error => this.error = error);
         },
