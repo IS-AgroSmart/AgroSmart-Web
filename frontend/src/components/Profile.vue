@@ -5,43 +5,30 @@
         </div>
         <div class="container pt-5 pb-3">
             <h3 class="container py-2">
-                Nombre: 
+                Nombre: {{ storage.loggedInUser.first_name }}
             </h3>
             <h3 class="container py-2">
-                Usuario: 
+                Usuario: {{ storage.loggedInUser.username }}
             </h3>
             <h3 class="container py-2">
-                Organización: 
+                Organización: {{ storage.loggedInUser.organization }}
             </h3>
             <h3 class="container py-2">
-                Correo Electrónico:
+                Correo Electrónico: {{ storage.loggedInUser.email }}
             </h3>
             <b-container fuild="sm">
                 <b-row>
                     <b-col>
                         <h3 class="py-2">
-                        Contraseña:
+                        Contraseña: ********
                         </h3>
                     </b-col>
                     <b-col class="text-center">
-                        <b-button to="signUp" variant="primary">Cambiar </b-button>
+                        <b-button to="changePassword" variant="primary">Cambiar </b-button>
                     </b-col>
                  </b-row>
             </b-container>
         </div>
     </div> 
 </template>
-
-<script>
-//import axios from 'axios';
-export default{
-    data() {
-        return {
-            username: '',
-            password: '',
-            email: '',
-            users: [],
-        }
-    },
-}
 
