@@ -75,7 +75,8 @@ class TestUserViewSet(BaseTestViewSet):
 
     def test_user_creation(self, c, users):
         resp = c.post(reverse('users-list'),
-                      {"email": "foo@example.com", "username": "foo", "password": "foo"})
+                      {"email": "foo@example.com", "username": "foo", "password": "foo", "organization": "org",
+                       "first_name": "My Real Name"})
         assert resp.status_code == 201
 
     @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
