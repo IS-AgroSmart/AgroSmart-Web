@@ -1,8 +1,8 @@
 <template>
     <div>
         <b-alert v-if="error" show variant="danger">
-            <p>Error al recuperar contraseña</p>
-            <span style="white-space: pre;">{{ error }}</span>
+            <p>Error al cambiar contraseña contraseñas no coindicen o no se cumplen con condiciones requeridas</p>
+            <span style="white-space: pre;"></span>
         </b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Nueva Contraseña:" label-for="input-1">
@@ -43,7 +43,8 @@ export default {
                 password: '',
                 repeatedPassword: '',
             },
-            error: false
+            error: false,
+            errorConfirmation: false,
         }
     },
     computed: {
@@ -52,16 +53,20 @@ export default {
             return this.form.password.length >= 8;
         },
         passwordRepeatedState() {
-            if (this.form.password.length == 0) return null;
+            if (this.form.repeatedPassword.length == 0) return null;
             return this.form.password == this.form.repeatedPassword;
         },
     },
     methods: {
         onSubmit(evt) {
+            if(this.form.password!=this.form.repeatedPassword || this.form.password.length < 8){
+                this.error=true;
+            }
+            else{
             evt.preventDefault()
-            axios.post("api/users/"+this.storage.loggedInUser.pk+"/set_password/", {
-                    "password": this.form.password,
-                })
+            axios.post("api/users/"+this.storage.loggedInUser.pk+"/set_password/",{
+                    "password": this.form.repeatedPassword, 
+                },{headers: { "Authorization": "Token " + this.storage.token } })
                 .then(response => {
                     if (response.status == 200)
                         this.goToProfile();
@@ -71,6 +76,7 @@ export default {
                 .catch(error => {
                     this.error = error.response ? this.errorToLines(error.response.data) : error;
                 });
+            }
         },
         goToProfile() {
             this.$router.replace({ path: '/profile' });
