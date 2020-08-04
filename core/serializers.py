@@ -7,11 +7,15 @@ from core.models import *
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(validators=[UniqueValidator(queryset=User.objects.all())])
+    organization = serializers.CharField()
+    first_name=serializers.CharField()
 
     def create(self, validated_data):
         user = User.objects.create(
             username=validated_data['username'],
-            email=validated_data['email']
+            email=validated_data['email'],
+            organization=validated_data['organization'],
+            first_name=validated_data['first_name']
         )
         user.set_password(validated_data['password'])
         user.save()
@@ -20,7 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["pk", 'username', 'email', 'is_staff', 'password', 'type']
+        fields = ["pk", 'username', 'email', 'is_staff', 'password', 'type', 'organization' , 'first_name']
 
 
 class FlightSerializer(serializers.ModelSerializer):

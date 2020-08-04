@@ -11,16 +11,30 @@
                     El nombre de usuario no puede contener espacios.
                 </b-form-invalid-feedback>
             </b-form-group>
+
+            <b-form-group id="input-group-2" label="Nombres:" label-for="input-2">
+                <b-form-input id="input-2" type="text" v-model="form.first_name" :state="firstNameState" required placeholder="Nombres y Apellidos"></b-form-input>
+                <b-form-invalid-feedback id="input-live-feedback">
+                    El nombre y apellido no puede superar los 150 caracteres
+                </b-form-invalid-feedback>
+            </b-form-group>
     
-            <b-form-group id="input-group-2" label="Contraseña:" label-for="input-2">
-                <b-form-input id="input-2" type="password" v-model="form.password" :state="passwordState" required placeholder="Contraseña"></b-form-input>
+            <b-form-group id="input-group-2" label="Contraseña:" label-for="input-3">
+                <b-form-input id="input-3" type="password" v-model="form.password" :state="passwordState" required placeholder="Contraseña"></b-form-input>
                 <b-form-invalid-feedback id="input-live-feedback">
                     Escriba una contraseña de al menos 8 caracteres
                 </b-form-invalid-feedback>
             </b-form-group>
-    
-            <b-form-group id="input-group-2" label="E-mail:" label-for="input-3">
-                <b-form-input id="input-3" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
+
+            <b-form-group id="input-group-2" label="E-mail:" label-for="input-4">
+                <b-form-input id="input-4" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
+            </b-form-group>
+
+            <b-form-group id="input-group-2" label="Organizacion:" label-for="input-5">
+                <b-form-input id="input-5" type="text" v-model="form.organization" :state="organizationState" required placeholder="Nombre Organización"></b-form-input>
+                <b-form-invalid-feedback id="input-live-feedback">
+                    Escriba el nombre de su Organización en menos de 20 caracteres
+                </b-form-invalid-feedback>
             </b-form-group>
     
             <b-container>
@@ -47,6 +61,8 @@ export default {
                 username: '',
                 password: '',
                 email: '',
+                first_name:'',
+                organization:'',
             },
             error: false
         }
@@ -56,10 +72,19 @@ export default {
             if (this.form.username.length == 0) return null;
             return this.form.username.indexOf(" ") == -1;
         },
+        firstNameState(){
+            if (this.form.first_name.length == 0) return null;
+            return this.form.first_name.length <= 150;
+        },
         passwordState() {
             if (this.form.password.length == 0) return null;
             return this.form.password.length >= 8;
         },
+        organizationState() {
+            if (this.form.organization.length == 0) return null;
+            return this.form.organization.length <= 20;
+        },
+
     },
     methods: {
         onSubmit(evt) {
@@ -68,6 +93,8 @@ export default {
                     "username": this.form.username,
                     "password": this.form.password,
                     "email": this.form.email,
+                    "first_name":this.form.first_name,
+                    "organization":this.form.organization,
                 })
                 .then(response => {
                     if (response.status == 201)

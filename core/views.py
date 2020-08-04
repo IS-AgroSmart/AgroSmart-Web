@@ -49,7 +49,14 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
         else:
             return User.objects.filter(pk=self.request.user.pk)
-
+    
+    @action(detail=True, methods=['post'])
+    def set_password(self, request, pk=None):
+        user = self.get_object()
+        user.set_password(request.data.get("password"))
+        user.save()
+        return HttpResponse(status=200)
+    
 
 class FlightViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
