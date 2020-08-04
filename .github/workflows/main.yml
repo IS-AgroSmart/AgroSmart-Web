@@ -5,6 +5,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+env:
+    SECRET_KEY: "dummysecretkey"
+    DEBUG: "True"
+    DB_USER: "djangouser"
+    DB_NAME: "db"
+    DB_PASSWORD: "dbpass"
+    EMAIL_HOST_USER: "mydummyuser@notfound.com"
+    EMAIL_HOST_PASSWORD: "mydummyemailpassword"
+
 jobs:
   build:
     runs-on: ubuntu-latest
