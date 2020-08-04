@@ -10,7 +10,7 @@ env:
     DEBUG: "True"
     DB_USER: "djangouser"
     DB_NAME: "db"
-    DB_PASS: "dbpass"
+    DB_PASSWORD: "dbpass"
 
 jobs:
   build:
