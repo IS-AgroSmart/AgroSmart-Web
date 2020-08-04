@@ -6,7 +6,7 @@
                 <h4 class="my-2">Administración de usuarios</h4>
                 <b-row class="my-1">
                     <b-col>
-                        <b-button>Solicitudes de cuenta</b-button>
+                        <b-button @click="onAdminClick()">Solicitudes de cuenta</b-button>
                     </b-col>
                 </b-row>
                 <b-row class="my-1">
@@ -63,6 +63,9 @@ export default {
         onUserClick(user) {
             this.storage.otherUserPk = user;
             this.$router.push("/flights");
+        },
+        onAdminClick(){
+            this.$router.push("/admin/accountRequest")
         }
     },
     created() {
