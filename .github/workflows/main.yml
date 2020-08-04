@@ -11,6 +11,8 @@ env:
     DB_USER: "djangouser"
     DB_NAME: "db"
     DB_PASSWORD: "dbpass"
+    EMAIL_HOST_USER: "mydummyuser@notfound.com"
+    EMAIL_HOST_PASSWORD: "mydummyemailpassword"
 
 jobs:
   build:
