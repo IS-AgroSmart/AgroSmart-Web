@@ -1,9 +1,15 @@
 import json
 import logging
 import os
+import re
 import shutil
+import subprocess
 from typing import Union
+import matplotlib.pyplot as plt
+import numpy
 
+
+import pyproj
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.template.loader import render_to_string
@@ -26,6 +32,7 @@ class UserType(Enum):
     ACTIVE = "Active"
     DELETED = "Deleted"
     ADMIN = "Admin"
+    
 
 
 class User(AbstractUser):
@@ -205,6 +212,9 @@ class Flight(models.Model):
     def get_png_ortho_path(self):
         return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
 
+    def get_annotated_png_ortho_path(self):
+        return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto_annotated.png"
+
     def _get_geoserver_ws_name(self):
         return "flight_" + str(self.uuid)
 
@@ -248,6 +258,46 @@ class Flight(models.Model):
 
     def try_create_png_ortho(self):
         self._try_create_image(self.get_png_ortho_path(), False)
+
+    def try_create_annotated_png_ortho(self):
+        # from core.models import *; Flight.objects.first().try_create_annotated_png_ortho()
+        result = subprocess.run(['gdalinfo', '-proj4', 'odm_orthophoto.tif'], stdout=subprocess.PIPE,
+                                cwd=self.get_disk_path() + "/odm_orthophoto").stdout.decode("utf-8")
+        local_proj = re.search(r"PROJ\.4 string is:[\r\n]+'([^\r\n']+)'", result).groups()[0]
+        offs_x, offs_y = re.search(r"Origin = \((-?\d+\.\d+),(-?\d+\.\d+)\)", result).groups()
+        ps_x, ps_y = re.search(r"Pixel Size = \((-?\d+\.\d+),(-?\d+\.\d+)\)", result).groups()
+        transformer = pyproj.Transformer.from_crs("epsg:4326", local_proj)
+        with open(self.get_disk_path() + "/images.json") as f:
+            images = json.loads(f.read())
+        image_coords = {}
+        for image in images:
+            coord_x, coord_y = transformer.transform(image["latitude"], image["longitude"])
+            pixel_x = int((coord_x - float(offs_x)) / float(ps_x))
+            pixel_y = int((coord_y - float(offs_y)) / float(ps_y))
+            image_coords[image["filename"]] = (pixel_x, pixel_y)
+        im = plt.imread(self.get_png_ortho_path())
+        fig = plt.figure()
+        plt.axis('off')
+        implot = plt.imshow(im, zorder=1)
+        for image_name, (x, y) in image_coords.items():
+            plt.scatter(x, y, zorder=2, color="r")
+            # Uncomment below to show arrows on images
+            # plt.arrow(x, y, 300, 300, color="r", head_length=100,head_width=80, zorder=2)
+
+        def fig2data(fig):
+            """
+            @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
+            @param fig a matplotlib figure
+            @return a numpy 3D array of RGBA values
+            """
+            # draw the renderer
+            fig.canvas.draw()
+
+            # Get the RGBA buffer from the figure
+            data = numpy.fromstring(fig.canvas.tostring_rgb(), dtype=numpy.uint8, sep='')
+            return data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+        plt.imsave(self.get_disk_path() + "/odm_orthophoto/odm_orthophoto_annotated.png", fig2data(fig))
 
     def create_index_raster(self, index: str, formula: str):
         COMMANDS = {

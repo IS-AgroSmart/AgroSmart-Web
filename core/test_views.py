@@ -103,7 +103,7 @@ def test_upload_images_admin(c, users, flights, fs):
     assert resp.status_code == 200
 
 
-def _test_webhook(c, flight, code):
+def _test_webhook(c, monkeypatch, flight, code):
     executed = False
 
     def mark_executed(request, uri, response_headers):
@@ -114,29 +114,39 @@ def _test_webhook(c, flight, code):
     httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces", "")
     httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/external.geotiff", mark_executed)
+    annotated_png_created = False
+
+    def mock_annotated_png_ortho(*args, **kwargs):
+        nonlocal annotated_png_created
+        annotated_png_created = True
+
+    from core.models import Flight
+    monkeypatch.setattr(Flight, "try_create_annotated_png_ortho", mock_annotated_png_ortho)
     resp = c.post(reverse("webhook"), json.dumps(
         {"uuid": str(flight.uuid), "status": {"code": code}}), content_type="application/text")
-    assert executed
+    if code == 40:
+        assert executed
+        assert annotated_png_created
     return resp
 
 
-def test_webhook_successful(c, flights):
-    resp = _test_webhook(c, flights[0], code=40)
+def test_webhook_successful(c, monkeypatch, flights):
+    resp = _test_webhook(c, monkeypatch, flights[0], code=40)
     assert resp.status_code == 200
     flights[0].refresh_from_db()  # HACK seems to be necessary to reload status?
     assert flights[0].state == FlightState.COMPLETE.name
     # TODO maybe assert that the Geoserver APIs are called, if possible
 
 
-def test_webhook_with_error(c, flights):
-    resp = _test_webhook(c, flights[0], code=30)
+def test_webhook_with_error(c, monkeypatch, flights):
+    resp = _test_webhook(c, monkeypatch, flights[0], code=30)
     assert resp.status_code == 200
     flights[0].refresh_from_db()
     assert flights[0].state == FlightState.ERROR.name
 
 
-def test_webhook_canceled(c, flights):
-    resp = _test_webhook(c, flights[0], code=50)
+def test_webhook_canceled(c, monkeypatch, flights):
+    resp = _test_webhook(c, monkeypatch, flights[0], code=50)
     assert resp.status_code == 200
     flights[0].refresh_from_db()
     assert flights[0].state == FlightState.CANCELED.name
