@@ -174,9 +174,11 @@ def webhook_processing_complete(request):
     flight.processing_time = data.get("processingTime", 0)
     flight.save()
 
-    flight.try_create_thumbnail()
-    flight.try_create_png_ortho()
-    flight.create_geoserver_workspace_and_upload_geotiff()  # _try_create_thumbnail must have been invoked here!
+    if flight.state == FlightState.COMPLETE.name:
+        flight.try_create_thumbnail()
+        flight.try_create_png_ortho()
+        flight.try_create_annotated_png_ortho()
+        flight.create_geoserver_workspace_and_upload_geotiff()  # _try_create_thumbnail must have been invoked here!
 
     return HttpResponse()
 
@@ -187,6 +189,8 @@ def download_artifact(request, uuid, artifact):
     filepath = flight.get_disk_path()
     if artifact == "orthomosaic.png":
         filepath += "/odm_orthophoto/odm_orthophoto.png"
+    elif artifact == "orthomosaic.annotated.png":
+        filepath += "/odm_orthophoto/odm_orthophoto_annotated.png"
     elif artifact == "orthomosaic.tiff":
         filepath += "/odm_orthophoto/odm_orthophoto.tif"
     elif artifact == "3dmodel":

@@ -7,6 +7,7 @@ cffi==1.14.0
 chardet==3.0.4
 coverage==5.1
 cssselect2==0.3.0
+cycler==0.10.0
 defusedxml==0.6.0
 Django==3.0.1
 django-cors-headers==3.2.0
@@ -20,10 +21,13 @@ html5lib==1.1
 httpretty==1.0.2
 idna==2.8
 importlib-metadata==1.7.0
+kiwisolver==1.2.0
 lark-parser==0.8.6
+matplotlib==3.2.2
 monotonic==1.5
 more-itertools==8.4.0
 mysqlclient==1.4.6
+numpy==1.19.0
 packaging==20.4
 Pillow==6.2.1
 pluggy==0.13.1
@@ -33,9 +37,11 @@ pycparser==2.20
 pyfakefs==4.0.2
 pyparsing==2.4.7
 Pyphen==0.9.5
+pyproj==2.6.1.post1
 pytest==5.4.3
 pytest-cov==2.10.0
 pytest-django==3.9.0
+python-dateutil==2.8.1
 python-decouple==3.3
 pytz==2019.3
 requests==2.22.0
