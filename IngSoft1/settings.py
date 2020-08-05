@@ -64,11 +64,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'push_notifications',
     "core",
     'rest_framework',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
 ]
+
+PUSH_NOTIFICATIONS_SETTINGS = {
+        "FCM_API_KEY": config("FCM_API_KEY"),
+        "APNS_CERTIFICATE": config("APNS_CERTIFICATE"),
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -117,7 +123,7 @@ DATABASES = {
         'NAME': config("DB_NAME"),
         'USER': config("DB_USER"),
         'PASSWORD': config("DB_PASSWORD"),
-        'HOST': 'ec2-54-149-159-86.us-west-2.compute.amazonaws.com',
+        'HOST': config("DB_HOST"),
         'PORT': '3306',
     }
 }

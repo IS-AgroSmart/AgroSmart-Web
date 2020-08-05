@@ -27,13 +27,17 @@ from core.serializers import *
 import requests
 from requests.auth import HTTPBasicAuth
 
-#Reset Password
+# Reset Password
 from django.core.mail import EmailMultiAlternatives
 from django.dispatch import receiver
 from django.template.loader import render_to_string
 from django.urls import reverse
 
+from core.notificator import send_notification_by_user
+from push_notifications.models import APNSDevice, GCMDevice
+
 from django_rest_passwordreset.signals import reset_password_token_created
+
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, OnlySelfUnlessAdminPermission,)
@@ -49,14 +53,14 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
         else:
             return User.objects.filter(pk=self.request.user.pk)
-    
+
     @action(detail=True, methods=['post'])
     def set_password(self, request, pk=None):
         user = self.get_object()
         user.set_password(request.data.get("password"))
         user.save()
         return HttpResponse(status=200)
-    
+
 
 class FlightViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
@@ -68,11 +72,13 @@ class FlightViewSet(viewsets.ModelViewSet):
             user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
         else:
             user = self.request.user
-        serializer = self.get_serializer(Flight.objects.filter(user=user, deleted=True), many=True)
+        serializer = self.get_serializer(
+            Flight.objects.filter(user=user, deleted=True), many=True)
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset().filter(deleted=False))
+        queryset = self.filter_queryset(
+            self.get_queryset().filter(deleted=False))
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -85,7 +91,8 @@ class FlightViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
-            serializer.save(user=User.objects.get(pk=self.request.META["HTTP_TARGETUSER"]))
+            serializer.save(user=User.objects.get(
+                pk=self.request.META["HTTP_TARGETUSER"]))
         else:
             serializer.save(user=self.request.user)
 
@@ -98,7 +105,8 @@ class FlightViewSet(viewsets.ModelViewSet):
                 instance.save()
         else:  # User is not admin nor file owner
             if instance.is_demo:
-                self.request.user.demo_flights.remove(instance)  # Remove demo flight ONLY FOR USER!
+                # Remove demo flight ONLY FOR USER!
+                self.request.user.demo_flights.remove(instance)
 
 
 class ArtifactViewSet(viewsets.ModelViewSet):
@@ -120,12 +128,15 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             return UserProject.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        all_flights = [Flight.objects.get(uuid=uuid) for uuid in self.request.POST.getlist("flights")]
+        all_flights = [Flight.objects.get(
+            uuid=uuid) for uuid in self.request.POST.getlist("flights")]
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
-            target_user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
+            target_user = User.objects.get(
+                pk=self.request.META["HTTP_TARGETUSER"])
         else:
             target_user = self.request.user
-        serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
+        serializer.save(user=target_user, flights=[
+                        f for f in all_flights if f.user == target_user])
 
 
 @csrf_exempt
@@ -137,20 +148,23 @@ def upload_images(request, uuid):
 
     files = []
     filenames = []
-    for f in request.FILES.getlist("images"):  # save temp files to disk before uploading
+    # save temp files to disk before uploading
+    for f in request.FILES.getlist("images"):
         path = default_storage.save('tmp/' + f.name, ContentFile(f.read()))
         tmp_file = os.path.join(settings.MEDIA_ROOT, path)
         filenames.append(tmp_file)
         files.append(('images', open(tmp_file, "rb")))
     # upload files to NodeODM server
-    r = requests.post("http://container-nodeodm:3000/task/new/upload/" + str(flight.uuid), files=files)
+    r = requests.post(
+        "http://container-nodeodm:3000/task/new/upload/" + str(flight.uuid), files=files)
     if r.status_code != 200:
         return HttpResponse(status=500)
     for f in filenames:  # delete temp files from disk
         os.remove(f)
 
     # start processing Flight on NodeODM
-    r = requests.post("http://container-nodeodm:3000/task/new/commit/" + str(flight.uuid))
+    r = requests.post(
+        "http://container-nodeodm:3000/task/new/commit/" + str(flight.uuid))
     if r.status_code != 200:
         return HttpResponse(status=500)
 
@@ -168,7 +182,9 @@ def webhook_processing_complete(request):
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
     elif data["status"]["code"] == 40:
+        success_message = "El análisis de su vuelo ha terminado entre para ver los resultados"
         flight.state = FlightState.COMPLETE.name
+        send_notification_by_user(username, success_message)
     elif data["status"]["code"] == 50:
         flight.state = FlightState.CANCELED.name
     flight.processing_time = data.get("processingTime", 0)
@@ -178,7 +194,8 @@ def webhook_processing_complete(request):
         flight.try_create_thumbnail()
         flight.try_create_png_ortho()
         flight.try_create_annotated_png_ortho()
-        flight.create_geoserver_workspace_and_upload_geotiff()  # _try_create_thumbnail must have been invoked here!
+        # _try_create_thumbnail must have been invoked here!
+        flight.create_geoserver_workspace_and_upload_geotiff()
 
     return HttpResponse()
 
@@ -237,9 +254,12 @@ def upload_shapefile(request, uuid):
 
     project = UserProject.objects.get(pk=uuid)
     # shapefile is an array with files [X.shp, X.shx, X.dbf], in some order
-    file: UploadedFile = request.FILES.getlist("shapefile")[0]  # gets name X.Y (cannot guarantee Y)
-    shp_name = ".".join(file.name.split(".")[:-1])  # remove extension to get only X
-    project.artifacts.create(name=shp_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
+    file: UploadedFile = request.FILES.getlist(
+        "shapefile")[0]  # gets name X.Y (cannot guarantee Y)
+    # remove extension to get only X
+    shp_name = ".".join(file.name.split(".")[:-1])
+    project.artifacts.create(
+        name=shp_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
 
     # Write file(s) to disk on project folder
     os.makedirs(project.get_disk_path() + "/" + shp_name)
@@ -252,14 +272,17 @@ def upload_shapefile(request, uuid):
     GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
 
     requests.put(
-        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/"
-                                                                                            "external.shp",
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
+        shp_name + "/"
+        "external.shp",
         headers={"Content-Type": "text/plain"},
-        data="file:///media/USB/" + str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
+        data="file:///media/USB/" +
+        str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
-        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" + shp_name + "/featuretypes/" + shp_name + ".json",
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
+        shp_name + "/featuretypes/" + shp_name + ".json",
         headers={"Content-Type": "application/json"},
         data='{"featureType": {"enabled": true, "srs": "EPSG:4326" }}',
         auth=HTTPBasicAuth('admin', 'geoserver'))
@@ -272,8 +295,10 @@ def upload_geotiff(request, uuid):
 
     project = UserProject.objects.get(pk=uuid)
     file: UploadedFile = request.FILES.get("geotiff")  # file is called X.tiff
-    geotiff_name = ".".join(file.name.split(".")[:-1])  # Remove extension, get X
-    project.artifacts.create(name=geotiff_name, type=ArtifactType.ORTHOMOSAIC.name, title=request.POST["title"])
+    geotiff_name = ".".join(file.name.split(
+        ".")[:-1])  # Remove extension, get X
+    project.artifacts.create(
+        name=geotiff_name, type=ArtifactType.ORTHOMOSAIC.name, title=request.POST["title"])
 
     # Write file to disk on project folder
     os.makedirs(project.get_disk_path() + "/" + geotiff_name)
@@ -284,14 +309,17 @@ def upload_geotiff(request, uuid):
     GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
 
     requests.put(
-        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" + geotiff_name + "/"
-                                                                                                    "external.geotiff",
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" +
+        geotiff_name + "/"
+        "external.geotiff",
         headers={"Content-Type": "text/plain"},
-        data="file:///media/USB/" + str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
+        data="file:///media/USB/" +
+        str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
-        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" + geotiff_name + "/coverages/" + geotiff_name + ".json",
+        GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" +
+        geotiff_name + "/coverages/" + geotiff_name + ".json",
         headers={"Content-Type": "application/json"},
         data=json.dumps({"coverage": {
             "enabled": True,
@@ -344,7 +372,8 @@ def create_raster_index(request, uuid):
     for flight in project.flights.all():
         flight.create_index_raster(clean_index, formula)
     project._create_index_datastore(clean_index)
-    project.artifacts.create(name=clean_index, type=ArtifactType.INDEX.name, title=clean_index.upper())
+    project.artifacts.create(
+        name=clean_index, type=ArtifactType.INDEX.name, title=clean_index.upper())
     return HttpResponse(status=200)
 
 
@@ -389,7 +418,8 @@ def mapper_indices(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
 
     return JsonResponse({"indices": [
-        {"name": art.name, "title": art.title, "layer": project._get_geoserver_ws_name() + ":" + art.name}
+        {"name": art.name, "title": art.title,
+            "layer": project._get_geoserver_ws_name() + ":" + art.name}
         for art in project.artifacts.all()
         if art.type == ArtifactType.INDEX.name
     ]})
@@ -409,7 +439,8 @@ def mapper_src(request, path):
     filepath = "./templates/geoext/src/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
-#Reset Password
+# Reset Password
+
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
@@ -418,14 +449,16 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
         'current_user': reset_password_token.user,
         'username': reset_password_token.user.username,
         'email': reset_password_token.user.email,
-        #'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
-        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(reset_password_token.key) 
+        # 'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
+        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(reset_password_token.key)
 
     }
 
     # render email text
-    email_html_message = render_to_string('email/user_reset_password.html', context)
-    email_plaintext_message = render_to_string('email/user_reset_password.txt', context)
+    email_html_message = render_to_string(
+        'email/user_reset_password.html', context)
+    email_plaintext_message = render_to_string(
+        'email/user_reset_password.txt', context)
 
     msg = EmailMultiAlternatives(
         # title:
@@ -439,3 +472,34 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     )
     msg.attach_alternative(email_html_message, "text/html")
     msg.send()
+
+
+@csrf_exempt
+def save_push_device(request, device):
+    user_name = request.POST["username"]
+    
+    try:
+        the_user = User.objects.get(username__iexact=user_name)
+    except User.DoesNotExist:
+        the_user = None
+
+    if not the_user:
+        return HttpResponse(status=400)
+    token = request.POST['token']
+
+    try:
+        gcm_user = GCMDevice.objects.get(user__id__icontains=the_user.id)
+    except GCMDevice.DoesNotExist:
+        gcm_user = None
+
+    if gcm_user:
+        return HttpResponse(status=200)
+
+    if device == "ios":
+        apns_device = APNSDevice.objects.create(
+            registration_id=token, user=the_user)
+    if device == "android":
+        fcm_device = GCMDevice.objects.create(
+            registration_id=token, cloud_message_type="FCM", user=the_user)
+
+    return HttpResponse(status=200)
