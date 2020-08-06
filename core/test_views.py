@@ -170,3 +170,11 @@ def test_formula_checker_endpoint(c):
     assert c.post(reverse("check_formula"), {"formula": "(red+  blue)"}).status_code == 200
     assert c.post(reverse("check_formula"), {"formula": "(red+  blue"}).status_code == 400
     assert c.post(reverse("check_formula"), {"formula": "foobar"}).status_code == 400
+
+def test_save_push_device(c, device):
+    assert c.post(reverse("push_devices", 
+        kwargs={"device": "android"}), 
+        {"username": "u1", "token": "dummyToken"}).status_code == 200
+    assert c.post(reverse("push_devices", 
+        kwargs={"device": "android"}),
+        {"username": "u3", "token": "dummyToken"}).status_code == 400
