@@ -171,7 +171,9 @@ def test_formula_checker_endpoint(c):
     assert c.post(reverse("check_formula"), {"formula": "(red+  blue"}).status_code == 400
     assert c.post(reverse("check_formula"), {"formula": "foobar"}).status_code == 400
 
-def test_save_push_device(c, device):
+def test_save_push_device(c):
+    User = get_user_model()
+    u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1")
     assert c.post(reverse("push_devices", 
         kwargs={"device": "android"}), 
         {"username": "u1", "token": "dummyToken"}).status_code == 200
