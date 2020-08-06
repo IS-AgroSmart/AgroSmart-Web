@@ -11,8 +11,11 @@ env:
     DB_USER: "djangouser"
     DB_NAME: "db"
     DB_PASSWORD: "dbpass"
+    DB_HOST: "dummyhost"
     EMAIL_HOST_USER: "mydummyuser@notfound.com"
     EMAIL_HOST_PASSWORD: "mydummyemailpassword"
+    FCM_API_KEY: "dummyfcm"
+    APNS_CERTIFICATE: "/dummypath/dummycert"
 
 jobs:
   build:
