@@ -178,7 +178,7 @@ def upload_images(request, uuid):
 def webhook_processing_complete(request):
     data = json.loads(request.body.decode("utf-8"))
     flight = Flight.objects.get(uuid=data["uuid"])
-    username = flight.user.user_name
+    username = flight.user.username
     
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
