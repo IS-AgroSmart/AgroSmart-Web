@@ -147,13 +147,32 @@ function initApp() {
             });
             selectClick = new ol.interaction.Select({
                 condition: ol.events.condition.click,
-                layers: (layer) => layer instanceof ol.layer.Vector && layer !== interactionLayer,
+                layers: (layer) => layer instanceof ol.layer.Vector,
+                hitTolerance: 10,
             });
             selectClick.on('select', function (e) {
+                if (delete_handler)
+                    document.removeEventListener("keydown", delete_handler);
+
                 if (e.selected.length === 0) {
                     popup.hide();
+                    delete_handler = null;
                     return;
                 }
+                delete_handler = function (evt) {
+                    var charCode = (evt.which) ? evt.which : evt.keyCode;
+                    if (charCode === 46) { // Del key
+                        let feature = e.selected[0];
+                        if (interactionSource.getFeatures().includes(feature)) {
+                            interactionSource.removeFeature(feature);
+                            let id = feature.getId();
+                            olMap.removeOverlay(measureTooltips[id]);
+                            delete measureTooltips[id];
+                            selectClick.getFeatures().remove(feature);
+                        }
+                    }
+                };
+                document.addEventListener('keydown', delete_handler, false);
                 let coordinate = e.mapBrowserEvent.coordinate;
 
                 let message = "<p>";
@@ -392,15 +411,17 @@ function createClearControl() {
         '  <path stroke="#fff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none" d="m6 4v24h11v-1h-10v-22h11v7h7v7h1v-8l-7-7h-1z"/>' +
         '  <path stroke="#fff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none" d="m18 20.707l3.293 3.293-3.293 3.293c.013.025.707.707.707.707l3.293-3.293 3.293 3.293.707-.707-3.293-3.293 3.293-3.293-.707-.707-3.293 3.293-3.293-3.293z"/>' +
         '</g></svg>',
-        "clear-meas", "Eliminar mediciones")
+        "clear-meas", "Eliminar mediciones (use Supr para eliminar una sola medición)")
 }
 
 let interactionLayer, interactionSource;
 var featureType = 'LineString';
 var helpTooltipElement, helpTooltip;
 var measureTooltipElement, measureTooltip;
-var measureTooltips = [];
+var numMeasurement = 0;
+var measureTooltips = {};
 var draw, listener, isDrawing = false;
+var delete_handler;
 
 function removeInteraction() {
     isDrawing = false;
@@ -446,7 +467,7 @@ function saveMeasurementsListener() {
 
 function clearMeasurementsListener() {
     interactionSource.clear();
-    measureTooltips.forEach((tt) => olMap.removeOverlay(tt));
+    Object.entries(measureTooltips).forEach((tt) => olMap.removeOverlay(tt[1]));
     selectClick.getFeatures().clear();
 }
 
@@ -516,6 +537,7 @@ function addInteraction() {
     }
 
     draw.on('drawstart', (evt) => {
+        numMeasurement++;
         drawingFeature = evt.feature
         let tooltipCoord = evt.coordinate
         listener = drawingFeature.getGeometry().on('change', (evt) => {
@@ -536,7 +558,8 @@ function addInteraction() {
     draw.on('drawend', (evt) => {
         measureTooltipElement.className = 'tooltip tooltip-static'
         measureTooltip.setOffset([0, -7])
-        measureTooltips.push(measureTooltip);
+        drawingFeature.setId(numMeasurement);
+        measureTooltips[numMeasurement] = measureTooltip;
         drawingFeature = null
         measureTooltipElement = null
         ol.Observable.unByKey(listener);
