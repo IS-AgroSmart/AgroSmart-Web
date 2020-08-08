@@ -48,6 +48,7 @@ urlpatterns = [
     path('mapper/<uuid:uuid>/indices', mapper_indices),
     path('mapper/<uuid:uuid>/artifacts', mapper_artifacts),
     path('mapper/panel.js', mapper_paneljs),
+    path('mapper/ticks/<int:num_ticks>', mapper_ticks),
     path('mapper/ol/<path:path>', mapper_ol),
     path('mapper/geoext/src/<path:path>', mapper_src),
     url(r'^api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),

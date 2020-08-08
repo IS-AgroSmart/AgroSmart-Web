@@ -175,7 +175,7 @@ function initApp() {
             });
 
             timeSlider = Ext.create('Ext.slider.Single', {
-                width: 200,
+                width: 214,
                 value: TIMES.length - 1,
                 increment: 1,
                 minValue: 0,
@@ -184,7 +184,12 @@ function initApp() {
                 tipText: function (thumb) {
                     return TIMES[thumb.value];
                 },
+                componentCls: "slider-style",
             });
+
+            const svgUrl = "data:image/svg+xml," + encodeURIComponent(composeSvgTicks(TIMES.length));
+            console.log(svgUrl);
+            setStyle('.slider-style { background-image:url(/mapper/ticks/' + TIMES.length + '); }');
 
             let dateLabel = Ext.create('Ext.form.Label', {
                 text: "None"
@@ -240,7 +245,7 @@ function initApp() {
             let description = Ext.create('Ext.panel.Panel', {
                 contentEl: 'description',
                 title: 'Descripción',
-                height: 200,
+                height: 300,
                 border: false,
                 bodyPadding: 5
             });
@@ -614,3 +619,36 @@ function addIndex(index) {
         } else throw response.text();
     }).catch((msg) => alert(msg));
 }
+
+function composeSvgTicks(numTicks) {
+    function _tick(pos) {
+        return `<line x1="${pos}" y1="0" x2="${pos}" y2="10" style="stroke:black;stroke-width:1" />`
+    }
+
+    let svg = '<svg height="30px" width="214px">';
+    // Interval [1, 213] must be divided in numTicks spaces, ends are included
+    // Fence post problem! :)
+    const MARGIN = 7;
+    const START = MARGIN, END = 214 - MARGIN;
+    const interval = ((END - START) / (numTicks - 1)).toFixed(); // Place tick every interval pixels
+    for (var i = 0; i < numTicks; i++) {
+        svg += _tick(interval * i + START);
+    }
+    svg += '</svg>';
+    return svg;
+}
+
+// https://stackoverflow.com/a/19613731
+function setStyle(cssText) {
+    var sheet = document.createElement('style');
+    sheet.type = 'text/css';
+    /* Optional */
+    window.customSheet = sheet;
+    (document.head || document.getElementsByTagName('head')[0]).appendChild(sheet);
+    return (setStyle = function (cssText, node) {
+        if (!node || node.parentNode !== sheet)
+            return sheet.appendChild(document.createTextNode(cssText));
+        node.nodeValue = cssText;
+        return node;
+    })(cssText);
+};
