@@ -431,6 +431,11 @@ def mapper_paneljs(request):
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
 
+def mapper_ticks(request, num_ticks):
+    filepath = "./templates/geoext/examples/tree/" + str(num_ticks) + "ticks.png"
+    return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
+
 def mapper_ol(request, path):
     filepath = "./templates/geoext/examples/lib/ol/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
@@ -440,9 +445,6 @@ def mapper_src(request, path):
     filepath = "./templates/geoext/src/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
-# Reset Password
-
-
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
     # send an e-mail to the user
@@ -451,8 +453,8 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
         'username': reset_password_token.user.username,
         'email': reset_password_token.user.email,
         # 'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
-        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(reset_password_token.key)
-
+        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(
+            reset_password_token.key)
     }
 
     # render email text
@@ -473,7 +475,6 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     )
     msg.attach_alternative(email_html_message, "text/html")
     msg.send()
-
 
 @csrf_exempt
 def save_push_device(request, device):
