@@ -52,4 +52,5 @@ urlpatterns = [
     path('mapper/ol/<path:path>', mapper_ol),
     path('mapper/geoext/src/<path:path>', mapper_src),
     url(r'^api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
+    path('api/register-push/<device>', save_push_device, name='push_devices'),
 ]

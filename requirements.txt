@@ -53,3 +53,4 @@ wcwidth==0.2.4
 WeasyPrint==51
 webencodings==0.5.1
 zipp==3.1.0
+django-push-notifications==2.0.0
