@@ -27,13 +27,14 @@ from core.serializers import *
 import requests
 from requests.auth import HTTPBasicAuth
 
-#Reset Password
+# Reset Password
 from django.core.mail import EmailMultiAlternatives
 from django.dispatch import receiver
 from django.template.loader import render_to_string
 from django.urls import reverse
 
 from django_rest_passwordreset.signals import reset_password_token_created
+
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, OnlySelfUnlessAdminPermission,)
@@ -49,14 +50,14 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
         else:
             return User.objects.filter(pk=self.request.user.pk)
-    
+
     @action(detail=True, methods=['post'])
     def set_password(self, request, pk=None):
         user = self.get_object()
         user.set_password(request.data.get("password"))
         user.save()
         return HttpResponse(status=200)
-    
+
 
 class FlightViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
@@ -400,6 +401,11 @@ def mapper_paneljs(request):
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
 
+def mapper_ticks(request, num_ticks):
+    filepath = "./templates/geoext/examples/tree/" + str(num_ticks) + "ticks.png"
+    return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
+
 def mapper_ol(request, path):
     filepath = "./templates/geoext/examples/lib/ol/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
@@ -409,7 +415,8 @@ def mapper_src(request, path):
     filepath = "./templates/geoext/src/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
 
-#Reset Password
+
+# Reset Password
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
@@ -418,8 +425,9 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
         'current_user': reset_password_token.user,
         'username': reset_password_token.user.username,
         'email': reset_password_token.user.email,
-        #'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
-        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(reset_password_token.key) 
+        # 'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
+        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(
+            reset_password_token.key)
 
     }
 

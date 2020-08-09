@@ -147,13 +147,32 @@ function initApp() {
             });
             selectClick = new ol.interaction.Select({
                 condition: ol.events.condition.click,
-                layers: (layer) => layer instanceof ol.layer.Vector && layer !== interactionLayer,
+                layers: (layer) => layer instanceof ol.layer.Vector,
+                hitTolerance: 10,
             });
             selectClick.on('select', function (e) {
+                if (delete_handler)
+                    document.removeEventListener("keydown", delete_handler);
+
                 if (e.selected.length === 0) {
                     popup.hide();
+                    delete_handler = null;
                     return;
                 }
+                delete_handler = function (evt) {
+                    var charCode = (evt.which) ? evt.which : evt.keyCode;
+                    if (charCode === 46) { // Del key
+                        let feature = e.selected[0];
+                        if (interactionSource.getFeatures().includes(feature)) {
+                            interactionSource.removeFeature(feature);
+                            let id = feature.getId();
+                            olMap.removeOverlay(measureTooltips[id]);
+                            delete measureTooltips[id];
+                            selectClick.getFeatures().remove(feature);
+                        }
+                    }
+                };
+                document.addEventListener('keydown', delete_handler, false);
                 let coordinate = e.mapBrowserEvent.coordinate;
 
                 let message = "<p>";
@@ -175,7 +194,7 @@ function initApp() {
             });
 
             timeSlider = Ext.create('Ext.slider.Single', {
-                width: 200,
+                width: 214,
                 value: TIMES.length - 1,
                 increment: 1,
                 minValue: 0,
@@ -184,7 +203,12 @@ function initApp() {
                 tipText: function (thumb) {
                     return TIMES[thumb.value];
                 },
+                componentCls: "slider-style",
             });
+
+            const svgUrl = "data:image/svg+xml," + encodeURIComponent(composeSvgTicks(TIMES.length));
+            console.log(svgUrl);
+            setStyle('.slider-style { background-image:url(/mapper/ticks/' + TIMES.length + '); }');
 
             let dateLabel = Ext.create('Ext.form.Label', {
                 text: "None"
@@ -240,7 +264,7 @@ function initApp() {
             let description = Ext.create('Ext.panel.Panel', {
                 contentEl: 'description',
                 title: 'Descripción',
-                height: 200,
+                height: 300,
                 border: false,
                 bodyPadding: 5
             });
@@ -387,15 +411,17 @@ function createClearControl() {
         '  <path stroke="#fff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none" d="m6 4v24h11v-1h-10v-22h11v7h7v7h1v-8l-7-7h-1z"/>' +
         '  <path stroke="#fff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none" d="m18 20.707l3.293 3.293-3.293 3.293c.013.025.707.707.707.707l3.293-3.293 3.293 3.293.707-.707-3.293-3.293 3.293-3.293-.707-.707-3.293 3.293-3.293-3.293z"/>' +
         '</g></svg>',
-        "clear-meas", "Eliminar mediciones")
+        "clear-meas", "Eliminar mediciones (use Supr para eliminar una sola medición)")
 }
 
 let interactionLayer, interactionSource;
 var featureType = 'LineString';
 var helpTooltipElement, helpTooltip;
 var measureTooltipElement, measureTooltip;
-var measureTooltips = [];
+var numMeasurement = 0;
+var measureTooltips = {};
 var draw, listener, isDrawing = false;
+var delete_handler;
 
 function removeInteraction() {
     isDrawing = false;
@@ -441,7 +467,7 @@ function saveMeasurementsListener() {
 
 function clearMeasurementsListener() {
     interactionSource.clear();
-    measureTooltips.forEach((tt) => olMap.removeOverlay(tt));
+    Object.entries(measureTooltips).forEach((tt) => olMap.removeOverlay(tt[1]));
     selectClick.getFeatures().clear();
 }
 
@@ -511,6 +537,7 @@ function addInteraction() {
     }
 
     draw.on('drawstart', (evt) => {
+        numMeasurement++;
         drawingFeature = evt.feature
         let tooltipCoord = evt.coordinate
         listener = drawingFeature.getGeometry().on('change', (evt) => {
@@ -531,7 +558,8 @@ function addInteraction() {
     draw.on('drawend', (evt) => {
         measureTooltipElement.className = 'tooltip tooltip-static'
         measureTooltip.setOffset([0, -7])
-        measureTooltips.push(measureTooltip);
+        drawingFeature.setId(numMeasurement);
+        measureTooltips[numMeasurement] = measureTooltip;
         drawingFeature = null
         measureTooltipElement = null
         ol.Observable.unByKey(listener);
@@ -614,3 +642,36 @@ function addIndex(index) {
         } else throw response.text();
     }).catch((msg) => alert(msg));
 }
+
+function composeSvgTicks(numTicks) {
+    function _tick(pos) {
+        return `<line x1="${pos}" y1="0" x2="${pos}" y2="10" style="stroke:black;stroke-width:1" />`
+    }
+
+    let svg = '<svg height="30px" width="214px">';
+    // Interval [1, 213] must be divided in numTicks spaces, ends are included
+    // Fence post problem! :)
+    const MARGIN = 7;
+    const START = MARGIN, END = 214 - MARGIN;
+    const interval = ((END - START) / (numTicks - 1)).toFixed(); // Place tick every interval pixels
+    for (var i = 0; i < numTicks; i++) {
+        svg += _tick(interval * i + START);
+    }
+    svg += '</svg>';
+    return svg;
+}
+
+// https://stackoverflow.com/a/19613731
+function setStyle(cssText) {
+    var sheet = document.createElement('style');
+    sheet.type = 'text/css';
+    /* Optional */
+    window.customSheet = sheet;
+    (document.head || document.getElementsByTagName('head')[0]).appendChild(sheet);
+    return (setStyle = function (cssText, node) {
+        if (!node || node.parentNode !== sheet)
+            return sheet.appendChild(document.createTextNode(cssText));
+        node.nodeValue = cssText;
+        return node;
+    })(cssText);
+};
