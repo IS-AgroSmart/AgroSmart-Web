@@ -40,7 +40,7 @@ jobs:
         run: npm install
         working-directory: ./frontend
       - name: Run backend tests
-        run: pytest --cov . --junitxml=xunit-reports/xunit-result-main.xml
+        run: pytest --cov . -n 4 --junitxml=xunit-reports/xunit-result-main.xml
       - name: Generate backend coverage report
         run: | 
           coverage xml

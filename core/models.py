@@ -8,7 +8,6 @@ from typing import Union
 import matplotlib.pyplot as plt
 import numpy
 
-
 import pyproj
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
@@ -32,7 +31,6 @@ class UserType(Enum):
     ACTIVE = "Active"
     DELETED = "Deleted"
     ADMIN = "Admin"
-    
 
 
 class User(AbstractUser):
@@ -359,12 +357,6 @@ def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
                       })
 
 
-def link_demo_flight_to_active_users(sender, instance: Flight, created, **kwargs):
-    if created and instance.is_demo:
-        for user in User.objects.filter(is_active=True).all():
-            user.demo_flights.add(instance)
-
-
 def delete_nodeodm_task(sender, instance: Flight, **kwargs):
     requests.post("http://container-nodeodm:3000/task/remove",
                   headers={'Content-Type': "application/x-www-form-urlencoded"},
@@ -388,7 +380,6 @@ def delete_thumbnail(sender, instance: Flight, **kwargs):
 
 
 post_save.connect(create_nodeodm_task, sender=Flight)
-post_save.connect(link_demo_flight_to_active_users, sender=Flight)
 post_delete.connect(delete_nodeodm_task, sender=Flight)
 post_delete.connect(delete_thumbnail, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=Flight)

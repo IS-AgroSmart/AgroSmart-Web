@@ -20,6 +20,10 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
 
+        # when user is created, link to all existing demo flights
+        for demo_flight in Flight.objects.filter(is_demo=True).all():
+            user.demo_flights.add(demo_flight)
+
         return user
 
     class Meta:

@@ -59,19 +59,16 @@ class FlightsMixin:
 
 
 @pytest.mark.django_db
-class TestUserViewSet(BaseTestViewSet):
+class TestUserViewSet(BaseTestViewSet, FlightsMixin):
     def test_user_list(self, c, users):
         c.force_authenticate(users[0])
         resp = c.get(reverse('users-list')).json()
         assert any(users[0].email == u["email"] for u in resp)  # Logged in user in response
         assert not any(users[1].email == u["email"] for u in resp)  # Other users NOT in response
 
-    @pytest.mark.xfail(reason="Weird exception AssertionError: .accepted_renderer not set on Response")
     def test_anonymous_not_allowed(self, c, users):
         c.force_authenticate(user=None)
-        # Returns 401, which raises an AssertionError due to some bug (?)
-        with pytest.raises(AssertionError):
-            assert c.get(reverse('users-list')).status_code == 401
+        assert c.get(reverse('users-list')).status_code == 401
 
     def test_admin_sees_all(self, c, users):
         c.force_authenticate(users[2])
@@ -96,8 +93,11 @@ class TestUserViewSet(BaseTestViewSet):
 
     def test_user_change_password_other(self, c, users: List[User]):
         c.force_authenticate(users[1])
-        with pytest.raises(AssertionError):
-            c.post(reverse('users-set-password', kwargs={"pk": users[0].pk}), {"password": "mynewpassword"})
+        oldpass = users[0].password
+        resp = c.post(reverse('users-set-password', kwargs={"pk": users[0].pk}), {"password": "mynewpassword"})
+        assert resp.status_code == 404
+        users[0].refresh_from_db()
+        assert users[0].password == oldpass
 
     def test_user_change_password_admin(self, c, users: List[User]):
         c.force_authenticate(users[2])  # users[2] is admin
@@ -108,17 +108,16 @@ class TestUserViewSet(BaseTestViewSet):
         assert users[0].password != oldpass
 
     def test_user_creation_duplicate_email(self, c, users: List[User]):
-        # Returns 404, which raises an AssertionError due to some bug (?)
-        with pytest.raises(AssertionError):
-            c.post(reverse('users-list'), {"email": users[0].email, "username": "foo", "password": "foo"})
+        resp = c.post(reverse('users-list'), {"email": users[0].email, "username": "foo", "password": "foo"})
+        assert resp.status_code == 400
 
+    @pytest.mark.xfail(reason="Returns 404, which raises an AssertionError due to some bug (?)")
     def test_user_creation_wrong_email(self, c, users: List[User]):
-        # Returns 404, which raises an AssertionError due to some bug (?)
         with pytest.raises(AssertionError):
             c.post(reverse('users-list'), {"email": "foo@example", "username": "foo", "password": "foo"})
 
+    @pytest.mark.xfail(reason="Returns 404, which raises an AssertionError due to some bug (?)")
     def test_user_creation_no_username(self, c, ):
-        # Returns 404, which raises an AssertionError due to some bug (?)
         with pytest.raises(AssertionError):
             c.post(reverse('users-list'),
                    {"email": "foo@example.com", "password": "foo"})
@@ -182,6 +181,19 @@ class TestUserViewSet(BaseTestViewSet):
     def test_user_admin_delete_other(self, c, users: List[User]):
         self._test_user_delete_as(c, as_user=users[2], target_user=users[0])  # users[2] is admin
 
+    def test_new_user_gets_demo_flights(self, c, users, flights):
+        # create a demo Flight
+        c.force_authenticate(users[2])  # admin
+        resp = c.post(reverse("flights-make-demo",
+                              kwargs={"pk": str(flights[4].uuid)}))
+        assert resp.status_code == 200
+
+        # test_user_creation creates user with email foo@example.com
+        self.test_user_creation(c, users)
+        new_user = User.objects.get(email="foo@example.com")
+        new_user.refresh_from_db()
+        assert flights[4] in new_user.demo_flights.all()
+
 
 @pytest.mark.django_db
 class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
@@ -234,11 +246,11 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_flight_creation_demo_user(self, c, users):
         c.force_authenticate(users[3])  # users[3] is demo user
-        resp = self._create_flight(c, 403)
+        self._create_flight(c, 403)
 
     def test_flight_creation_deleted_user(self, c, users):
         c.force_authenticate(users[4])  # users[4] is deleted user
-        resp = self._create_flight(c, 403)
+        self._create_flight(c, 403)
 
     def test_flight_creation_admin_as_other(self, c, users):
         c.force_authenticate(users[2])  # Login as admin
@@ -250,9 +262,9 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         resp = self._create_flight(c, 201, users[0].pk)  # try to create flight as user1
         assert resp.json()["user"] == users[1].pk  # Flight must have been created as property of user0!
 
+    @pytest.mark.xfail(reason="Returns 401, which raises an AssertionError due to some bug (?)")
     def test_anon_cannot_create_flight(self, c, users):
         c.force_authenticate(user=None)
-        # Returns 401, which raises an AssertionError due to some bug (?)
         with pytest.raises(AssertionError):
             self._create_flight(c, 401)
 
@@ -315,6 +327,79 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
                      HTTP_TARGETUSER=users[0].pk).json()  # GET the /api/flights/deleted endpoint masquerading as user0
         assert str(flights[0].uuid) in [f["uuid"] for f in resp]  # flights[0] should be there
         assert str(flights[4].uuid) not in [f["uuid"] for f in resp]  # Admin's own flight should NOT be there
+
+    def test_convert_to_demo(self, c, users: List[User], flights: List[Flight]):
+        c.force_authenticate(users[2])  # admin
+        assert not flights[4].is_demo
+        assert flights[4] not in users[0].demo_flights.all()
+
+        resp = c.post(reverse("flights-make-demo",
+                              kwargs={"pk": str(flights[4].uuid)}))
+        assert resp.status_code == 200
+        flights[4].refresh_from_db()
+        assert flights[4].is_demo
+        assert flights[4].user == None
+        assert all([flights[4] in u.demo_flights.all() for u in User.objects.all()])
+
+    def test_try_convert_to_demo_nonadmin(self, c, users: List[User], flights: List[Flight]):
+        c.force_authenticate(users[0])  # not admin
+
+        resp = c.post(reverse("flights-make-demo",
+                              kwargs={"pk": str(flights[0].uuid)}))
+        assert resp.status_code == 403  # only admins can create demos
+        flights[0].refresh_from_db()
+        assert not flights[0].is_demo
+        assert not any([flights[0] in u.demo_flights.all() for u in User.objects.all()])
+
+    def test_list_flight_includes_demo(self, c, users: List[User], flights: List[Flight]):
+        c.force_authenticate(users[0])
+        resp = c.get(reverse("flights-list")).json()
+        assert str(flights[4].uuid) not in [f["uuid"] for f in resp]
+
+        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+        assert flights[4] in users[0].demo_flights.all()
+
+        c.force_authenticate(users[0])
+        resp = c.get(reverse("flights-list")).json()
+        assert str(flights[4].uuid) in [f["uuid"] for f in resp]
+
+    def test_delete_demo(self, c, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+
+        c.force_authenticate(users[0])
+        resp = c.delete(reverse("flights-detail", kwargs={"pk": str(flights[4].uuid)}))
+        assert resp.status_code == 204
+        flights[4].refresh_from_db()
+        assert users[0] not in flights[4].demo_users.all()
+        assert users[2] in flights[4].demo_users.all()  # admin is still in flight4's demo users
+        assert flights[4].is_demo
+
+    def test_delete_demo_admin(self, c, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+
+        c.force_authenticate(users[2])
+        resp = c.delete(reverse("flights-detail", kwargs={"pk": str(flights[4].uuid)}))
+        assert resp.status_code == 204
+        flights[4].refresh_from_db()
+        assert users[0] in flights[4].demo_users.all()  # normal user still sees flight4 as demo
+        assert users[2] not in flights[4].demo_users.all()
+        assert flights[4].is_demo
+
+    def test_really_delete_demo(self, c, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+
+        c.force_authenticate(users[2])
+        resp = c.delete(reverse("flights-delete-demo", kwargs={"pk": str(flights[4].uuid)}))
+        assert resp.status_code == 204
+        assert not Flight.objects.filter(uuid=flights[4].uuid)
+
+    def test_really_delete_demo_nonadmin(self, c, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+
+        c.force_authenticate(users[0])
+        resp = c.delete(reverse("flights-delete-demo", kwargs={"pk": str(flights[4].uuid)}))
+        assert resp.status_code == 403
+        assert Flight.objects.filter(uuid=flights[4].uuid)  # flights[4] was NOT deleted
 
 
 @pytest.mark.django_db
@@ -416,7 +501,8 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert resp.status_code == 201
         assert resp.json()["user"] == users[0].pk  # Project should belong to user0
         assert str(flights[0].uuid) in resp.json()["flights"]
-        assert str(flights[4].uuid) not in resp.json()["flights"]  # flight4 should NOT be there b/c admin is simulating user0
+        assert str(flights[4].uuid) not in resp.json()[
+            "flights"]  # flight4 should NOT be there b/c admin is simulating user0
 
     def test_project_creation_normal_as_other(self, c, users, flights, monkeypatch):
         # user0 tries to create a Project in the name of user1, it shouldn't work
@@ -425,7 +511,8 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert resp.status_code == 201
         assert resp.json()["user"] == users[0].pk  # Project should belong to user0, not to user1
         assert str(flights[0].uuid) in resp.json()["flights"]
-        assert str(flights[3].uuid) not in resp.json()["flights"]  # flight3 should not appear b/c it doesn't belong to user0
+        # flight3 should not appear b/c it doesn't belong to user0
+        assert str(flights[3].uuid) not in resp.json()["flights"]
 
     def test_project_creation_demo_user(self, c, users, flights, monkeypatch):
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[3], [])

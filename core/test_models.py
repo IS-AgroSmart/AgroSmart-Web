@@ -110,7 +110,6 @@ class FlightModelTest(TestCase):
         self.user2 = User.objects.create_user('temporary2', 'temporary2@gmail.com', 'temporary')
 
         post_save.disconnect(create_nodeodm_task, sender=Flight)
-        post_save.disconnect(link_demo_flight_to_active_users, sender=Flight)
         post_delete.disconnect(delete_nodeodm_task, sender=Flight)
         post_delete.disconnect(delete_thumbnail, sender=Flight)
         post_delete.disconnect(delete_geoserver_workspace, sender=Flight)

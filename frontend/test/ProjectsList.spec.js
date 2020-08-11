@@ -55,6 +55,7 @@ describe("User details component", () => {
 
     afterEach(function () {
         mock.restore();
+        wrapper.vm.storage.otherUserPk = 0;
     });
 
     it("shows a list with projects", async () => {

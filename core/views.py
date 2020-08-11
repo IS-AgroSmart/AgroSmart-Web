@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
 from django.http import QueryDict
 from lark.exceptions import LarkError
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -85,6 +85,26 @@ class FlightViewSet(viewsets.ModelViewSet):
             Flight.objects.filter(user=user, deleted=True), many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"])
+    def make_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        flight: Flight = self.get_object()
+        flight.is_demo = True
+        flight.user = None
+        for user in User.objects.all():
+            user.demo_flights.add(flight)
+        flight.save()
+        return Response({})
+
+    @action(detail=True, methods=["delete"])
+    def delete_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        flight: Flight = self.get_object()
+        flight.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(
             self.get_queryset().filter(deleted=False))
@@ -111,16 +131,15 @@ class FlightViewSet(viewsets.ModelViewSet):
             serializer.save(user=self.request.user)
 
     def perform_destroy(self, instance: Flight):
-        if self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
+        if instance.is_demo:
+            # Remove demo flight ONLY FOR USER!
+            self.request.user.demo_flights.remove(instance)
+        elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
             if instance.deleted:
                 instance.delete()
             else:
                 instance.deleted = True
                 instance.save()
-        else:  # User is not admin nor file owner
-            if instance.is_demo:
-                # Remove demo flight ONLY FOR USER!
-                self.request.user.demo_flights.remove(instance)
 
 
 class ArtifactViewSet(viewsets.ModelViewSet):

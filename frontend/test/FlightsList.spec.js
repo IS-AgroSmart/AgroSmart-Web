@@ -25,6 +25,8 @@ localVue.use(ReactiveStorage, {
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
 
+jest.useFakeTimers();
+
 describe("User details component", () => {
     let wrapper, mock;
 
@@ -69,6 +71,7 @@ describe("User details component", () => {
 
     afterEach(function () {
         mock.restore();
+        wrapper.vm.storage.otherUserPk = 0;
     });
 
     it("shows a list with flights", async () => {
@@ -132,5 +135,17 @@ describe("User details component", () => {
             expect.stringMatching(/Example flight\s+\(40%\)\s+Some example annotations/));
         expect(wrapper.text()).toEqual(
             expect.stringMatching(/Completed flight\s+More example annotations/));
+    });
+
+    it("sends an update ping to API every second", async () => {
+        mockFlights();
+        wrapper.vm.storage.loggedInUser.type = "DELETED";
+        mountComponent();
+        await flushPromises();
+
+        expect(mock.history.get.length).toBe(1);
+        jest.advanceTimersByTime(2000);
+        await flushPromises();
+        expect(mock.history.get.length).toBeGreaterThan(1);
     });
 })
