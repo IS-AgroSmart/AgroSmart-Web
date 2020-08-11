@@ -2,7 +2,12 @@
     <div class="my-4">
         <b-card title="" class="mb-2">
             <div class="text-center">
-            <b-button :to="{name: 'newFlight'}" variant="primary">Crear vuelo</b-button></div>
+                <b-button v-if="canCreateFlights" :to="{name: 'newFlight'}" variant="primary">Crear vuelo</b-button>
+                <b-card-text v-else>
+                    <small class="text-muted">No puede crear vuelos. Póngase en contacto con AgroSmart para activar su cuenta.</small>
+                </b-card-text>
+            </div>
+    
         </b-card>
     </div>
 </template>
@@ -16,7 +21,9 @@ export default {
 
         };
     },
-    props: ["flight"],
+    computed: {
+        canCreateFlights: function() { return ["ACTIVE", "ADMIN"].includes(this.storage.loggedInUser.type); },
+    },
     mixins: [forceLogin]
 }
 </script>

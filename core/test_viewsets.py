@@ -13,12 +13,17 @@ from core.models import Flight, UserProject, Artifact, ArtifactType, Camera, Use
 class BaseTestViewSet:
     @pytest.fixture
     def users(self):
-        User = get_user_model()
-        u1 = User.objects.create(username='temporary', email='temporary@gmail.com', password='temporary')
-        u2 = User.objects.create(username='temporary2', email='temporary2@gmail.com', password='temporary2')
-        admin = User.objects.create(username='admin', email='admin@gmail.com', password='admin',
-                                    type=UserType.ADMIN.name)
-        return u1, u2, admin
+        u1 = User.objects.create_user(username='temporary', email='temporary@gmail.com', password='temporary',
+                                      type=UserType.ACTIVE.name)
+        u2 = User.objects.create_user(username='temporary2', email='temporary2@gmail.com', password='temporary2',
+                                      type=UserType.ACTIVE.name)
+        admin = User.objects.create_user(username='admin', email='admin@gmail.com', password='admin',
+                                         type=UserType.ADMIN.name)
+        demo = User.objects.create_user(username='demo', email='demo@gmail.com', password='demo',
+                                        type=UserType.DEMO_USER.name)
+        deleted = User.objects.create_user(username='deleted', email='deleted@gmail.com', password='deleted',
+                                           type=UserType.DELETED.name, is_active=False)
+        return u1, u2, admin, demo, deleted
 
     @pytest.fixture
     def c(self):
@@ -130,6 +135,53 @@ class TestUserViewSet(BaseTestViewSet):
             c.post(reverse('users-list'),
                    {"email": "foo@example.com", "username": "foo"})
 
+    def test_user_login_correct_password(self, c, users: List[User]):
+        resp = c.post(reverse('api_auth'), {"username": "temporary", "password": "temporary"})
+        assert resp.status_code == 200
+        assert "token" in resp.json()
+
+    def test_user_login_wrong_password(self, c, users: List[User]):
+        with pytest.raises(AssertionError):
+            c.post(reverse('api_auth'), {"username": "temporary", "password": "wrongpass"})
+
+    def test_user_login_deleted_user_fails(self, c, users: List[User]):
+        deleted = User.objects.create_user(username='deletednew', email='deletednew@gmail.com', password='deletednew')
+
+        # Test successful login, just to be sure
+        resp = c.post(reverse('api_auth'), {"username": "deletednew", "password": "deletednew"})
+        assert resp.status_code == 200
+        assert "token" in resp.json()
+
+        # Mark user as deleted
+        deleted.type = UserType.DELETED.name
+        deleted.is_active = False
+        deleted.save()
+        deleted.refresh_from_db()
+
+        # Try to log in again, should NOT work
+        with pytest.raises(AssertionError):
+            c.post(reverse('api_auth'), {"username": "deletednew", "password": "deletednew"})
+
+    def _test_user_delete_as(self, c, as_user, target_user):
+        c.force_authenticate(as_user)
+        resp = c.delete(reverse('users-detail', kwargs={"pk": target_user.pk}))
+        assert resp.status_code == 204
+        target_user.refresh_from_db()
+        assert target_user.type == UserType.DELETED.name
+        assert not target_user.is_active
+
+    def test_user_delete_self(self, c, users: List[User]):
+        self._test_user_delete_as(c, as_user=users[0], target_user=users[0])
+
+    def test_user_delete_self_twice(self, c, users: List[User]):
+        self.test_user_delete_self(c, users)  # At this point user is soft-deleted
+        resp = c.delete(reverse('users-detail', kwargs={"pk": users[0].pk}))
+        assert resp.status_code == 204
+        assert len(User.objects.filter(username=users[0].username).all()) == 0
+
+    def test_user_admin_delete_other(self, c, users: List[User]):
+        self._test_user_delete_as(c, as_user=users[2], target_user=users[0])  # users[2] is admin
+
 
 @pytest.mark.django_db
 class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
@@ -179,6 +231,14 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         c.force_authenticate(users[2])
         resp = self._create_flight(c, 201)
         assert resp.json()["user"] == users[2].pk
+
+    def test_flight_creation_demo_user(self, c, users):
+        c.force_authenticate(users[3])  # users[3] is demo user
+        resp = self._create_flight(c, 403)
+
+    def test_flight_creation_deleted_user(self, c, users):
+        c.force_authenticate(users[4])  # users[4] is deleted user
+        resp = self._create_flight(c, 403)
 
     def test_flight_creation_admin_as_other(self, c, users):
         c.force_authenticate(users[2])  # Login as admin
@@ -327,38 +387,50 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         kwargs = {"HTTP_TARGETUSER": as_user} if as_user else {}
         resp = c.post(reverse('projects-list'),
                       {"flights": proj_flights, "name": "foo", "description": "descr"}, **kwargs)
-        assert resp.status_code == 201
         return resp
 
     def test_project_creation_normal(self, c, users, flights, monkeypatch):
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[0],
-                                           [flights[0].uuid, flights[1].uuid]).json()
-        assert str(flights[0].uuid) in resp["flights"]
-        assert str(flights[1].uuid) in resp["flights"]
+                                           [flights[0].uuid, flights[1].uuid])
+        assert resp.status_code == 201
+        assert str(flights[0].uuid) in resp.json()["flights"]
+        assert str(flights[1].uuid) in resp.json()["flights"]
 
     def test_project_creation_admin_as_self(self, c, users, flights, monkeypatch):
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[4].uuid]).json()
-        assert str(flights[4].uuid) in resp["flights"]
+        resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[4].uuid])
+        assert resp.status_code == 201
+        assert str(flights[4].uuid) in resp.json()["flights"]
 
     def test_project_creation_admin_as_other(self, c, users, flights, monkeypatch):
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[0].uuid, flights[1].uuid],
-                                           as_user=users[0].pk).json()
-        assert resp["user"] == users[0].pk  # Project should belong to user0
-        assert str(flights[0].uuid) in resp["flights"]
-        assert str(flights[1].uuid) in resp["flights"]
+                                           as_user=users[0].pk)
+        assert resp.status_code == 201
+        assert resp.json()["user"] == users[0].pk  # Project should belong to user0
+        assert str(flights[0].uuid) in resp.json()["flights"]
+        assert str(flights[1].uuid) in resp.json()["flights"]
 
     def test_project_creation_admin_as_other_mixed_flights(self, c, users, flights, monkeypatch):
         # Try to create a Project as user0 with flights 0 and 4, but flight4 belongs to admin so it shouldn't appear
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[0].uuid, flights[4].uuid],
-                                           as_user=users[0].pk).json()
-        assert resp["user"] == users[0].pk  # Project should belong to user0
-        assert str(flights[0].uuid) in resp["flights"]
-        assert str(flights[4].uuid) not in resp["flights"]  # flight4 should NOT be there b/c admin is simulating user0
+                                           as_user=users[0].pk)
+        assert resp.status_code == 201
+        assert resp.json()["user"] == users[0].pk  # Project should belong to user0
+        assert str(flights[0].uuid) in resp.json()["flights"]
+        assert str(flights[4].uuid) not in resp.json()["flights"]  # flight4 should NOT be there b/c admin is simulating user0
 
     def test_project_creation_normal_as_other(self, c, users, flights, monkeypatch):
         # user0 tries to create a Project in the name of user1, it shouldn't work
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[0], [flights[0].pk, flights[3].pk],
-                                           as_user=users[1].pk).json()  # Try to pass as user1
-        assert resp["user"] == users[0].pk  # Project should belong to user0, not to user1
-        assert str(flights[0].uuid) in resp["flights"]
-        assert str(flights[3].uuid) not in resp["flights"]  # flight3 should not appear b/c it doesn't belong to user0
+                                           as_user=users[1].pk)  # Try to pass as user1
+        assert resp.status_code == 201
+        assert resp.json()["user"] == users[0].pk  # Project should belong to user0, not to user1
+        assert str(flights[0].uuid) in resp.json()["flights"]
+        assert str(flights[3].uuid) not in resp.json()["flights"]  # flight3 should not appear b/c it doesn't belong to user0
+
+    def test_project_creation_demo_user(self, c, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, users, flights, monkeypatch, users[3], [])
+        assert resp.status_code == 403
+
+    def test_project_creation_deleted_user(self, c, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, users, flights, monkeypatch, users[4], [])
+        assert resp.status_code == 403

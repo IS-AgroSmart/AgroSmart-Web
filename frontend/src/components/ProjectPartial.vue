@@ -12,29 +12,21 @@
 </template>
 
 <script>
+import forceLogin from './mixins/force_login'
+
 export default {
-    created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-    },
     data() {
         return {
 
         };
     },
     computed: {
-        progress() {
-            if (this.flight.state != "PROCESSING") {
-                return ""
-            }
-            return " (" + this.flight.nodeodm_info.progress.toFixed(0) + "%) ";
-        },
         mapper_url() {
             return "/mapper/" + this.project.uuid;
         }
         
     },
-    props: ["project"]
+    props: ["project"],
+    mixins: [forceLogin]
 }
 </script>

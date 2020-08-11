@@ -61,6 +61,15 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return HttpResponse(status=200)
 
+    def perform_destroy(self, instance: User):
+        if self.request.user.type == UserType.ADMIN.name or instance == self.request.user:
+            if instance.type == UserType.DELETED.name:
+                instance.delete()
+            else:
+                instance.type = UserType.DELETED.name
+                instance.is_active = False
+                instance.save()
+
 
 class FlightViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
@@ -88,6 +97,11 @@ class FlightViewSet(viewsets.ModelViewSet):
         else:
             user = self.request.user
         return Flight.objects.filter(user=user) | user.demo_flights.all()
+
+    def create(self, request, *args, **kwargs):
+        if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
+            return Response(status=403)
+        return super(FlightViewSet, self).create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
@@ -127,6 +141,11 @@ class UserProjectViewSet(viewsets.ModelViewSet):
         else:
             return UserProject.objects.filter(user=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
+            return Response(status=403)
+        return super(UserProjectViewSet, self).create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         all_flights = [Flight.objects.get(
             uuid=uuid) for uuid in self.request.POST.getlist("flights")]
@@ -135,8 +154,7 @@ class UserProjectViewSet(viewsets.ModelViewSet):
                 pk=self.request.META["HTTP_TARGETUSER"])
         else:
             target_user = self.request.user
-        serializer.save(user=target_user, flights=[
-                        f for f in all_flights if f.user == target_user])
+        serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
 
 
 @csrf_exempt
@@ -179,7 +197,7 @@ def webhook_processing_complete(request):
     data = json.loads(request.body.decode("utf-8"))
     flight = Flight.objects.get(uuid=data["uuid"])
     username = flight.user.username
-    
+
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
     elif data["status"]["code"] == 40:
@@ -275,10 +293,10 @@ def upload_shapefile(request, uuid):
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
         shp_name + "/"
-        "external.shp",
+                   "external.shp",
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
-        str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
+             str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
@@ -312,10 +330,10 @@ def upload_geotiff(request, uuid):
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" +
         geotiff_name + "/"
-        "external.geotiff",
+                       "external.geotiff",
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
-        str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
+             str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
@@ -420,7 +438,7 @@ def mapper_indices(request, uuid):
 
     return JsonResponse({"indices": [
         {"name": art.name, "title": art.title,
-            "layer": project._get_geoserver_ws_name() + ":" + art.name}
+         "layer": project._get_geoserver_ws_name() + ":" + art.name}
         for art in project.artifacts.all()
         if art.type == ArtifactType.INDEX.name
     ]})
@@ -444,6 +462,7 @@ def mapper_ol(request, path):
 def mapper_src(request, path):
     filepath = "./templates/geoext/src/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
@@ -476,10 +495,11 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     msg.attach_alternative(email_html_message, "text/html")
     msg.send()
 
+
 @csrf_exempt
 def save_push_device(request, device):
     user_name = request.POST["username"]
-    
+
     try:
         the_user = User.objects.get(username__iexact=user_name)
     except User.DoesNotExist:
