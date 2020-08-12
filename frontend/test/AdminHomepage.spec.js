@@ -206,7 +206,7 @@ describe('Admin homepage component', () => {
     });
 
     it("sends an API request to make a new demo project", async () => {
-        mock.onPost(/api\/projects\/.+\/make_demo/).reply(200);
+        mock.onPost(/api\/projects\/.+\/make_demo\//).reply(200);
         await flushPromises();
 
         expect(mock.history.post).toHaveLength(0);
@@ -218,7 +218,7 @@ describe('Admin homepage component', () => {
     });
 
     it("sends an API request to delete a demo project", async () => {
-        mock.onDelete(/api\/projects\/.+\/delete_demo/).reply(200);
+        mock.onDelete(/api\/projects\/.+\/delete_demo\//).reply(200);
         await flushPromises();
 
         expect(mock.history.delete).toHaveLength(0);

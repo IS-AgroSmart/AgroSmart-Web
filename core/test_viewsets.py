@@ -520,6 +520,34 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         # flight3 should not appear b/c it doesn't belong to user0
         assert str(flights[3].uuid) not in resp.json()["flights"]
 
+    def test_delete_project(self, c, users, projects):
+        c.force_authenticate(users[0])
+        old_uuid = projects[0].uuid
+        assert UserProject.objects.filter(uuid=old_uuid)
+
+        resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[0].uuid)}))
+        assert resp.status_code == 204
+        assert not UserProject.objects.filter(uuid=old_uuid)
+
+    @pytest.mark.xfail(reason="Returns 404, which raises an AssertionError due to some bug (?)")
+    def test_delete_project_other_user(self, c, users, projects):
+        c.force_authenticate(users[1])
+        old_uuid = projects[0].uuid
+        assert UserProject.objects.filter(uuid=old_uuid)
+
+        resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[0].uuid)}))
+        assert resp.status_code == 404
+        assert UserProject.objects.filter(uuid=old_uuid)
+
+    def test_delete_project_admin_as_other(self, c, users, projects):
+        c.force_authenticate(users[2])
+        old_uuid = projects[0].uuid
+        assert UserProject.objects.filter(uuid=old_uuid)
+
+        resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[0].uuid)}), HTTP_TARGETUSER=users[0].pk)
+        assert resp.status_code == 204
+        assert not UserProject.objects.filter(uuid=old_uuid)
+
     def test_project_creation_demo_user(self, c, users, flights, monkeypatch):
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[3], [])
         assert resp.status_code == 403

@@ -4,9 +4,9 @@ import {
 } from '@vue/test-utils';
 import flushPromises from "flush-promises";
 
-import FlightDetails from 'components/Project.vue';
+import DeletedFlights from 'components/DeletedFlights.vue';
 
-import { ButtonPlugin, CardPlugin, AlertPlugin } from 'bootstrap-vue'
+import { ButtonPlugin, CardPlugin, AlertPlugin } from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
 
 const localVue = createLocalVue();
@@ -27,11 +27,13 @@ localVue.use(ReactiveStorage, {
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
 
-describe("Project list component", () => {
+jest.useFakeTimers();
+
+describe("Deleted flights component", () => {
     let wrapper, mock;
 
     const mountComponent = () => {
-        wrapper = mount(FlightDetails, {
+        wrapper = mount(DeletedFlights, {
             localVue,
             mocks: {
                 $bvModal: {
@@ -49,16 +51,30 @@ describe("Project list component", () => {
         else mock.onGet(url).networkError();
     };
 
-    const mockProjects = (valid = true) => mockApi("api/projects", [{
-        uuid: "uuid",
-        name: "Example project",
-        description: "Some example annotations",
+    const mockFlights = (valid = true) => mockApi("api/flights/deleted", [{
+        uuid: "uuid2",
+        camera: "RGB",
+        processing_time: 6000,
+        state: "COMPLETE",
+        date: "2020-01-01",
+        name: "Completed flight",
+        annotations: "Example annotations",
+        nodeodm_info: {
+            progress: 100,
+        },
         is_demo: false,
     }, {
-        uuid: "uuid2",
-        name: "Another demo project",
-        description: "More example annotations",
-        is_demo: true,
+        uuid: "uuid3",
+        camera: "RGB",
+        processing_time: 8000,
+        state: "COMPLETE",
+        date: "2020-01-01",
+        name: "Another completed flight",
+        annotations: "More example annotations",
+        nodeodm_info: {
+            progress: 100,
+        },
+        is_demo: false,
     }], valid);
 
     beforeEach(() => {
@@ -70,91 +86,44 @@ describe("Project list component", () => {
         wrapper.vm.storage.otherUserPk = 0;
     });
 
-    it("shows a list with projects", async () => {
-        mockProjects();
+    it("shows a list with flights", async () => {
+        mockFlights();
         mountComponent();
         await flushPromises();
 
-        expect(wrapper.text()).toContain("Example project");
-        expect(wrapper.text()).toContain("Some example annotations");
-        expect(wrapper.text()).toContain("Another demo project");
-        expect(wrapper.text()).toContain("Example project");
+        expect(wrapper.text()).toContain("Completed flight");
+        expect(wrapper.text()).toContain("Another completed flight");
 
         expect(mock.history.get.length).toBe(1);
     });
 
-    it("correctly identifies demo projects", async () => {
-        mockProjects();
-        mountComponent();
-        await flushPromises();
-
-        expect(wrapper.text()).toContain("Another demo project (DEMO)");
-        expect(wrapper.text()).not.toContain("Example project (DEMO)");
-    });
-
-    it("shows New Project button for regular users", async () => {
-        mockProjects();
-        wrapper.vm.storage.loggedInUser.type = "ACTIVE";
-        mountComponent();
-        await flushPromises();
-
-        expect(wrapper.text()).toContain("Crear proyecto");
-    });
-
-    it("doesn't show New Project button for demo users", async () => {
-        mockProjects();
-        wrapper.vm.storage.loggedInUser.type = "DEMO_USER";
-        mountComponent();
-        await flushPromises();
-
-        expect(wrapper.text()).not.toContain("Crear proyecto");
-        expect(wrapper.text()).toContain("No puede crear proyectos");
-    });
-
-    it("doesn't show New Project button for deleted users", async () => {
-        mockProjects();
-        wrapper.vm.storage.loggedInUser.type = "DELETED";
-        mountComponent();
-        await flushPromises();
-
-        expect(wrapper.text()).not.toContain("Crear proyecto");
-        expect(wrapper.text()).toContain("No puede crear proyectos");
-    });
-
-    it("requests Projects as other user when impersonating", async () => {
-        mockProjects();
+    it("requests Flights as other user when impersonating", async () => {
+        mockFlights();
         wrapper.vm.storage.otherUserPk = {
             pk: 123
         };
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);;
+        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
     });
 
-    it("shows a Show map button on all projects", async () => {
-        mockProjects();
+    it("shows Restore and Delete button on all flights", async () => {
+        mockFlights();
         mountComponent();
         await flushPromises();
 
-        let buttons = wrapper.findAll(".btn.btn-primary").filter(b => b.text() == "Ver mapa");
+        let buttons = wrapper.findAll(".btn.btn-success").filter(b => b.text() == "Restaurar");
         expect(buttons).toHaveLength(2);
-    });
-
-    it("shows a Delete button on all projects", async () => {
-        mockProjects();
-        mountComponent();
-        await flushPromises();
-
-        let buttons = wrapper.findAll(".btn.btn-danger").filter(b => b.text() == "Eliminar");
+        buttons = wrapper.findAll(".btn.btn-danger").filter(b => b.text() == "Eliminar");
         expect(buttons).toHaveLength(2);
     });
 
     it("sends a DELETE request when the Delete button is clicked", async () => {
-        mockProjects();
+        mockFlights();
         mountComponent();
         await flushPromises();
-        mock.onDelete(/api\/projects\/.+/).reply(204);
+        mock.onDelete(/api\/flights\/.+/).reply(204);
 
         let button = wrapper.findAll(".btn.btn-danger").filter(b => b.text() == "Eliminar").at(0);
         expect(mock.history.delete).toHaveLength(0);
@@ -166,10 +135,10 @@ describe("Project list component", () => {
     });
 
     it("shows a toast when Delete request fails", async () => {
-        mockProjects();
+        mockFlights();
         mountComponent();
         await flushPromises();
-        mock.onDelete(/api\/projects\/.+/).reply(500);
+        mock.onDelete(/api\/flights\/.+/).reply(500);
 
         let button = wrapper.findAll(".btn.btn-danger").filter(b => b.text() == "Eliminar").at(0);
         await button.trigger("click");
@@ -179,13 +148,13 @@ describe("Project list component", () => {
     });
 
     it("sends a DELETE request as other user", async () => {
-        mockProjects();
+        mockFlights();
         wrapper.vm.storage.otherUserPk = {
             pk: 123
         };
         mountComponent();
         await flushPromises();
-        mock.onDelete(/api\/projects\/.+/).reply(204);
+        mock.onDelete(/api\/flights\/.+/).reply(204);
 
         let button = wrapper.findAll(".btn.btn-danger").filter(b => b.text() == "Eliminar").at(0);
         await button.trigger("click");
@@ -194,10 +163,10 @@ describe("Project list component", () => {
     });
 
     it("doesn't send a DELETE request when Delete request aborted", async () => {
-        mockProjects();
+        mockFlights();
         mountComponent();
         await flushPromises();
-        mock.onDelete(/api\/projects\/.+/).reply(204);
+        mock.onDelete(/api\/flights\/.+/).reply(204);
         wrapper.vm.$bvModal.msgBoxConfirm = jest.fn().mockResolvedValue(false);
 
         let button = wrapper.findAll(".btn.btn-danger").filter(b => b.text() == "Eliminar").at(0);
@@ -206,5 +175,49 @@ describe("Project list component", () => {
         expect(mock.history.delete).toHaveLength(0);
         expect(wrapper.vm.$bvModal.msgBoxConfirm).toHaveBeenCalled();
         expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+    });
+
+    it("sends a restore request when the Restore button is clicked", async () => {
+        mockFlights();
+        mountComponent();
+        await flushPromises();
+        mock.onPatch(/api\/flights\/.+/).reply(200);
+
+        let button = wrapper.findAll(".btn.btn-success").filter(b => b.text() == "Restaurar").at(0);
+        expect(mock.history.patch).toHaveLength(0);
+        await button.trigger("click");
+        await flushPromises();
+        expect(mock.history.patch).toHaveLength(1);
+        // Restore doesn't show confirm box!
+        expect(wrapper.vm.$bvModal.msgBoxConfirm).not.toHaveBeenCalled();
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+    });
+
+    it("shows a toast when Restore request fails", async () => {
+        mockFlights();
+        mountComponent();
+        await flushPromises();
+        mock.onPatch(/api\/flights\/.+/).reply(500);
+
+        let button = wrapper.findAll(".btn.btn-success").filter(b => b.text() == "Restaurar").at(0);
+        await button.trigger("click");
+        await flushPromises();
+        expect(mock.history.patch).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("sends a restore request as other user", async () => {
+        mockFlights();
+        wrapper.vm.storage.otherUserPk = {
+            pk: 123
+        };
+        mountComponent();
+        await flushPromises();
+        mock.onPatch(/api\/flights\/.+/).reply(204);
+
+        let button = wrapper.findAll(".btn.btn-success").filter(b => b.text() == "Restaurar").at(0);
+        await button.trigger("click");
+        await flushPromises();
+        expect(mock.history.patch[0].headers).toHaveProperty("TARGETUSER", 123);
     });
 })

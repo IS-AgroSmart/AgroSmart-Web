@@ -31,9 +31,7 @@ export default {
     },
     computed: {
         progress() {
-            if (this.flight.state != "PROCESSING") {
-                return ""
-            }
+            // Will only be called when this.flight.state == "PROCESSING"
             return " (" + this.flight.nodeodm_info.progress.toFixed(0) + "%) ";
         },
         isWaiting() {
@@ -70,7 +68,7 @@ export default {
                                 variant: "danger",
                             });
                         });
-                })
+                });
         },
         restoreFlight() {
             axios.patch("api/flights/" + this.flight.uuid + "/", { deleted: false }, {
