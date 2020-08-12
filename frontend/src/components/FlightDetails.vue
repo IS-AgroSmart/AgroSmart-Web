@@ -85,18 +85,20 @@ export default {
                 .catch(error => this.error = error);
         },
         deleteFlight() {
-            this.$bvModal.msgBoxConfirm('Este vuelo podrá ser recuperado durante 30 días.', {
-                    title: '¿Realmente desea eliminar el vuelo?',
-                    okVariant: 'danger',
-                    okTitle: 'Sí',
-                    cancelTitle: 'No',
-                    // hideHeaderClose: false
-                })
+            this.$bvModal.msgBoxConfirm(this.flight.is_demo ?
+                    'Este vuelo no podrá ser recuperado.' :
+                    'Este vuelo podrá ser recuperado durante 30 días.', {
+                        title: '¿Realmente desea eliminar el vuelo?',
+                        okVariant: 'danger',
+                        okTitle: 'Sí',
+                        cancelTitle: 'No',
+                        // hideHeaderClose: false
+                    })
                 .then(value => {
                     if (value)
                         axios.delete("api/flights/" + this.flight.uuid, {
                             headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
-                        }).then(() => this.$router.replace("/flights/deleted"))
+                        }).then(() => this.$router.replace(this.flight.is_demo ? "/flights" : "/flights/deleted"))
                         .catch(() => {
                             this.$bvToast.toast('Error al eliminar el vuelo', {
                                 title: "Error",

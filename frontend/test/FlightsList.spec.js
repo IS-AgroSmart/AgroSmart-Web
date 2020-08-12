@@ -56,7 +56,7 @@ describe("User details component", () => {
         uuid: "uuid2",
         camera: "RGB",
         processing_time: 6000,
-        state: "COMPLETED",
+        state: "COMPLETE",
         date: "2020-01-01",
         name: "Completed flight",
         annotations: "More example annotations",
@@ -127,7 +127,6 @@ describe("User details component", () => {
 
     it("shows progress info on PROCESSING flights", async () => {
         mockFlights();
-        wrapper.vm.storage.loggedInUser.type = "DELETED";
         mountComponent();
         await flushPromises();
 
@@ -139,7 +138,6 @@ describe("User details component", () => {
 
     it("sends an update ping to API every second", async () => {
         mockFlights();
-        wrapper.vm.storage.loggedInUser.type = "DELETED";
         mountComponent();
         await flushPromises();
 
