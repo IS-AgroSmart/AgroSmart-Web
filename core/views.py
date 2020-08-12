@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
 from django.http import QueryDict
 from lark.exceptions import LarkError
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -61,6 +61,15 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return HttpResponse(status=200)
 
+    def perform_destroy(self, instance: User):
+        if self.request.user.type == UserType.ADMIN.name or instance == self.request.user:
+            if instance.type == UserType.DELETED.name:
+                instance.delete()
+            else:
+                instance.type = UserType.DELETED.name
+                instance.is_active = False
+                instance.save()
+
 
 class FlightViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
@@ -76,6 +85,22 @@ class FlightViewSet(viewsets.ModelViewSet):
             Flight.objects.filter(user=user, deleted=True), many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"])
+    def make_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        flight: Flight = self.get_object()
+        flight.make_demo()
+        return Response({})
+
+    @action(detail=True, methods=["delete"])
+    def delete_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        flight: Flight = self.get_object()
+        flight.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(
             self.get_queryset().filter(deleted=False))
@@ -89,6 +114,11 @@ class FlightViewSet(viewsets.ModelViewSet):
             user = self.request.user
         return Flight.objects.filter(user=user) | user.demo_flights.all()
 
+    def create(self, request, *args, **kwargs):
+        if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
+            return Response(status=403)
+        return super(FlightViewSet, self).create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
             serializer.save(user=User.objects.get(
@@ -97,16 +127,15 @@ class FlightViewSet(viewsets.ModelViewSet):
             serializer.save(user=self.request.user)
 
     def perform_destroy(self, instance: Flight):
-        if self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
+        if instance.is_demo:
+            # Remove demo flight ONLY FOR USER!
+            self.request.user.demo_flights.remove(instance)
+        elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
             if instance.deleted:
                 instance.delete()
             else:
                 instance.deleted = True
                 instance.save()
-        else:  # User is not admin nor file owner
-            if instance.is_demo:
-                # Remove demo flight ONLY FOR USER!
-                self.request.user.demo_flights.remove(instance)
 
 
 class ArtifactViewSet(viewsets.ModelViewSet):
@@ -121,11 +150,39 @@ class UserProjectViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserProjectSerializer
 
+    @action(detail=True, methods=["post"])
+    def make_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        project: UserProject = self.get_object()
+        project.is_demo = True
+        project.user = None
+        for user in User.objects.all():
+            user.demo_projects.add(project)
+        for flight in project.flights.all():
+            flight.make_demo()
+        project.save()
+        return Response({})
+
+    @action(detail=True, methods=["delete"])
+    def delete_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        project: UserProject = self.get_object()
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get_queryset(self):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
-            return UserProject.objects.filter(user=User.objects.get(pk=self.request.META["HTTP_TARGETUSER"]))
+            user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
         else:
-            return UserProject.objects.filter(user=self.request.user)
+            user = self.request.user
+        return UserProject.objects.filter(user=user) | user.demo_projects.all()
+
+    def create(self, request, *args, **kwargs):
+        if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
+            return Response(status=403)
+        return super(UserProjectViewSet, self).create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         all_flights = [Flight.objects.get(
@@ -135,8 +192,14 @@ class UserProjectViewSet(viewsets.ModelViewSet):
                 pk=self.request.META["HTTP_TARGETUSER"])
         else:
             target_user = self.request.user
-        serializer.save(user=target_user, flights=[
-                        f for f in all_flights if f.user == target_user])
+        serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
+
+    def perform_destroy(self, instance: Flight):
+        if instance.is_demo:
+            # Remove demo project ONLY FOR USER!
+            self.request.user.demo_projects.remove(instance)
+        elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
+            instance.delete()
 
 
 @csrf_exempt
@@ -179,7 +242,7 @@ def webhook_processing_complete(request):
     data = json.loads(request.body.decode("utf-8"))
     flight = Flight.objects.get(uuid=data["uuid"])
     username = flight.user.username
-    
+
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
     elif data["status"]["code"] == 40:
@@ -275,10 +338,10 @@ def upload_shapefile(request, uuid):
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
         shp_name + "/"
-        "external.shp",
+                   "external.shp",
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
-        str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
+             str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
@@ -312,10 +375,10 @@ def upload_geotiff(request, uuid):
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" +
         geotiff_name + "/"
-        "external.geotiff",
+                       "external.geotiff",
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
-        str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
+             str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
@@ -389,6 +452,7 @@ def mapper(request, uuid):
                    "upload_geotiff_path": "/#/projects/" + str(project.uuid) + "/upload/geotiff",
                    "upload_new_index_path": "/#/projects/" + str(project.uuid) + "/upload/index",
                    "is_multispectral": project.all_flights_multispectral(),
+                   "is_demo": project.is_demo,
                    "uuid": project.uuid,
                    "flights": project.flights.all().order_by("date")})
 
@@ -420,7 +484,7 @@ def mapper_indices(request, uuid):
 
     return JsonResponse({"indices": [
         {"name": art.name, "title": art.title,
-            "layer": project._get_geoserver_ws_name() + ":" + art.name}
+         "layer": project._get_geoserver_ws_name() + ":" + art.name}
         for art in project.artifacts.all()
         if art.type == ArtifactType.INDEX.name
     ]})
@@ -444,6 +508,7 @@ def mapper_ol(request, path):
 def mapper_src(request, path):
     filepath = "./templates/geoext/src/" + path
     return serve(request, os.path.basename(filepath), os.path.dirname(filepath))
+
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
@@ -476,10 +541,11 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     msg.attach_alternative(email_html_message, "text/html")
     msg.send()
 
+
 @csrf_exempt
 def save_push_device(request, device):
     user_name = request.POST["username"]
-    
+
     try:
         the_user = User.objects.get(username__iexact=user_name)
     except User.DoesNotExist:

@@ -1,6 +1,6 @@
 <template>
     <div class="col-md-4">
-        <b-card :title="project.name" class="my-3">
+        <b-card :title="projectName" class="my-3">
     
             <b-card-text>
                 <p class="white-space: pre;">{{ project.description }}</p>
@@ -12,29 +12,24 @@
 </template>
 
 <script>
+import forceLogin from './mixins/force_login'
+
 export default {
-    created() {
-        if (!this.$isLoggedIn()) {
-            this.$router.push("/login");
-        }
-    },
     data() {
         return {
 
         };
     },
     computed: {
-        progress() {
-            if (this.flight.state != "PROCESSING") {
-                return ""
-            }
-            return " (" + this.flight.nodeodm_info.progress.toFixed(0) + "%) ";
-        },
         mapper_url() {
             return "/mapper/" + this.project.uuid;
+        },
+        projectName() {
+            return this.project.name + (this.project.is_demo ? " (DEMO)" : "");
         }
         
     },
-    props: ["project"]
+    props: ["project"],
+    mixins: [forceLogin]
 }
 </script>

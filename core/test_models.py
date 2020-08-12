@@ -16,21 +16,7 @@ from httpretty import httpretty
 from rest_framework.test import APIClient
 
 from core.models import *
-from core.test_viewsets import FlightsMixin
-
-
-class BaseModelTest:
-    @pytest.fixture
-    def users(self):
-        User = get_user_model()
-        u1 = User.objects.create(username='temporary', email='temporary@gmail.com', password='temporary')
-        u2 = User.objects.create(username='temporary2', email='temporary2@gmail.com', password='temporary2')
-        admin = User.objects.create(username='admin', email='admin@gmail.com', password='admin', is_staff=True)
-        return u1, u2, admin
-
-    @pytest.fixture
-    def c(self):
-        return APIClient()
+from core.test_viewsets import FlightsMixin, BaseTestViewSet
 
 
 class ProjectsMixin:
@@ -42,7 +28,7 @@ class ProjectsMixin:
 
 
 @pytest.mark.django_db
-class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseModelTest):
+class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
     def test_disk_path(self, projects):
         assert projects[1].get_disk_path() == "/projects/" + str(projects[1].uuid)
 
@@ -99,7 +85,7 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseModelTest):
 
 
 @pytest.mark.django_db
-class TestArtifactModel(ProjectsMixin, BaseModelTest):
+class TestArtifactModel(ProjectsMixin, BaseTestViewSet):
     def _test_disk_path(self, projects, type, name, filename, title):
         art = Artifact.objects.create(project=projects[0], type=type.name, name=name,
                                       title=title)
@@ -124,7 +110,6 @@ class FlightModelTest(TestCase):
         self.user2 = User.objects.create_user('temporary2', 'temporary2@gmail.com', 'temporary')
 
         post_save.disconnect(create_nodeodm_task, sender=Flight)
-        post_save.disconnect(link_demo_flight_to_active_users, sender=Flight)
         post_delete.disconnect(delete_nodeodm_task, sender=Flight)
         post_delete.disconnect(delete_thumbnail, sender=Flight)
         post_delete.disconnect(delete_geoserver_workspace, sender=Flight)

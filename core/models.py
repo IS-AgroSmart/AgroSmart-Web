@@ -8,7 +8,6 @@ from typing import Union
 import matplotlib.pyplot as plt
 import numpy
 
-
 import pyproj
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
@@ -32,7 +31,6 @@ class UserType(Enum):
     ACTIVE = "Active"
     DELETED = "Deleted"
     ADMIN = "Admin"
-    
 
 
 class User(AbstractUser):
@@ -41,6 +39,7 @@ class User(AbstractUser):
                             choices=[(tag.name, tag.value) for tag in UserType],
                             default=UserType.DEMO_USER.name)
     demo_flights = models.ManyToManyField('Flight', related_name='demo_users')
+    demo_projects = models.ManyToManyField('UserProject', related_name='demo_users')
 
 
 class BaseProject(models.Model):
@@ -53,15 +52,11 @@ class BaseProject(models.Model):
         abstract = True
 
 
-class DemoProject(BaseProject):
-    users = models.ManyToManyField(User, related_name="demo_projects")
-    flights = models.ManyToManyField("Flight", related_name="demo_projects")
-
-
 class UserProject(BaseProject):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_projects")
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name="user_projects")
     flights = models.ManyToManyField("Flight", related_name="user_projects")
     must_create_workspace = models.BooleanField(default=True)
+    is_demo = models.BooleanField(default=False)
 
     def _get_geoserver_ws_name(self):
         return "project_" + str(self.uuid)
@@ -345,6 +340,16 @@ class Flight(models.Model):
         HTML(string=report).write_pdf(pdfpath)
         return pdfpath
 
+    def make_demo(self):
+        if self.state != FlightState.COMPLETE.name:
+            return False
+        self.is_demo = True
+        self.user = None
+        for user in User.objects.all():
+            user.demo_flights.add(self)
+        self.save()
+        return True
+
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:
@@ -357,12 +362,6 @@ def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
                               None, json.dumps([{"name": "dsm", "value": True}, {"name": "time", "value": True}])
                           )
                       })
-
-
-def link_demo_flight_to_active_users(sender, instance: Flight, created, **kwargs):
-    if created and instance.is_demo:
-        for user in User.objects.filter(is_active=True).all():
-            user.demo_flights.add(instance)
 
 
 def delete_nodeodm_task(sender, instance: Flight, **kwargs):
@@ -388,7 +387,6 @@ def delete_thumbnail(sender, instance: Flight, **kwargs):
 
 
 post_save.connect(create_nodeodm_task, sender=Flight)
-post_save.connect(link_demo_flight_to_active_users, sender=Flight)
 post_delete.connect(delete_nodeodm_task, sender=Flight)
 post_delete.connect(delete_thumbnail, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=Flight)

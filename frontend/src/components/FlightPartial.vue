@@ -1,6 +1,6 @@
 <template>
     <div class="col-md-4">
-        <b-card :title="flight.name" class="my-3">
+        <b-card :title="flightName" class="my-3">
     
             <b-card-text>
                 <b-spinner variant="warning" type="grow" v-if="isWaiting" title="Suba imágenes al vuelo para comenzar"></b-spinner>
@@ -45,6 +45,9 @@ export default {
         isErrored() {
             return this.flight.state == "ERROR"
         },
+        flightName() {
+            return this.flight.name + (this.flight.is_demo ? " (DEMO)" : "");
+        }
     },
     methods: {
         deleteFlight() {
