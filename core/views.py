@@ -90,11 +90,7 @@ class FlightViewSet(viewsets.ModelViewSet):
         if not request.user.type == UserType.ADMIN.name:
             return Response(status=status.HTTP_403_FORBIDDEN)
         flight: Flight = self.get_object()
-        flight.is_demo = True
-        flight.user = None
-        for user in User.objects.all():
-            user.demo_flights.add(flight)
-        flight.save()
+        flight.make_demo()
         return Response({})
 
     @action(detail=True, methods=["delete"])
@@ -154,11 +150,34 @@ class UserProjectViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserProjectSerializer
 
+    @action(detail=True, methods=["post"])
+    def make_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        project: UserProject = self.get_object()
+        project.is_demo = True
+        project.user = None
+        for user in User.objects.all():
+            user.demo_projects.add(project)
+        for flight in project.flights.all():
+            flight.make_demo()
+        project.save()
+        return Response({})
+
+    @action(detail=True, methods=["delete"])
+    def delete_demo(self, request, pk=None):
+        if not request.user.type == UserType.ADMIN.name:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        project: UserProject = self.get_object()
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get_queryset(self):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
-            return UserProject.objects.filter(user=User.objects.get(pk=self.request.META["HTTP_TARGETUSER"]))
+            user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
         else:
-            return UserProject.objects.filter(user=self.request.user)
+            user = self.request.user
+        return UserProject.objects.filter(user=user) | user.demo_projects.all()
 
     def create(self, request, *args, **kwargs):
         if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
@@ -174,6 +193,13 @@ class UserProjectViewSet(viewsets.ModelViewSet):
         else:
             target_user = self.request.user
         serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
+
+    def perform_destroy(self, instance: Flight):
+        if instance.is_demo:
+            # Remove demo project ONLY FOR USER!
+            self.request.user.demo_projects.remove(instance)
+        elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
+            instance.delete()
 
 
 @csrf_exempt
@@ -426,6 +452,7 @@ def mapper(request, uuid):
                    "upload_geotiff_path": "/#/projects/" + str(project.uuid) + "/upload/geotiff",
                    "upload_new_index_path": "/#/projects/" + str(project.uuid) + "/upload/index",
                    "is_multispectral": project.all_flights_multispectral(),
+                   "is_demo": project.is_demo,
                    "uuid": project.uuid,
                    "flights": project.flights.all().order_by("date")})
 

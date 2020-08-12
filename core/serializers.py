@@ -69,4 +69,4 @@ class UserProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProject
-        fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description"]
+        fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description", "is_demo"]

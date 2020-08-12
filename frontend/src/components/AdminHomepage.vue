@@ -106,7 +106,10 @@ export default {
             axios.post('api/projects/' + project.uuid + '/make_demo/', {}, {
                     headers: { "Authorization": "Token " + this.storage.token }
                 })
-                .then(() => this.loadProjects())
+                .then(() => {
+                    this.loadProjects();
+                    this.loadFlights();
+                })
                 .catch(() => {
                     this.$bvToast.toast('Error al convertir proyecto a demo', {
                         title: "Error",
@@ -119,7 +122,10 @@ export default {
             axios.delete('api/projects/' + project.uuid + '/delete_demo/', {
                     headers: { "Authorization": "Token " + this.storage.token }
                 })
-                .then(() => this.loadProjects())
+                .then(() => {
+                    this.loadProjects();
+                    this.loadFlights();
+                })
                 .catch(() => {
                     this.$bvToast.toast('Error al eliminar el proyecto demo', {
                         title: "Error",

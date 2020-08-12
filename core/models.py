@@ -39,6 +39,7 @@ class User(AbstractUser):
                             choices=[(tag.name, tag.value) for tag in UserType],
                             default=UserType.DEMO_USER.name)
     demo_flights = models.ManyToManyField('Flight', related_name='demo_users')
+    demo_projects = models.ManyToManyField('UserProject', related_name='demo_users')
 
 
 class BaseProject(models.Model):
@@ -51,15 +52,11 @@ class BaseProject(models.Model):
         abstract = True
 
 
-class DemoProject(BaseProject):
-    users = models.ManyToManyField(User, related_name="demo_projects")
-    flights = models.ManyToManyField("Flight", related_name="demo_projects")
-
-
 class UserProject(BaseProject):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_projects")
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name="user_projects")
     flights = models.ManyToManyField("Flight", related_name="user_projects")
     must_create_workspace = models.BooleanField(default=True)
+    is_demo = models.BooleanField(default=False)
 
     def _get_geoserver_ws_name(self):
         return "project_" + str(self.uuid)
@@ -342,6 +339,16 @@ class Flight(models.Model):
         pdfpath = self.get_disk_path() + "/report.pdf"
         HTML(string=report).write_pdf(pdfpath)
         return pdfpath
+
+    def make_demo(self):
+        if self.state != FlightState.COMPLETE.name:
+            return False
+        self.is_demo = True
+        self.user = None
+        for user in User.objects.all():
+            user.demo_flights.add(self)
+        self.save()
+        return True
 
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):

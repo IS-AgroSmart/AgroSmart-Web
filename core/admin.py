@@ -14,6 +14,7 @@ class FlightAdmin(admin.ModelAdmin):
 class UserProjectAdmin(admin.ModelAdmin):
     list_display = ("name", "uuid",)
 
+
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ("Additional data", {'fields': ('type',)}),
@@ -27,4 +28,3 @@ admin.site.register(User, CustomUserAdmin)
 admin.site.register(Flight, FlightAdmin)
 admin.site.register(Artifact)
 admin.site.register(UserProject, UserProjectAdmin)
-admin.site.register(DemoProject)

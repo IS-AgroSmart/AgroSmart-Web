@@ -1,6 +1,6 @@
 <template>
     <div class="col-md-4">
-        <b-card :title="project.name" class="my-3">
+        <b-card :title="projectName" class="my-3">
     
             <b-card-text>
                 <p class="white-space: pre;">{{ project.description }}</p>
@@ -23,6 +23,9 @@ export default {
     computed: {
         mapper_url() {
             return "/mapper/" + this.project.uuid;
+        },
+        projectName() {
+            return this.project.name + (this.project.is_demo ? " (DEMO)" : "");
         }
         
     },
