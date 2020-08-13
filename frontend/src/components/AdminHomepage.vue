@@ -4,12 +4,23 @@
         <b-row class="my-4">
             <b-col align="center">
                 <h4 class="my-2">Administración de usuarios</h4>
-                <b-row class="my-1">
+                <b-row class="mt-1 mb-5">
                     <b-col>
-                        <b-button @click="onAdminClick()">Solicitudes de cuenta</b-button>
+                        <b-dropdown id="dropdown" text="Solicitudes de cuenta" class="m-2">
+                            <b-dropdown-item @click="onAdminClick()">Pendientes</b-dropdown-item>
+                            <b-dropdown-item> Eliminadas </b-dropdown-item>
+                        </b-dropdown>
                     </b-col>
                 </b-row>
-                <b-row class="my-1">
+                <b-row class="mt-1 mb-5 pt-3">
+                    <b-col>
+                        <b-dropdown id="dropdown" text="Usuarios" class="m-2">
+                            <b-dropdown-item >Activos</b-dropdown-item>
+                            <b-dropdown-item> Eliminados </b-dropdown-item>
+                        </b-dropdown>
+                    </b-col>
+                </b-row>
+                <b-row class="mt-1 mb-5 pt-3">
                     <b-col>
                         <admin-element-list-partial :elements="users" title="Emular usuario" placeholder="Buscar usuarios..." :nameFunc="userNameFunc" :filterCriteria="userFilterCriteria" keyField="pk" emptyMessage="no hay usuarios disponibles" @element-clicked="onUserClick">
                         </admin-element-list-partial>
