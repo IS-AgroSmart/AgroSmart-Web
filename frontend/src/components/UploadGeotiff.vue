@@ -56,8 +56,7 @@ export default {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(function() {
-                    alert("Redirecting...");
-                    // TODO Actually implement redirect!
+                    window.history.back();
                 })
                 .catch(function() {
                     that.uploadError = true;
