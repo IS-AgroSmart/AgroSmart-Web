@@ -133,13 +133,13 @@ describe('Admin homepage component', () => {
     it("shows buttons to convert flights to Demo", async () => {
         await flushPromises();
 
-        // 6 buttons are Emulate button; User, Flight (x2) and Project (x2) dropdowns
+        // 7 buttons are Emulate button; User (x2), Flight (x2) and Project (x2) dropdowns
         // 3 buttons are the User dropdown items
         // 2 buttons must be for the 2 non-demo COMPLETE flights
         // 1 button for the demo flight
         // 2 buttons for candidate demo proj, 1 for already demo proj
         let buttons = wrapper.findAll("button");
-        expect(buttons).toHaveLength(15);
+        expect(buttons).toHaveLength(16);
         expect(buttons.filter(b => b.text().includes("Not demo: Flight 2"))).toHaveLength(1);
         expect(buttons.filter(b => b.text().includes("Demo: Flight 1"))).toHaveLength(1);
         expect(buttons.filter(b => b.text().includes("Processing: Flight 4"))).toHaveLength(0);
@@ -315,9 +315,11 @@ describe('Admin homepage component', () => {
     it("navigates to User requests when button clicked", async () => {
         await flushPromises();
 
-        let userButton = wrapper.findAll("button")
-            .filter(b => b.text() == "Solicitudes de cuenta").at(0);
-        await userButton.trigger("click");
+        console.log(wrapper.html());
+        /*let pendingElement = wrapper.findAll("li")
+            .filter(b => b.text() == "Pendientes").at(0);
+        await pendingElement.trigger("click");*/
+        wrapper.vm.onAdminClick();
         await flushPromises();
         expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/accountRequest");
     });
