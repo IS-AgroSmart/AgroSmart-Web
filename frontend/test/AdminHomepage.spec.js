@@ -7,11 +7,23 @@ import flushPromises from "flush-promises";
 import AdminHomepage from 'components/AdminHomepage.vue';
 import AdminElementListPartial from 'components/AdminElementListPartial.vue';
 
-import BootstrapVue from 'bootstrap-vue';
+import {
+    DropdownPlugin,
+    FormGroupPlugin,
+    FormPlugin,
+    FormInputPlugin,
+    LayoutPlugin,
+    ButtonPlugin
+} from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
 
 const localVue = createLocalVue();
-localVue.use(BootstrapVue);
+localVue.use(DropdownPlugin);
+localVue.use(FormGroupPlugin);
+localVue.use(FormPlugin);
+localVue.use(FormInputPlugin);
+localVue.use(LayoutPlugin);
+localVue.use(ButtonPlugin);
 localVue.prototype.$isLoggedIn = () => true;
 localVue.use(ReactiveStorage, {
     "token": "admintoken",
@@ -98,6 +110,14 @@ describe('Admin homepage component', () => {
         }, ]);
         wrapper = mount(AdminHomepage, {
             localVue,
+            mocks: {
+                $bvmodal: {
+                    msgBoxConfirm: jest.fn((title, config) => Promise.resolve(true))
+                },
+                $bvToast: {
+                    toast: jest.fn(),
+                },
+            },
         });
     });
 
@@ -227,5 +247,57 @@ describe('Admin homepage component', () => {
         await projectButton.trigger("click");
         await flushPromises();
         expect(mock.history.delete).toHaveLength(1);
+    });
+
+    it("shows toast when delete demo project fails", async () => {
+        mock.onDelete(/api\/projects\/.+\/delete_demo\//).networkError();
+        await flushPromises();
+
+        let projectButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Demo: Project 1").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await projectButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.delete).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("shows toast when delete demo flight fails", async () => {
+        mock.onDelete(/api\/flights\/.+\/delete_demo\//).networkError();
+        await flushPromises();
+
+        let flightButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Demo: Flight 1").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await flightButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.delete).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("shows toast when converting project to demo fails", async () => {
+        mock.onPost(/api\/projects\/.+\/make_demo\//).networkError();
+        await flushPromises();
+
+        let projectButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Not demo: Project 2").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await projectButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.post).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("shows toast when converting flight to demo fails", async () => {
+        mock.onPost(/api\/flights\/.+\/make_demo/).networkError();
+        await flushPromises();
+
+        let flightButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Not demo: Flight 2").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await flightButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.post).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
     });
 })

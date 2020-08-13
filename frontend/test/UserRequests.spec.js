@@ -6,13 +6,25 @@ import flushPromises from "flush-promises";
 
 import UserRequests from 'components/UserRequests.vue';
 
-import BootstrapVue from 'bootstrap-vue';
+import {
+    DropdownPlugin,
+    CardPlugin,
+    LayoutPlugin,
+    AlertPlugin,
+    FormInputPlugin,
+    FormPlugin
+} from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
 
 import VueRouter from 'vue-router';
 
 const localVue = createLocalVue();
-localVue.use(BootstrapVue);
+localVue.use(DropdownPlugin);
+localVue.use(CardPlugin);
+localVue.use(LayoutPlugin);
+localVue.use(AlertPlugin);
+localVue.use(FormInputPlugin);
+localVue.use(FormPlugin);
 localVue.use(VueRouter);
 const router = new VueRouter({});
 localVue.prototype.$isLoggedIn = () => true;
@@ -22,7 +34,6 @@ localVue.use(ReactiveStorage, {
     "otherUserPk": 0,
     "loggedInUser": {}
 });
-localVue.prototype.$bvmodal = jest.fn().mockResolvedValueOnce(true)
 
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
@@ -67,9 +78,12 @@ describe('Pending requests component', () => {
             localVue,
             router,
             mocks: {
-                $bvmodal: {
+                $bvModal: {
                     msgBoxConfirm: jest.fn((title, config) => Promise.resolve(true))
-                }
+                },
+                $bvToast: {
+                    toast: jest.fn(),
+                },
             },
         });
     });
@@ -112,16 +126,20 @@ describe('Pending requests component', () => {
         });
     })
 
-    /*it("can reject a user request", async () => {
+    it("can reject a user request", async () => {
         mock.onPatch(/api\/users\/\d+\//).replyOnce(200, {});
 
-        wrapper.vm.accionRequest({pk:1, email:"foo@foo", username: "foo"}, "Rechazar");
+        wrapper.vm.accionRequest({
+            pk: 1,
+            email: "foo@foo",
+            username: "foo"
+        }, "Rechazar");
 
         await flushPromises();
         expect(JSON.parse(mock.history.patch[0].data).type).toBe("DELETED");
-    });*/
+    });
 
-    /*it("shows an error message on connection error", async () => {
+    it("shows an error message on connection error", async () => {
         mock.onPatch(/api\/users\/\d+\//).networkError();
 
         wrapper.vm.accionRequest({
@@ -131,8 +149,6 @@ describe('Pending requests component', () => {
         }, "Aceptar");
         await flushPromises();
         expect(JSON.parse(mock.history.patch[0].data).type).toBe("ACTIVE");
-        wrapper.vm.$nextTick(() => {
-            console.log(wrapper.html())
-        });
-    });*/
+        await wrapper.vm.$nextTick();
+    });
 })
