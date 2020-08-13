@@ -4,7 +4,7 @@
     
         <div v-if="error">Error!</div>
         <div class="row">
-            <flight-partial v-for="flight in flights" :flight="flight" :key="flight.uuid" @delete-confirmed="deleted"></flight-partial>
+            <flight-partial v-for="flight in flights" :flight="flight" :key="flight.uuid"></flight-partial>
         </div>
         <b-alert v-if="noFlights" variant="info" show>Aún no ha creado ningún vuelo</b-alert>
         <add-new-flight-partial/>
@@ -39,7 +39,6 @@ export default {
                 .then(response => (this.flights = response.data))
                 .catch(error => this.error = error);
         },
-        deleted() { this.$router.replace("/flights/deleted"); },
     },
     created() {
         this.updateFlights();

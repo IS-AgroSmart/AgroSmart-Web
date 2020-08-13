@@ -7,11 +7,23 @@ import flushPromises from "flush-promises";
 import AdminHomepage from 'components/AdminHomepage.vue';
 import AdminElementListPartial from 'components/AdminElementListPartial.vue';
 
-import BootstrapVue from 'bootstrap-vue';
+import {
+    DropdownPlugin,
+    FormGroupPlugin,
+    FormPlugin,
+    FormInputPlugin,
+    LayoutPlugin,
+    ButtonPlugin
+} from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
 
 const localVue = createLocalVue();
-localVue.use(BootstrapVue);
+localVue.use(DropdownPlugin);
+localVue.use(FormGroupPlugin);
+localVue.use(FormPlugin);
+localVue.use(FormInputPlugin);
+localVue.use(LayoutPlugin);
+localVue.use(ButtonPlugin);
 localVue.prototype.$isLoggedIn = () => true;
 localVue.use(ReactiveStorage, {
     "token": "admintoken",
@@ -25,12 +37,6 @@ localVue.use(ReactiveStorage, {
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
 
-function withWrapperArray(wrapperArray) {
-    return {
-        childSelectorHasText: (selector, str) => wrapperArray.filter(i => i.find(selector).text().match(str)),
-        hasText: (str) => wrapperArray.filter(i => i.text().match(str)),
-    }
-}
 
 describe('Admin homepage component', () => {
     let wrapper, mock;
@@ -98,6 +104,17 @@ describe('Admin homepage component', () => {
         }, ]);
         wrapper = mount(AdminHomepage, {
             localVue,
+            mocks: {
+                $bvmodal: {
+                    msgBoxConfirm: jest.fn((title, config) => Promise.resolve(true))
+                },
+                $bvToast: {
+                    toast: jest.fn(),
+                },
+                $router: {
+                    push: jest.fn(),
+                }
+            },
         });
     });
 
@@ -116,13 +133,13 @@ describe('Admin homepage component', () => {
     it("shows buttons to convert flights to Demo", async () => {
         await flushPromises();
 
-        // 6 buttons are Emulate button; User, Flight (x2) and Project (x2) dropdowns
+        // 7 buttons are Emulate button; User (x2), Flight (x2) and Project (x2) dropdowns
         // 3 buttons are the User dropdown items
         // 2 buttons must be for the 2 non-demo COMPLETE flights
         // 1 button for the demo flight
         // 2 buttons for candidate demo proj, 1 for already demo proj
         let buttons = wrapper.findAll("button");
-        expect(buttons).toHaveLength(15);
+        expect(buttons).toHaveLength(16);
         expect(buttons.filter(b => b.text().includes("Not demo: Flight 2"))).toHaveLength(1);
         expect(buttons.filter(b => b.text().includes("Demo: Flight 1"))).toHaveLength(1);
         expect(buttons.filter(b => b.text().includes("Processing: Flight 4"))).toHaveLength(0);
@@ -206,7 +223,7 @@ describe('Admin homepage component', () => {
     });
 
     it("sends an API request to make a new demo project", async () => {
-        mock.onPost(/api\/projects\/.+\/make_demo/).reply(200);
+        mock.onPost(/api\/projects\/.+\/make_demo\//).reply(200);
         await flushPromises();
 
         expect(mock.history.post).toHaveLength(0);
@@ -218,7 +235,7 @@ describe('Admin homepage component', () => {
     });
 
     it("sends an API request to delete a demo project", async () => {
-        mock.onDelete(/api\/projects\/.+\/delete_demo/).reply(200);
+        mock.onDelete(/api\/projects\/.+\/delete_demo\//).reply(200);
         await flushPromises();
 
         expect(mock.history.delete).toHaveLength(0);
@@ -227,5 +244,83 @@ describe('Admin homepage component', () => {
         await projectButton.trigger("click");
         await flushPromises();
         expect(mock.history.delete).toHaveLength(1);
+    });
+
+    it("shows toast when delete demo project fails", async () => {
+        mock.onDelete(/api\/projects\/.+\/delete_demo\//).networkError();
+        await flushPromises();
+
+        let projectButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Demo: Project 1").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await projectButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.delete).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("shows toast when delete demo flight fails", async () => {
+        mock.onDelete(/api\/flights\/.+\/delete_demo\//).networkError();
+        await flushPromises();
+
+        let flightButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Demo: Flight 1").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await flightButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.delete).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("shows toast when converting project to demo fails", async () => {
+        mock.onPost(/api\/projects\/.+\/make_demo\//).networkError();
+        await flushPromises();
+
+        let projectButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Not demo: Project 2").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await projectButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.post).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("shows toast when converting flight to demo fails", async () => {
+        mock.onPost(/api\/flights\/.+\/make_demo/).networkError();
+        await flushPromises();
+
+        let flightButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Not demo: Flight 2").at(0);
+        expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+        await flightButton.trigger("click");
+        await flushPromises();
+        expect(mock.history.post).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("navigates to /flights when user clicked", async () => {
+        await flushPromises();
+
+        let userButton = wrapper.findAll("button")
+            .filter(b => b.text() == "newuser (newuser@hotmail.com)").at(0);
+        await userButton.trigger("click");
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/flights");
+        expect(wrapper.vm.storage.otherUserPk).toMatchObject({
+            username: "newuser",
+            email: "newuser@hotmail.com"
+        });
+    });
+
+    it("navigates to User requests when button clicked", async () => {
+        await flushPromises();
+
+        console.log(wrapper.html());
+        /*let pendingElement = wrapper.findAll("li")
+            .filter(b => b.text() == "Pendientes").at(0);
+        await pendingElement.trigger("click");*/
+        wrapper.vm.onAdminClick();
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/accountRequest");
     });
 })

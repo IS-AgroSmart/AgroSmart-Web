@@ -2,7 +2,6 @@
     <div>
         <b-alert variant="success" show v-if="uploadOK">Subida exitosa. Procesando...</b-alert>
         <b-alert variant="danger" show v-if="uploadError">Subida fallida</b-alert>
-        <b-alert variant="danger" show v-if="processingError">No pudo iniciarse el procesamiento</b-alert>
     
         <b-form @submit="onSubmit">
             <b-form-group>
@@ -31,7 +30,6 @@ export default {
             title: "",
             uploadOK: false,
             uploadError: false,
-            processingError: false,
             uploading: false,
             uploadProgress: 0,
         }
@@ -41,7 +39,6 @@ export default {
     },
     methods: {
         formatName(file) {
-            window.console.log(file);
             return file[0].name;
         },
         onSubmit(evt) {
@@ -56,8 +53,7 @@ export default {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(function() {
-                    alert("Redirecting...");
-                    // TODO Actually implement redirect!
+                    window.history.back();
                 })
                 .catch(function() {
                     that.uploadError = true;

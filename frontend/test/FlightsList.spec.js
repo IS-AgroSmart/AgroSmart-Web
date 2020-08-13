@@ -4,7 +4,7 @@ import {
 } from '@vue/test-utils';
 import flushPromises from "flush-promises";
 
-import FlightDetails from 'components/Flight.vue';
+import Flight from 'components/Flight.vue';
 
 import BootstrapVue from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
@@ -27,11 +27,11 @@ import MockAdapter from 'axios-mock-adapter';
 
 jest.useFakeTimers();
 
-describe("User details component", () => {
+describe("Flight list component", () => {
     let wrapper, mock;
 
     const mountComponent = () => {
-        wrapper = mount(FlightDetails, {
+        wrapper = mount(Flight, {
             localVue
         });
     };
@@ -51,7 +51,8 @@ describe("User details component", () => {
         annotations: "Some example annotations",
         nodeodm_info: {
             progress: 40,
-        }
+        },
+        is_demo: false,
     },{
         uuid: "uuid2",
         camera: "RGB",
@@ -62,7 +63,20 @@ describe("User details component", () => {
         annotations: "More example annotations",
         nodeodm_info: {
             progress: 100,
-        }
+        },
+        is_demo: false,
+    },{
+        uuid: "uuid3",
+        camera: "RGB",
+        processing_time: 6000,
+        state: "COMPLETE",
+        date: "2020-01-01",
+        name: "Completed demo flight",
+        annotations: "More example annotations",
+        nodeodm_info: {
+            progress: 100,
+        },
+        is_demo: true,
     }], valid);
 
     beforeEach(() => {
@@ -81,8 +95,19 @@ describe("User details component", () => {
 
         expect(wrapper.text()).toContain("Example flight");
         expect(wrapper.text()).toContain("Some example annotations");
+        expect(wrapper.text()).toContain("Completed demo flight");
+        expect(wrapper.text()).toContain("Completed flight");
 
         expect(mock.history.get.length).toBe(1);
+    });
+
+    it("correctly identifies demo flights", async () => {
+        mockFlights();
+        mountComponent();
+        await flushPromises();
+
+        expect(wrapper.text()).toContain("Completed demo flight (DEMO)");
+        expect(wrapper.text()).not.toContain("Completed flight (DEMO)");
     });
 
     it("shows New Flight button for regular users", async () => {
@@ -122,7 +147,7 @@ describe("User details component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);;
+        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows progress info on PROCESSING flights", async () => {

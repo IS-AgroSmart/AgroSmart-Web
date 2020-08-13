@@ -30,7 +30,7 @@ localVue.prototype.$processingSteps = {
     50: "Cancelado"
 }
 localVue.use(ReactiveStorage, {
-    "token": "",
+    "token": "usertoken",
     "isAdmin": false,
     "otherUserPk": 0,
     "loggedInUser": {}
@@ -123,6 +123,19 @@ describe("Index creation component", () => {
         expect(wrapper.vm.indexOK).toBe(true);
     });
 
+    it("sends check API request as other user", async () => {
+        mountComponent();
+        wrapper.vm.storage.otherUserPk = {
+            pk: 123
+        };
+
+        mock.onPost("/api/rastercalcs/check").reply(200, {});
+        wrapper.vm.checkFormula();
+        await flushPromises();
+
+        expect(mock.history.post[0].headers).toHaveProperty("TARGETUSER", 123);
+    });
+
     it("reports if the formula was wrong", async () => {
         mountComponent();
 
@@ -143,14 +156,33 @@ describe("Index creation component", () => {
     it("sends the final API request when submit triggered", async () => {
         mountComponent();
 
-        wrapper.vm.formula="something";
-        wrapper.vm.name="clevername";
+        wrapper.vm.formula = "something";
+        wrapper.vm.name = "clevername";
         mock.onPost("/api/rastercalcs/myuuid").reply(200, {});
         await wrapper.find('form').trigger('submit');
         await flushPromises();
 
         expect(mock.history.post.length).toBe(1);
-        expect(JSON.parse(mock.history.post[0].data)).toMatchObject({"formula":"something", "index":"clevername"});
+        expect(mock.history.post[0].headers).toHaveProperty("Authorization", "Token usertoken");
+        expect(JSON.parse(mock.history.post[0].data)).toMatchObject({
+            "formula": "something",
+            "index": "clevername"
+        });
+    });
+
+    it("sends final API request as other user", async () => {
+        mountComponent();
+        wrapper.vm.storage.otherUserPk = {
+            pk: 123
+        };
+
+        wrapper.vm.formula = "something";
+        wrapper.vm.name = "clevername";
+        mock.onPost("/api/rastercalcs/myuuid").reply(200, {});
+        await wrapper.find('form').trigger('submit');
+        await flushPromises();
+
+        expect(mock.history.post[0].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows an error message when upload API returns error", async () => {

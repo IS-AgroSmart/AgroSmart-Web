@@ -53,6 +53,7 @@ export default {
             evt.preventDefault();
             if (!this.$isLoggedIn()) {
                 this.$router.push("/login");
+                return;
             }
             var fd = new FormData();
             fd.set("name", this.form.name);
@@ -61,13 +62,12 @@ export default {
             for (var flight of this.form.flights) {
                 fd.append("flights", flight.uuid);
             }
-
             axios
                 .post("api/projects/", fd, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(() => this.$router.push("/projects"))
-                .catch(error => (this.error = "ERROR: " + error.response.data.name[0]));
+                .catch(error => this.error = "ERROR: " + error.response.data.name[0]);
         },
         flightLabel(flight) {
             let cameraName = this.$cameras.find((x) => x.value == flight.camera).text;

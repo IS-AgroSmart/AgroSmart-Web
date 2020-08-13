@@ -26,7 +26,6 @@ import UploadGeotiff from './components/UploadGeotiff'
 import CreateIndex from './components/CreateIndex'
 import NewFlight from './components/NewFlight'
 import Project from './components/Project'
-import ProjectDetails from './components/ProjectDetails'
 import NewProject from './components/NewProject'
 import Login from './components/Login'
 import Logout from './components/Logout'
@@ -69,7 +68,6 @@ const router = new VueRouter({
     { path: '/flights/:uuid/preview', name: "flightOrthoPreview", component: FlightOrthoPreview2 },
     { path: '/flights/new', name: "newFlight", component: NewFlight },
     { path: '/projects', name: "listProjects" ,component: Project },
-    { path: '/projects/:uuid', name: "projectDetails", component: ProjectDetails },
     { path: '/projects/:uuid/upload/shapefile', name: "uploadShapefile", component: UploadShapefile },
     { path: '/projects/:uuid/upload/geotiff', name: "uploadGeotiff", component: UploadGeotiff },
     { path: '/projects/:uuid/upload/index', name: "createIndex", component: CreateIndex },
