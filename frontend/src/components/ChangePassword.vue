@@ -31,7 +31,7 @@
             </b-container>
         </b-form>
     </div> 
-</template>>
+</template>
 
 <script>
 import axios from "axios";
