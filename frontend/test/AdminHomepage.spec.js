@@ -37,12 +37,6 @@ localVue.use(ReactiveStorage, {
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
 
-function withWrapperArray(wrapperArray) {
-    return {
-        childSelectorHasText: (selector, str) => wrapperArray.filter(i => i.find(selector).text().match(str)),
-        hasText: (str) => wrapperArray.filter(i => i.text().match(str)),
-    }
-}
 
 describe('Admin homepage component', () => {
     let wrapper, mock;
@@ -117,6 +111,9 @@ describe('Admin homepage component', () => {
                 $bvToast: {
                     toast: jest.fn(),
                 },
+                $router: {
+                    push: jest.fn(),
+                }
             },
         });
     });
@@ -299,5 +296,29 @@ describe('Admin homepage component', () => {
         await flushPromises();
         expect(mock.history.post).toHaveLength(1);
         expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
+    });
+
+    it("navigates to /flights when user clicked", async () => {
+        await flushPromises();
+
+        let userButton = wrapper.findAll("button")
+            .filter(b => b.text() == "newuser (newuser@hotmail.com)").at(0);
+        await userButton.trigger("click");
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/flights");
+        expect(wrapper.vm.storage.otherUserPk).toMatchObject({
+            username: "newuser",
+            email: "newuser@hotmail.com"
+        });
+    });
+
+    it("navigates to User requests when button clicked", async () => {
+        await flushPromises();
+
+        let userButton = wrapper.findAll("button")
+            .filter(b => b.text() == "Solicitudes de cuenta").at(0);
+        await userButton.trigger("click");
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/accountRequest");
     });
 })

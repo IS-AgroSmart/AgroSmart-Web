@@ -192,9 +192,6 @@ export default {
         consoleToText() {
             return this.console.join("\n");
         },
-        orthomosaicUrl() {
-            return baseUrl + this.flight.uuid + "/orthomosaic"
-        },
         orthomosaicThumbUrl() {
             return baseUrl + this.flight.uuid + "/thumbnail"
         },
@@ -210,7 +207,6 @@ export default {
                         headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                     })
                     .then(response => {
-                        window.console.log(response)
                         this.orthomosaicGeoserverPreviewUrl = response.data.url;
                     });
             }

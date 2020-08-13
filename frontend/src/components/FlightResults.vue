@@ -25,7 +25,7 @@ const baseUrl = window.location.protocol + "//" + window.location.hostname + "/a
 export default {
     data() {
         return {
-            flight: null,
+            flight: {},
             error: "",
             artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D"],
             downloads: [false, false],
@@ -42,7 +42,7 @@ export default {
             .get("api/flights/" + this.$route.params.uuid, {
                 headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
             })
-            .then(response => (this.flight = response.data))
+            .then(response => this.flight = response.data)
             .catch(error => this.error = error);
     },
     mixins: [forceLogin]

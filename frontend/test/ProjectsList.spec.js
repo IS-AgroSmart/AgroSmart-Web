@@ -39,8 +39,11 @@ describe("Project list component", () => {
                 },
                 $bvToast: {
                     toast: jest.fn(),
-                }
-            }
+                },
+                $router: {
+                    push: jest.fn(),
+                },
+            },
         });
     };
 
@@ -206,5 +209,12 @@ describe("Project list component", () => {
         expect(mock.history.delete).toHaveLength(0);
         expect(wrapper.vm.$bvModal.msgBoxConfirm).toHaveBeenCalled();
         expect(wrapper.vm.$bvToast.toast).not.toHaveBeenCalled();
+    });
+
+    it("bumps to login page if not logged in already", async () => {
+        localVue.prototype.$isLoggedIn = () => false;
+        mountComponent();
+
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/login");
     });
 })

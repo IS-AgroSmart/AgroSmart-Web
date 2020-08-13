@@ -4,7 +4,7 @@ import {
 } from '@vue/test-utils';
 import flushPromises from "flush-promises";
 
-import FlightDetails from 'components/Flight.vue';
+import Flight from 'components/Flight.vue';
 
 import BootstrapVue from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
@@ -31,7 +31,7 @@ describe("Flight list component", () => {
     let wrapper, mock;
 
     const mountComponent = () => {
-        wrapper = mount(FlightDetails, {
+        wrapper = mount(Flight, {
             localVue
         });
     };

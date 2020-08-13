@@ -91,14 +91,7 @@ export default {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(function(response) {
-                    that.uploading = false;
-                    if (response.status === 200) {
-                        that.indexOK = true;
-                        that.indexWrong = false;
-                    } else {
-                        that.indexWrong = true;
-                        that.indexOK = false;
-                    }
+                    window.history.back();
                 })
                 .catch(function() {
                     that.indexOK = false;
@@ -116,13 +109,8 @@ export default {
                 })
                 .then(function(response) {
                     that.uploading = false;
-                    if (response.status === 200) {
-                        that.indexOK = true;
-                        that.indexWrong = false;
-                    } else {
-                        that.indexWrong = true;
-                        that.indexOK = false;
-                    }
+                    that.indexOK = true;
+                    that.indexWrong = false;
                 })
                 .catch(function() {
                     that.indexOK = false;

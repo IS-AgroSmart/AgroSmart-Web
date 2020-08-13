@@ -53,6 +53,7 @@ export default {
             evt.preventDefault();
             if (!this.$isLoggedIn()) {
                 this.$router.push("/login");
+                return;
             }
             var fd = new FormData();
             fd.set("name", this.form.name);
