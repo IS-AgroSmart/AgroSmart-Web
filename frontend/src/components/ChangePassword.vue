@@ -66,7 +66,7 @@ export default {
                 axios.post("api/users/" + this.storage.loggedInUser.pk + "/set_password/", {
                         "password": this.form.repeatedPassword,
                     }, { headers: { "Authorization": "Token " + this.storage.token } })
-                    .then(response => this.goToProfile())
+                    .then(() => this.goToProfile())
                     .catch(error => this.error = error.response ? this.errorToLines(error.response.data) : error);
             }
         },

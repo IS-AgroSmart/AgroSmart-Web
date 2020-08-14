@@ -90,7 +90,7 @@ export default {
             axios.post('/api/rastercalcs/' + this.$route.params.uuid, { formula: this.formula, index: this.name }, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
-                .then(function(response) {
+                .then(function() {
                     window.history.back();
                 })
                 .catch(function() {
@@ -107,7 +107,7 @@ export default {
             axios.post('/api/rastercalcs/check', formdata, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
-                .then(function(response) {
+                .then(function() {
                     that.uploading = false;
                     that.indexOK = true;
                     that.indexWrong = false;
