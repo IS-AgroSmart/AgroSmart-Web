@@ -8,7 +8,7 @@
                     <b-col>
                         <b-dropdown id="dropdown" text="Solicitudes de cuenta" class="m-2">
                             <b-dropdown-item @click="onAdminClick()">Pendientes</b-dropdown-item>
-                            <b-dropdown-item> Eliminadas </b-dropdown-item>
+                            <b-dropdown-item @click="onAdminClickRequestDeleted"> Eliminadas </b-dropdown-item>
                         </b-dropdown>
                     </b-col>
                 </b-row>
@@ -147,6 +147,9 @@ export default {
         },
         onAdminClick() {
             this.$router.push("/admin/accountRequest")
+        },
+        onAdminClickRequestDeleted(){
+            this.$router.push("/admin/accountRequestDeleted")
         },
         loadUsers() {
             axios.get('api/users', {

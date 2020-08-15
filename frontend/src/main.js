@@ -36,6 +36,7 @@ import NewPassword from './components/NewPassword'
 import UserRequests from "./components/UserRequests";
 import Profile from './components/Profile'
 import ChangePassword from './components/ChangePassword'
+import userRequestDeleted from './components/UserRequestDeleted'
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -80,7 +81,8 @@ const router = new VueRouter({
     { path: '/admin', name: 'adminHome', component: AdminHomepage },
     { path: '/profile', name: 'profile',component: Profile },
     { path: '/changePassword', name: 'changePassword', component:ChangePassword},
-    { path: '/admin/accountRequest', name:"userRequests", component:UserRequests}
+    { path: '/admin/accountRequest', name:"userRequests", component:UserRequests},
+    { path: '/admin/accountRequestDeleted', name:"userRequestDeleted",component:userRequestDeleted},
   ]
 })
 
