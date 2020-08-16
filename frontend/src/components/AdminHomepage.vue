@@ -16,7 +16,7 @@
                     <b-col>
                         <b-dropdown id="dropdown" text="Usuarios" class="m-2">
                             <b-dropdown-item @click="onAdminClickRequestActive">Activos</b-dropdown-item>
-                            <b-dropdown-item> Eliminados </b-dropdown-item>
+                            <b-dropdown-item @click="onAdminClickUserDeleted()"> Eliminados </b-dropdown-item>
                         </b-dropdown>
                     </b-col>
                 </b-row>
@@ -153,6 +153,9 @@ export default {
         },
         onAdminClickRequestActive(){
             this.$router.push("/admin/accountRequestActive")
+        },
+        onAdminClickUserDeleted(){
+            this.$router.push("/admin/userDeleted")
         },
         loadUsers() {
             axios.get('api/users', {

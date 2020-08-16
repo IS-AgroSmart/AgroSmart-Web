@@ -38,6 +38,7 @@ import Profile from './components/Profile'
 import ChangePassword from './components/ChangePassword'
 import userRequestDeleted from './components/UserRequestDeleted'
 import userRequestActive from './components/UserRequestActive'
+import userDeleted from "./components/UserDeleted"
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -85,6 +86,7 @@ const router = new VueRouter({
     { path: '/admin/accountRequest', name:"userRequests", component:UserRequests},
     { path: '/admin/accountRequestActive', name:"userRequestActive", component:userRequestActive},
     { path: '/admin/accountRequestDeleted', name:"userRequestDeleted",component:userRequestDeleted},
+    { path: '/admin/userDeleted', name:"userDeleted",component:userDeleted},
   ]
 })
 
