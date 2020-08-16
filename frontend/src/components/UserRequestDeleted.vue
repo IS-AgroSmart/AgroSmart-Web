@@ -111,7 +111,7 @@ export default {
                 acciong='restaurada y lista para ser aceptada';
             }
             this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a ' + '"'+user.username + '"'+" será "+acciong, {
-                        title: '¿Realmente desea '+accion+' la solicitud?',
+                        title: '¿Realmente desea '+accion+' al usuario?',
                         okVariant: 'danger',
                         okTitle: 'Sí',
                         cancelTitle: 'No',

@@ -1,10 +1,12 @@
 <template>
   <div class="my-4">
-    <h1>Usuarios Activos<b-dropdown ref="dropdown">
-            <b-dropdown-item-button
-              @click="onAdminClickRequestActive()"
-            ><strong>Usuarios Activos</strong></b-dropdown-item-button>
-          </b-dropdown></h1>
+    <h1>Usuarios Activos
+            <!-- <b-dropdown ref="dropdown">
+              <b-dropdown-item-button
+              @click="onAdminClickRequestActive()">
+              <strong>Usuarios Activos</strong></b-dropdown-item-button>
+            </b-dropdown>-->
+    </h1>
     <b-form>
       <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por email..."></b-form-input>
     </b-form>
@@ -13,7 +15,7 @@
       v-if="availableUsers.length === 0"
       show
       variant="info"
-    >¡Ningún usuario demo tiene ese nombre o email!</b-alert>
+    >¡Ningún usuario activo tiene ese nombre o email!</b-alert>
 
     <div class="row">
       <b-card v-for="user in availableUsers" :key="user.pk" class="card">
@@ -25,8 +27,8 @@
         <b-card-text>
           <p>Correo: {{user.email}}</p>
           <p>
-            Estado: El usuario aún
-            <strong>no ha sido aceptado</strong>
+            Estado:
+            <strong>{{user.type}}</strong>
           </p>
 
           <b-dropdown text="Acciones" ref="dropdown">
@@ -72,7 +74,7 @@ export default {
                 .catch(error => this.error = error);
         },onAdminClickRequestDeleted(){
             this.$router.push("/admin/accountRequestDeleted")
-        },},onAdminClickRequestActive(){
+        },onAdminClickRequestActive(){
             this.$router.push("/admin/accountRequestActive")
         },
         patchUser(user, newType) {
@@ -87,15 +89,27 @@ export default {
                     });
                 });
         },
+        deleteUser(idUser){
+            axios.delete(this.api+idUser+'/',{
+                    headers: { "Authorization": "Token " + this.storage.token },
+                }).then(() => this.loadUsers())
+                .catch(() => {
+                    this.$bvToast.toast('Error al procesar la solicitud. Intente más tarde', {
+                        title: "Error",
+                        autoHideDelay: 3000,
+                        variant: "danger",
+                    });
+                });
+        },
         accionRequest(user, accion) {
             let acciong='';
             if (accion == "Eliminar") {
-                acciong='eliminada para siempre y este cambio se aplicara de manera permanente'
+                acciong='eliminado.'
                 
             } else {
                 acciong='restaurada y lista para ser aceptada';
             }
-            this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a ' + '"'+user.username + '"'+" será "+acciong, {
+            this.$bvModal.msgBoxConfirm('El/la usuario ' + '"'+user.username + '"'+" será "+acciong, {
                         title: '¿Realmente desea '+accion+' la solicitud?',
                         okVariant: 'danger',
                         okTitle: 'Sí',
@@ -103,13 +117,7 @@ export default {
                         // hideHeaderClose: false
                     })
                     .then(value => {
-                        if(value){
-                            if (accion == "Eliminar") {
-                                this.deleteUser(user.pk);
-                            } else {
-                                this.patchUser(user,'ACTIVE');
-                            }
-                        }
+                        if (value) this.patchUser(user, "DELETED");
                     });
         },
     },
@@ -117,12 +125,12 @@ export default {
         availableUsers() {
             if (this.opcionFilter) {
                 return this.users.filter(user => !user.is_staff &&
-                    ["ACTIVE", "ADMIN"].includes(user.type) &&
+                    (user.type == "ACTIVE" || user.type == "ADMIN") &&
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
                 // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => !user.is_staff && user.type == ["ACTIVE", "ADMIN"].includes(user.type));
+                return this.users.filter(user => !user.is_staff && (user.type == "ACTIVE" || user.type == "ADMIN"));
             }
         },
 
