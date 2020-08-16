@@ -72,6 +72,8 @@ export default {
                 .catch(error => this.error = error);
         },onAdminClickRequestDeleted(){
             this.$router.push("/admin/accountRequestDeleted")
+        },onAdminClickRequestActive(){
+            this.$router.push("/admin/accountRequestActive")
         },
         patchUser(user, newType) {
             axios.patch("api/users/" + user.pk + "/", { type: newType, }, {

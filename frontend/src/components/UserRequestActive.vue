@@ -1,35 +1,34 @@
 <template>
   <div class="my-4">
-    <h1>
-      Solicitudes Eliminadas/Rechazadas
-      <b-dropdown ref="dropdown">
-        <b-dropdown-item-button @click="onAdminClick()">
-          <strong>Solicitudes Pendientes</strong>
-        </b-dropdown-item-button>
-      </b-dropdown>
+    <h1>Usuarios Activos
+            <!-- <b-dropdown ref="dropdown">
+              <b-dropdown-item-button
+              @click="onAdminClickRequestActive()">
+              <strong>Usuarios Activos</strong></b-dropdown-item-button>
+            </b-dropdown>-->
     </h1>
     <b-form>
-      <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por nombre o email..."></b-form-input>
+      <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por email..."></b-form-input>
     </b-form>
 
     <b-alert
       v-if="availableUsers.length === 0"
       show
       variant="info"
-    >¡Ningún usuario tiene ese nombre o email!</b-alert>
+    >¡Ningún usuario activo tiene ese nombre o email!</b-alert>
 
     <div class="row">
       <b-card v-for="user in availableUsers" :key="user.pk" class="card">
-        <img class="image" :src="demoUser_img" />
+        <img class="image" :src="image" />
+
         <b-card-title>
           <strong>{{ user.username }}</strong>
         </b-card-title>
         <b-card-text>
           <p>Correo: {{user.email}}</p>
           <p>
-            Estado: La solicitud del usuario esta eliminada
-            <br />
-            <strong>eliga que accion tomar</strong>
+            Estado:
+            <strong>{{user.type}}</strong>
           </p>
 
           <b-dropdown text="Acciones" ref="dropdown">
@@ -48,38 +47,38 @@
 
 <script lang="js">
 import axios from "axios";
-import image from "../assets/icon-user-deleted.jpg"
-
+import image from "../assets/icon-user-Demo.png"
 
 export default {
-    name: 'user-deleted-requests',
-    
+    name: 'user-active-requests',
+
     data: function() {
         return {
-           demoUser_img: image,
+            image:image,
             users: [],
-            acciones: ['Restaurar', 'Eliminar'],
+            acciones: ['Eliminar'],
             opcionFilter: '',
             alert: false,
-            api:'api/users/',
         }
     },
 
 
     methods: {
         loadUsers() {
-            axios.get(this.api, {
+            axios.get('api/users', {
                     headers: { "Authorization": "Token " + this.storage.token }
                 })
                 .then(response => {
                     this.users = response.data
                 })
                 .catch(error => this.error = error);
-        },onAdminClick() {
-            this.$router.push("/admin/accountRequest")
+        },onAdminClickRequestDeleted(){
+            this.$router.push("/admin/accountRequestDeleted")
+        },onAdminClickRequestActive(){
+            this.$router.push("/admin/accountRequestActive")
         },
         patchUser(user, newType) {
-            axios.patch(this.api + user.pk + "/", { type: newType, }, {
+            axios.patch("api/users/" + user.pk + "/", { type: newType, }, {
                     headers: { "Authorization": "Token " + this.storage.token },
                 }).then(() => this.loadUsers())
                 .catch(() => {
@@ -105,26 +104,20 @@ export default {
         accionRequest(user, accion) {
             let acciong='';
             if (accion == "Eliminar") {
-                acciong='eliminada para siempre y este cambio se aplicara de manera permanente'
+                acciong='eliminado.'
                 
             } else {
                 acciong='restaurada y lista para ser aceptada';
             }
-            this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a ' + '"'+user.username + '"'+" será "+acciong, {
-                        title: '¿Realmente desea '+accion+' al usuario?',
+            this.$bvModal.msgBoxConfirm('El/la usuario ' + '"'+user.username + '"'+" será "+acciong, {
+                        title: '¿Realmente desea '+accion+' la solicitud?',
                         okVariant: 'danger',
                         okTitle: 'Sí',
                         cancelTitle: 'No',
                         // hideHeaderClose: false
                     })
                     .then(value => {
-                        if(value){
-                            if (accion == "Eliminar") {
-                                this.deleteUser(user.pk);
-                            } else {
-                                this.patchUser(user,'DEMO_USER');
-                            }
-                        }
+                        if (value) this.patchUser(user, "DELETED");
                     });
         },
     },
@@ -132,12 +125,12 @@ export default {
         availableUsers() {
             if (this.opcionFilter) {
                 return this.users.filter(user => !user.is_staff &&
-                    user.type == "DELETED" &&
+                    (user.type == "ACTIVE" || user.type == "ADMIN") &&
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
                 // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => !user.is_staff && user.type == "DELETED");
+                return this.users.filter(user => !user.is_staff && (user.type == "ACTIVE" || user.type == "ADMIN"));
             }
         },
 
