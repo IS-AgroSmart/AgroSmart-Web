@@ -1,12 +1,12 @@
 <template>
   <div class="my-4">
-    <h1>Solicitudes pendientes<b-dropdown ref="dropdown">
+    <h1>Usuarios Activos<b-dropdown ref="dropdown">
             <b-dropdown-item-button
-              @click="onAdminClickRequestDeleted()"
-            ><strong>Solicitudes Eliminadas/Rechazadas</strong></b-dropdown-item-button>
+              @click="onAdminClickRequestActive()"
+            ><strong>Usuarios Activos</strong></b-dropdown-item-button>
           </b-dropdown></h1>
     <b-form>
-      <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por nombre o email..."></b-form-input>
+      <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por email..."></b-form-input>
     </b-form>
 
     <b-alert
@@ -48,13 +48,13 @@ import axios from "axios";
 import image from "../assets/icon-user-Demo.png"
 
 export default {
-    name: 'user-requests',
+    name: 'user-active-requests',
 
     data: function() {
         return {
             image:image,
             users: [],
-            acciones: ['Aceptar', 'Rechazar', 'Bloquear'],
+            acciones: ['Eliminar'],
             opcionFilter: '',
             alert: false,
         }
@@ -72,7 +72,7 @@ export default {
                 .catch(error => this.error = error);
         },onAdminClickRequestDeleted(){
             this.$router.push("/admin/accountRequestDeleted")
-        },onAdminClickRequestActive(){
+        },},onAdminClickRequestActive(){
             this.$router.push("/admin/accountRequestActive")
         },
         patchUser(user, newType) {
@@ -88,14 +88,14 @@ export default {
                 });
         },
         accionRequest(user, accion) {
-            if (accion != "Aceptar") {
-              let acciong=''
-              if(accion=="Rechazar"){
-                acciong="rechazada"
-              }else{
-                acciong='bloqueada'
-              }
-                this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a ' +'"'+user.username +'"'+ " será "+acciong, {
+            let acciong='';
+            if (accion == "Eliminar") {
+                acciong='eliminada para siempre y este cambio se aplicara de manera permanente'
+                
+            } else {
+                acciong='restaurada y lista para ser aceptada';
+            }
+            this.$bvModal.msgBoxConfirm('Esta solicitud perteneciente a ' + '"'+user.username + '"'+" será "+acciong, {
                         title: '¿Realmente desea '+accion+' la solicitud?',
                         okVariant: 'danger',
                         okTitle: 'Sí',
@@ -103,23 +103,26 @@ export default {
                         // hideHeaderClose: false
                     })
                     .then(value => {
-                        if (value) this.patchUser(user, "DELETED");
+                        if(value){
+                            if (accion == "Eliminar") {
+                                this.deleteUser(user.pk);
+                            } else {
+                                this.patchUser(user,'ACTIVE');
+                            }
+                        }
                     });
-            } else {
-                this.patchUser(user, "ACTIVE");
-            }
         },
     },
     computed: {
         availableUsers() {
             if (this.opcionFilter) {
                 return this.users.filter(user => !user.is_staff &&
-                    user.type == "DEMO_USER" &&
+                    ["ACTIVE", "ADMIN"].includes(user.type) &&
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
                 // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => !user.is_staff && user.type == "DEMO_USER");
+                return this.users.filter(user => !user.is_staff && user.type == ["ACTIVE", "ADMIN"].includes(user.type));
             }
         },
 
