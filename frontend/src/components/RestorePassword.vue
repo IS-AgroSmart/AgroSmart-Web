@@ -1,7 +1,7 @@
 <template>
     <div>
         <h1>Resetar Contraseña</h1>
-
+    
         <b-alert v-if="error" show variant="danger">
             Error! Verifique que el correo ingresado este vinculado con una cuenta de AgroSmart.
         </b-alert>
@@ -22,7 +22,7 @@
                 </b-row>
             </b-container>
         </b-form>
-    </div> 
+    </div>
 </template>>
 
 <script>
@@ -37,24 +37,13 @@ export default {
             error: false
         }
     },
-    computed: {
-        usernameState() {
-            if (this.form.username.length == 0) return null;
-            return this.form.username.indexOf(" ") == -1;
-        },
-    },
     methods: {
         onSubmit(evt) {
             evt.preventDefault()
             axios.post("api/password_reset/", {
                     "email": this.form.email,
                 })
-                .then(response => {
-                    if (response.status == 200)
-                        this.goBack();
-                    else
-                        this.error = this.errorToLines(response.body);
-                })
+                .then(() => this.goBack())
                 .catch(error => {
                     this.error = error.response ? this.errorToLines(error.response.data) : error;
                 });

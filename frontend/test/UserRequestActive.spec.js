@@ -4,7 +4,7 @@ import {
 } from '@vue/test-utils';
 import flushPromises from "flush-promises";
 
-import UserRequests from 'components/UserRequests.vue';
+import UserRequestActive from 'components/UserRequestActive.vue';
 
 import {
     DropdownPlugin,
@@ -34,17 +34,11 @@ localVue.use(ReactiveStorage, {
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
 
-const createContainer = (tag = "div") => {
-    const container = document.createElement(tag)
-    document.body.appendChild(container)
-    return container
-};
-
-describe('Pending requests component', () => {
+describe('Active Users component', () => {
     let wrapper, mock;
 
     function mountComponent() {
-        wrapper = mount(UserRequests, {
+        wrapper = mount(UserRequestActive, {
             localVue,
             mocks: {
                 $bvModal: {
@@ -66,25 +60,31 @@ describe('Pending requests component', () => {
                 pk: 1,
                 username: "myname",
                 email: "myname@example.com",
-                type: "DEMO_USER"
+                type: "ACTIVE"
             },
             {
                 pk: 2,
                 username: "foo",
                 email: "foo@example.com",
-                type: "ACTIVE"
+                type: "DELETED"
             },
             {
                 pk: 3,
                 username: "bar",
                 email: "bar@example.com",
-                type: "DEMO_USER"
+                type: "ACTIVE"
             },
             {
                 pk: 4,
                 username: "admin",
                 email: "admin@gmail.com",
                 type: "ADMIN"
+            },
+            {
+                pk: 5,
+                username: "demo",
+                email: "demo@gmail.com",
+                type: "DEMO_USER"
             },
         ]);
     });
@@ -93,15 +93,15 @@ describe('Pending requests component', () => {
         mock.restore();
     });
 
-    it("only shows demo users", async () => {
+    it("only shows active users", async () => {
         mountComponent();
         await flushPromises();
 
-        expect(wrapper.findAll(".card").length).toBe(2);
-        expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
-        expect(wrapper.text().includes("foo@example.com")).toBeFalsy();
-        expect(wrapper.text().includes("admin@gmail.com")).toBeFalsy();
-        expect(wrapper.text().includes("bar@example.com")).toBeTruthy();
+        expect(wrapper.findAll(".card").length).toBe(3);
+        expect(wrapper.text().includes("myname@example.com")).toBe(true);
+        expect(wrapper.text().includes("foo@example.com")).toBe(false);
+        expect(wrapper.text().includes("admin@gmail.com")).toBe(true);
+        expect(wrapper.text().includes("bar@example.com")).toBe(true);
         expect(mock.history.get.length).toBe(1);
     });
 
@@ -113,7 +113,7 @@ describe('Pending requests component', () => {
         expect(wrapper.vm.$router.push).toHaveBeenCalled();
     });
 
-    it("can approve a user request", async () => {
+    it("can delete a user", async () => {
         mountComponent();
         mock.onPatch(/api\/users\/\d+\//).replyOnce(200, {});
 
@@ -121,38 +121,25 @@ describe('Pending requests component', () => {
             pk: 1,
             email: "foo@foo",
             username: "foo"
-        }, "Aceptar");
+        }, "Eliminar");
         await flushPromises();
-        expect(JSON.parse(mock.history.patch[0].data).type).toBe("ACTIVE");
+        expect(mock.history.patch).toHaveLength(1);
+        expect(JSON.parse(mock.history.patch[0].data)).toHaveProperty("type", "DELETED");
     });
 
     it("filters users if a search string is set", async () => {
         mountComponent();
         await flushPromises();
-        wrapper.vm.opcionFilter = "myname";
+        wrapper.vm.opcionFilter = "example";
 
-        wrapper.vm.$nextTick(() => { // Allow for recomputing 
-            expect(wrapper.findAll(".card").length).toBe(1);
-            expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
-            expect(wrapper.text().includes("bar@example.com")).toBeFalsy();
-        });
-    })
-
-    it("can reject a user request", async () => {
-        mountComponent();
-        mock.onPatch(/api\/users\/\d+\//).replyOnce(200, {});
-
-        wrapper.vm.accionRequest({
-            pk: 1,
-            email: "foo@foo",
-            username: "foo"
-        }, "Rechazar");
-
-        await flushPromises();
-        expect(JSON.parse(mock.history.patch[0].data).type).toBe("DELETED");
+        await wrapper.vm.$nextTick(); // Allow for recomputing 
+        expect(wrapper.findAll(".card").length).toBe(2);
+        expect(wrapper.text().includes("myname@example.com")).toBe(true);
+        expect(wrapper.text().includes("bar@example.com")).toBe(true);
+        expect(wrapper.text().includes("admin@gmail.com")).toBe(false);
     });
 
-    it("shows an error message on connection error", async () => {
+    it("shows an error message on connection error when deleting", async () => {
         mountComponent();
         mock.onPatch(/api\/users\/\d+\//).networkError();
 
@@ -160,13 +147,27 @@ describe('Pending requests component', () => {
             pk: 1,
             email: "foo@foo",
             username: "foo"
-        }, "Aceptar");
+        }, "Eliminar");
         await flushPromises();
-        expect(JSON.parse(mock.history.patch[0].data).type).toBe("ACTIVE");
-        await wrapper.vm.$nextTick();
+        expect(mock.history.patch).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
     });
 
-    it("navigates to Deleted Requests window", async () => {
+    it("asks for confirmation before acting", async () => {
+        mountComponent();
+        mock.onPatch(/api\/users\/\d+\//).reply(200, {});
+
+        wrapper.vm.accionRequest({
+            pk: 1,
+            email: "foo@foo",
+            username: "foo"
+        }, "Eliminar");
+
+        await flushPromises();
+        expect(wrapper.vm.$bvModal.msgBoxConfirm).toHaveBeenCalled();
+    });
+
+    it("navigates to Deleted Users window", async () => {
         mountComponent();
         await flushPromises();
 

@@ -87,18 +87,6 @@ export default {
                     });
                 });
         },
-        deleteUser(idUser){
-            axios.delete(this.api+idUser+'/',{
-                    headers: { "Authorization": "Token " + this.storage.token },
-                }).then(() => this.loadUsers())
-                .catch(() => {
-                    this.$bvToast.toast('Error al procesar la solicitud. Intente más tarde', {
-                        title: "Error",
-                        autoHideDelay: 3000,
-                        variant: "danger",
-                    });
-                });
-        },
         accionRequest(user, accion) {
             let acciong='';
             if (accion == "Eliminar") {
