@@ -114,8 +114,8 @@ export default {
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
-                // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => (user.type == "ACTIVE" || user.type == "ADMIN"));
+                // Mostrar sólo los usuarios activos y administradores
+                return this.users.filter(user => (user.type == "ACTIVE" || user.type == "ADMIN") && this.storage.loggedInUser.username != user.username);
             }
         },
 
