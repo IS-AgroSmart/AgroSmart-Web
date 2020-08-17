@@ -11,7 +11,7 @@
                     El nombre de usuario no puede contener espacios.
                 </b-form-invalid-feedback>
             </b-form-group>
-
+    
             <b-form-group id="input-group-2" label="Nombres:" label-for="input-2">
                 <b-form-input id="input-2" type="text" v-model="form.first_name" :state="firstNameState" required placeholder="Nombres y Apellidos"></b-form-input>
                 <b-form-invalid-feedback id="input-live-feedback">
@@ -25,11 +25,11 @@
                     Escriba una contraseña de al menos 8 caracteres
                 </b-form-invalid-feedback>
             </b-form-group>
-
+    
             <b-form-group id="input-group-2" label="E-mail:" label-for="input-4">
                 <b-form-input id="input-4" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
             </b-form-group>
-
+    
             <b-form-group id="input-group-2" label="Organizacion:" label-for="input-5">
                 <b-form-input id="input-5" type="text" v-model="form.organization" :state="organizationState" required placeholder="Nombre Organización"></b-form-input>
                 <b-form-invalid-feedback id="input-live-feedback">
@@ -40,7 +40,7 @@
             <b-container>
                 <b-row align-h="center">
                     <b-col cols="5" class="text-center">
-                        <b-button type="submit" variant="primary">Crear cuenta</b-button>
+                        <b-button type="submit" variant="primary" :disabled="!everythingValid">Crear cuenta</b-button>
                     </b-col>
                     <b-col cols="5" class="text-center">
                         <b-button @click="goBack" variant="secondary">Cancelar</b-button>
@@ -61,8 +61,8 @@ export default {
                 username: '',
                 password: '',
                 email: '',
-                first_name:'',
-                organization:'',
+                first_name: '',
+                organization: '',
             },
             error: false
         }
@@ -72,7 +72,7 @@ export default {
             if (this.form.username.length == 0) return null;
             return this.form.username.indexOf(" ") == -1;
         },
-        firstNameState(){
+        firstNameState() {
             if (this.form.first_name.length == 0) return null;
             return this.form.first_name.length <= 150;
         },
@@ -84,17 +84,19 @@ export default {
             if (this.form.organization.length == 0) return null;
             return this.form.organization.length <= 20;
         },
-
+        everythingValid() {
+            return this.usernameState && this.firstNameState && this.passwordState && this.organizationState;
+        },
     },
     methods: {
         onSubmit(evt) {
-            evt.preventDefault()
+            evt.preventDefault();
             axios.post("api/users/", {
                     "username": this.form.username,
                     "password": this.form.password,
                     "email": this.form.email,
-                    "first_name":this.form.first_name,
-                    "organization":this.form.organization,
+                    "first_name": this.form.first_name,
+                    "organization": this.form.organization,
                 })
                 .then(response => {
                     if (response.status == 201)

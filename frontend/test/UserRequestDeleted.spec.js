@@ -4,7 +4,7 @@ import {
 } from '@vue/test-utils';
 import flushPromises from "flush-promises";
 
-import UserRequests from 'components/UserRequests.vue';
+import UserRequestDeleted from 'components/UserRequestDeleted.vue';
 
 import {
     DropdownPlugin,
@@ -34,17 +34,11 @@ localVue.use(ReactiveStorage, {
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter';
 
-const createContainer = (tag = "div") => {
-    const container = document.createElement(tag)
-    document.body.appendChild(container)
-    return container
-};
-
-describe('Pending requests component', () => {
+describe('Active Users component', () => {
     let wrapper, mock;
 
     function mountComponent() {
-        wrapper = mount(UserRequests, {
+        wrapper = mount(UserRequestDeleted, {
             localVue,
             mocks: {
                 $bvModal: {
@@ -62,11 +56,11 @@ describe('Pending requests component', () => {
 
     beforeEach(() => {
         mock = new MockAdapter(axios);
-        mock.onGet("api/users").replyOnce(200, [{
+        mock.onGet("api/users/").replyOnce(200, [{
                 pk: 1,
                 username: "myname",
                 email: "myname@example.com",
-                type: "DEMO_USER"
+                type: "DELETED"
             },
             {
                 pk: 2,
@@ -78,13 +72,19 @@ describe('Pending requests component', () => {
                 pk: 3,
                 username: "bar",
                 email: "bar@example.com",
-                type: "DEMO_USER"
+                type: "DELETED"
             },
             {
                 pk: 4,
                 username: "admin",
                 email: "admin@gmail.com",
                 type: "ADMIN"
+            },
+            {
+                pk: 5,
+                username: "demo",
+                email: "demo@gmail.com",
+                type: "DEMO_USER"
             },
         ]);
     });
@@ -93,15 +93,15 @@ describe('Pending requests component', () => {
         mock.restore();
     });
 
-    it("only shows demo users", async () => {
+    it("only shows deleted users", async () => {
         mountComponent();
         await flushPromises();
 
         expect(wrapper.findAll(".card").length).toBe(2);
-        expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
-        expect(wrapper.text().includes("foo@example.com")).toBeFalsy();
-        expect(wrapper.text().includes("admin@gmail.com")).toBeFalsy();
-        expect(wrapper.text().includes("bar@example.com")).toBeTruthy();
+        expect(wrapper.text().includes("myname@example.com")).toBe(true);
+        expect(wrapper.text().includes("foo@example.com")).toBe(false);
+        expect(wrapper.text().includes("admin@gmail.com")).toBe(false);
+        expect(wrapper.text().includes("bar@example.com")).toBe(true);
         expect(mock.history.get.length).toBe(1);
     });
 
@@ -113,7 +113,20 @@ describe('Pending requests component', () => {
         expect(wrapper.vm.$router.push).toHaveBeenCalled();
     });
 
-    it("can approve a user request", async () => {
+    it("can delete a request", async () => {
+        mountComponent();
+        mock.onDelete(/api\/users\/\d+\//).replyOnce(204);
+
+        wrapper.vm.accionRequest({
+            pk: 1,
+            email: "foo@foo",
+            username: "foo"
+        }, "Eliminar");
+        await flushPromises();
+        expect(mock.history.delete).toHaveLength(1);
+    });
+
+    it("can restore a request", async () => {
         mountComponent();
         mock.onPatch(/api\/users\/\d+\//).replyOnce(200, {});
 
@@ -121,9 +134,9 @@ describe('Pending requests component', () => {
             pk: 1,
             email: "foo@foo",
             username: "foo"
-        }, "Aceptar");
+        }, "Restaurar");
         await flushPromises();
-        expect(JSON.parse(mock.history.patch[0].data).type).toBe("ACTIVE");
+        expect(JSON.parse(mock.history.patch[0].data).type).toBe("DEMO_USER");
     });
 
     it("filters users if a search string is set", async () => {
@@ -131,28 +144,27 @@ describe('Pending requests component', () => {
         await flushPromises();
         wrapper.vm.opcionFilter = "myname";
 
-        wrapper.vm.$nextTick(() => { // Allow for recomputing 
-            expect(wrapper.findAll(".card").length).toBe(1);
-            expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
-            expect(wrapper.text().includes("bar@example.com")).toBeFalsy();
-        });
-    })
+        await wrapper.vm.$nextTick(); // Allow for recomputing 
+        expect(wrapper.findAll(".card").length).toBe(1);
+        expect(wrapper.text().includes("myname@example.com")).toBe(true);
+        expect(wrapper.text().includes("bar@example.com")).toBe(false);
+    });
 
-    it("can reject a user request", async () => {
+    it("shows an error message on connection error when deleting", async () => {
         mountComponent();
-        mock.onPatch(/api\/users\/\d+\//).replyOnce(200, {});
+        mock.onDelete(/api\/users\/\d+\//).networkError();
 
         wrapper.vm.accionRequest({
             pk: 1,
             email: "foo@foo",
             username: "foo"
-        }, "Rechazar");
-
+        }, "Eliminar");
         await flushPromises();
-        expect(JSON.parse(mock.history.patch[0].data).type).toBe("DELETED");
+        expect(mock.history.delete).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
     });
 
-    it("shows an error message on connection error", async () => {
+    it("shows an error message on connection error when patching", async () => {
         mountComponent();
         mock.onPatch(/api\/users\/\d+\//).networkError();
 
@@ -160,13 +172,27 @@ describe('Pending requests component', () => {
             pk: 1,
             email: "foo@foo",
             username: "foo"
-        }, "Aceptar");
+        }, "Restaurar");
         await flushPromises();
-        expect(JSON.parse(mock.history.patch[0].data).type).toBe("ACTIVE");
-        await wrapper.vm.$nextTick();
+        expect(mock.history.patch).toHaveLength(1);
+        expect(wrapper.vm.$bvToast.toast).toHaveBeenCalled();
     });
 
-    it("navigates to Deleted Requests window", async () => {
+    it("asks for confirmation before acting", async () => {
+        mountComponent();
+        mock.onDelete(/api\/users\/\d+\//).reply(204);
+
+        wrapper.vm.accionRequest({
+            pk: 1,
+            email: "foo@foo",
+            username: "foo"
+        }, "Eliminar");
+
+        await flushPromises();
+        expect(wrapper.vm.$bvModal.msgBoxConfirm).toHaveBeenCalled();
+    });
+
+    it("navigates to Active Users window", async () => {
         mountComponent();
         await flushPromises();
 
