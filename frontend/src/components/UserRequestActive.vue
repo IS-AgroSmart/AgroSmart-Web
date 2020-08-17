@@ -8,7 +8,7 @@
             </b-dropdown>
     </h1>
     <b-form>
-      <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por email..."></b-form-input>
+      <b-form-input v-model="opcionFilter" placeholder="Buscar usuarios por nombre o email..."></b-form-input>
     </b-form>
 
     <b-alert
@@ -122,13 +122,12 @@ export default {
     computed: {
         availableUsers() {
             if (this.opcionFilter) {
-                return this.users.filter(user => !user.is_staff &&
-                    (user.type == "ACTIVE" || user.type == "ADMIN") &&
+                return this.users.filter(user => (user.type == "ACTIVE" || user.type == "ADMIN") &&
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
                 // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => !user.is_staff && (user.type == "ACTIVE" || user.type == "ADMIN"));
+                return this.users.filter(user => (user.type == "ACTIVE" || user.type == "ADMIN"));
             }
         },
 

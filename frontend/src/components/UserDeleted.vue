@@ -129,13 +129,12 @@ export default {
     computed: {
         availableUsers() {
             if (this.opcionFilter) {
-                return this.users.filter(user => !user.is_staff &&
-                    user.type == "DELETED" &&
+                return this.users.filter(user => user.type == "DELETED" &&
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
                 // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => !user.is_staff && (user.type == "DELETED" || user.type == "ADMIN"));
+                return this.users.filter(user => (user.type == "DELETED"));
             }
         },
 
