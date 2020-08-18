@@ -73,7 +73,16 @@
          alt="ortomosaico RGB">
 {% endif %}
 
-<!-- Page 4: ??? -->
+{% if extras.dsm %}
+    <!-- Page 4: DSM -->
+    <p style="page-break-before: always"></p>
+    <h3>Modelo de elevación digital</h3>
+
+    <img src="http://localhost:8000{% url "download_artifact" flight.uuid "dsm.png" %}" class="center"
+         alt="modelo de elevación digital">
+{% endif %}
+
+<!-- Page 5: ??? -->
 <p style="page-break-before: always"></p>
 </body>
 

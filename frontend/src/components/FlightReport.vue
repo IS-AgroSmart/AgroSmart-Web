@@ -37,6 +37,7 @@ export default {
             options: [
                 { text: 'Datos generales', value: 'generaldata' },
                 { text: 'Ortomosaico', value: 'orthomosaic' },
+                { text: 'Modelo de elevación', value: 'dsm' },
                 { text: 'Nube de puntos', value: 'pointcloud', disabled: true },
                 { text: 'Modelo 3D', value: '3dmodel', disabled: true },
                 { text: 'Ortomosaico NDVI', value: 'ndviortho', disabled: true },
