@@ -48,7 +48,7 @@ describe('Shapefile upload component', () => {
     });
 
     it("sends API request", async () => {
-        mock.onPost(/api\/uploads\/.+\/shapefile/).reply(200);
+        mock.onPost(/api\/uploads\/.+\/vectorfile/).reply(200);
 
         wrapper.find('form').trigger('submit');
         await flushPromises();
@@ -58,7 +58,7 @@ describe('Shapefile upload component', () => {
     });
 
     it("sends API request as other user", async () => {
-        mock.onPost(/api\/uploads\/.+\/shapefile/).reply(200);
+        mock.onPost(/api\/uploads\/.+\/vectorfile/).reply(200);
         wrapper.vm.storage.otherUserPk = {
             pk: 123,
         }
@@ -72,7 +72,7 @@ describe('Shapefile upload component', () => {
     });
 
     it("shows error message when upload fails", async () => {
-        mock.onPost(/api\/uploads\/.+\/shapefile/).networkError();
+        mock.onPost(/api\/uploads\/.+\/vectorfile/).networkError();
 
         wrapper.find('form').trigger('submit');
         await flushPromises();
