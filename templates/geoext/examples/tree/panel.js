@@ -84,7 +84,7 @@ function initApp() {
             });
 
             shapefilesGroup = new ol.layer.Group({
-                name: "Shapefiles & GeoTIFFs",
+                name: "Vectores & GeoTIFFs",
                 layers: shapefiles,
             });
 

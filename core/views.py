@@ -315,40 +315,50 @@ def download_artifact_movil(request, uuid, options, artifact):
 
 
 @csrf_exempt
-def upload_shapefile(request, uuid):
+def upload_vectorfile(request, uuid):
     from django.core.files.uploadedfile import UploadedFile
 
+    datatype = request.POST.get("datatype", "shp")
     project = UserProject.objects.get(pk=uuid)
     # shapefile is an array with files [X.shp, X.shx, X.dbf], in some order
-    file: UploadedFile = request.FILES.getlist(
-        "shapefile")[0]  # gets name X.Y (cannot guarantee Y)
+    if datatype == "shp":
+        file: UploadedFile = request.FILES.getlist(
+            "file")[0]  # gets name X.Y (cannot guarantee Y)
+    elif datatype == "kml":
+        file: UploadedFile = request.FILES["file"]
     # remove extension to get only X
-    shp_name = ".".join(file.name.split(".")[:-1])
+    file_name = ".".join(file.name.split(".")[:-1]).replace(" ", "")
     project.artifacts.create(
-        name=shp_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
+        name=file_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
 
     # Write file(s) to disk on project folder
-    os.makedirs(project.get_disk_path() + "/" + shp_name)
-    for file in request.FILES.getlist("shapefile"):
+    os.makedirs(project.get_disk_path() + "/" + file_name)
+    for file in request.FILES.getlist("file") if datatype == "shp" else [request.FILES["file"]]:
         extension = file.name.split(".")[-1]
-        with open(project.get_disk_path() + "/" + shp_name + "/" + shp_name + "." + extension, "wb") as f:
+        with open(project.get_disk_path() + "/" + file_name + "/" + file_name + "." + extension, "wb") as f:
             for chunk in file.chunks():
                 f.write(chunk)
+
+    if datatype == "kml":
+        original_dir = os.getcwd()
+        os.chdir(project.get_disk_path() + "/" + file_name)
+        os.system('ogr2ogr -f "ESRI Shapefile" "{0}.shp" "{0}.kml"'.format(file_name))
+        os.chdir(original_dir)
 
     GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
-        shp_name + "/"
-                   "external.shp",
+        file_name + "/"
+                    "external.shp",
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
-             str(project.uuid) + "/" + shp_name + "/" + shp_name + ".shp",
+             str(project.uuid) + "/" + file_name + "/" + file_name + ".shp",
         auth=HTTPBasicAuth('admin', 'geoserver'))
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
-        shp_name + "/featuretypes/" + shp_name + ".json",
+        file_name + "/featuretypes/" + file_name + ".json",
         headers={"Content-Type": "application/json"},
         data='{"featureType": {"enabled": true, "srs": "EPSG:4326" }}',
         auth=HTTPBasicAuth('admin', 'geoserver'))
