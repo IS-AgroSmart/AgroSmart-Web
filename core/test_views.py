@@ -1,18 +1,16 @@
 import inspect
-import io
 import json
 import os
 from datetime import datetime
-from unittest import mock
 
 import pytest
 from PIL import Image, ImageOps
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django_rest_passwordreset.signals import reset_password_token_created
 from httpretty import httpretty
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
+import pytest_django.asserts as asserts
 
 from core.models import FlightState, UserType, Flight, Camera, UserProject, ArtifactType, Artifact
 
@@ -379,6 +377,24 @@ def test_upload_geotiff(c, fs, projects):
     assert resp.status_code == 201
 
 
+def test_upload_index(c, fs, flights, projects):
+    project: UserProject = projects[0]
+    flight: Flight = flights[0]
+    flight.state = FlightState.COMPLETE.name
+    flight.save()
+    fs.create_dir("/projects/{}".format(project.uuid))
+    fs.create_file("/flights/{}/odm_orthophoto/my_index.tif".format(flight.uuid))
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/coveragestores/my_index/external.imagemosaic", "")
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/coveragestores/my_index/coverages/my_index.json", "")
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/layers/project_" +
+                           str(project.uuid) + ":my_index.json", "")
+    resp = c.post(reverse("create_raster_index", kwargs={"uuid": str(project.uuid)}),
+                  json.dumps({"index": "my_index", "formula": "red+1"}), content_type="application/text")
+    assert resp.status_code == 200
+
+
 def test_preview_flight_url(c, flights):
     executed = False
 
@@ -406,17 +422,6 @@ def test_preview_flight_url(c, flights):
     assert executed
 
 
-class MockEmail:
-    def __init__(self, *args):
-        pass
-
-    def attach_alternative(self, *args):
-        pass
-
-    def send(self):
-        pass
-
-
 def test_email_send():
     from core.views import password_reset_token_created
 
@@ -430,13 +435,35 @@ def test_email_send():
 
     import core
 
-    from unittest.mock import Mock, MagicMock, ANY, create_autospec
+    from unittest.mock import Mock, ANY, create_autospec
     mock = create_autospec(core.views.EmailMultiAlternatives)
     core.views.EmailMultiAlternatives = Mock(return_value=mock)
     password_reset_token_created(None, None, MockPwdResetToken())
 
     mock.attach_alternative.assert_called_with(ANY, "text/html")
     mock.send.assert_called()
+
+
+def _test_mapper_serve_static(c, fs, url, filename, contents):
+    fs.create_file(filename, contents=contents)
+    resp = c.get(url)
+    assert next(resp.streaming_content).decode("utf-8") == contents
+
+
+def test_mapper_serve_paneljs(c, fs):
+    _test_mapper_serve_static(c, fs, "/mapper/panel.js", "templates/geoext/examples/tree/panel.js", "thepaneljs")
+
+
+def test_mapper_serve_ticks(c, fs):
+    _test_mapper_serve_static(c, fs, "/mapper/ticks/3", "templates/geoext/examples/tree/3ticks.png", "3ticks")
+
+
+def test_mapper_ol(c, fs):
+    _test_mapper_serve_static(c, fs, "/mapper/ol/foo/bar.css", "templates/geoext/examples/lib/ol/foo/bar.css", "CSS")
+
+
+def test_mapper_src(c, fs):
+    _test_mapper_serve_static(c, fs, "/mapper/geoext/src/foo/bar.css", "templates/geoext/src/foo/bar.css", "geoextCSS")
 
 
 def test_mapper_get_indices_list(c, projects):
@@ -482,3 +509,13 @@ def test_mapper_bbox(c, projects):
     data = resp.json()
     assert data["bbox"] == 123
     assert data["srs"] == "fakeSRS"
+
+# def test_mapper_html(c, projects):
+#     project: UserProject = projects[0]
+#     from unittest.mock import Mock, ANY, create_autospec
+#     import core.views
+#     mock = create_autospec(core.views.render)
+#     core.views.render = Mock(return_value=mock)
+#
+#     resp = c.get(reverse("mapper", kwargs={"uuid": str(project.uuid)}))
+#     mock.assert_called_with(ANY, "geoext/examples/tree/panel.html", ANY)
