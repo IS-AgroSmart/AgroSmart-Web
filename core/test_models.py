@@ -60,10 +60,10 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
         import inspect, django, pytz
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
         fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
-        fs.create_file("/flights/{}/odm_orthophoto/odm_orthophoto.tif".format(flights[2].uuid), contents="")
+        fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flights[1].uuid), contents="")
         monkeypatch.setattr(requests, "put", mock_requests_put)
 
-        resp = c.post(reverse('projects-list'), {"name": "foo", "description": "bar", "flights": flights[2].uuid})
+        resp = c.post(reverse('projects-list'), {"name": "foo", "description": "bar", "flights": flights[1].uuid})
         assert resp.status_code == 201
         assert create_ws_executed
         created_proj_uuid = resp.json()["uuid"]
