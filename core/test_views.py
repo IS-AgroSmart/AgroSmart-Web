@@ -384,6 +384,9 @@ def test_upload_index(c, fs, flights, projects):
     flight.save()
     fs.create_dir("/projects/{}".format(project.uuid))
     fs.create_file("/flights/{}/odm_orthophoto/my_index.tif".format(flight.uuid))
+    import django, lark
+    fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
+    fs.add_real_directory(os.path.dirname(inspect.getfile(lark)))
     httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/my_index/external.imagemosaic", "")
     httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
