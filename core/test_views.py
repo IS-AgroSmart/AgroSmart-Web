@@ -3,16 +3,18 @@ import io
 import json
 import os
 from datetime import datetime
+from unittest import mock
 
 import pytest
 from PIL import Image, ImageOps
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django_rest_passwordreset.signals import reset_password_token_created
 from httpretty import httpretty
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from core.models import FlightState, UserType, Flight, Camera
+from core.models import FlightState, UserType, Flight, Camera, UserProject, ArtifactType, Artifact
 
 pytestmark = pytest.mark.django_db
 
@@ -39,6 +41,15 @@ def flights(users):
     f1.camera = Camera.REDEDGE.name
     f1.save()
     return f1,
+
+
+@pytest.fixture
+def projects(users, flights):
+    httpretty.enable()
+    httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces", "")
+    p1 = users[0].user_projects.create(name="proj1")
+    p1.flights.add(flights[0])
+    return p1,
 
 
 @pytest.fixture
@@ -142,24 +153,7 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
                            str(flight.uuid) + "/coveragestores/ortho/external.geotiff", mark_executed_upload)
     httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/coverages/rgb.json", mark_executed_config)
-    png_created = False
-    annotated_png_created = False
-    thumbnail_created = False
 
-    def mock_png_ortho(*args, **kwargs):
-        nonlocal png_created
-        png_created = True
-
-    def mock_annotated_png_ortho(*args, **kwargs):
-        nonlocal annotated_png_created
-        annotated_png_created = True
-
-    def mock_thumbnail(*args, **kwargs):
-        nonlocal thumbnail_created
-        thumbnail_created = True
-
-    from core.models import Flight
-    # monkeypatch.setattr(Flight, "try_create_annotated_png_ortho", mock_annotated_png_ortho)
     fs.create_dir("/flights/{}/odm_orthophoto".format(flight.uuid))
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif.msk".format(flight.uuid), contents="")
@@ -183,11 +177,13 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
         return FakeSubprocessCall()
 
     def donothing(*args, **kwargs):
+        # intentionally empty
         pass
 
     def mock_figure(*args, **kwargs):
         class MockCanvas:
             def draw(self):
+                # intentionally empty
                 pass
 
             @staticmethod
@@ -206,7 +202,7 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     def mock_fromstring(*args, **kwargs):
         class FakeNumpy:
             def reshape(self, new_shape):
-                assert new_shape == (200, 100, 3) # Reverse X and Y, add a 3 for RGB channels
+                assert new_shape == (200, 100, 3)  # Reverse X and Y, add a 3 for RGB channels
                 return self
 
         return FakeNumpy()
@@ -226,9 +222,6 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
         {"uuid": str(flight.uuid), "status": {"code": code}}), content_type="application/text")
     if code == 40:
         assert all(executed)
-        # assert annotated_png_created
-        # assert thumbnail_created
-        # assert png_created
     return resp
 
 
@@ -311,3 +304,181 @@ def test_save_push_device(c):
     assert c.post(reverse("push_devices",
                           kwargs={"device": "android"}),
                   {"username": "u3", "token": "dummyToken"}).status_code == 400
+
+
+def _test_upload_vector(c, fs, project, type):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    executed = [False, False]
+
+    def _mark_executed(i, response_headers):
+        nonlocal executed
+        executed[i] = True
+        return [200, response_headers, ""]
+
+    def mark_executed_a(request, uri, response_headers):
+        return _mark_executed(0, response_headers)
+
+    def mark_executed_b(request, uri, response_headers):
+        return _mark_executed(1, response_headers)
+
+    f = SimpleUploadedFile("file.{}".format(type), b"myfile")
+    fs.create_dir("/projects/{}/file/".format(project.uuid))
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/datastores/file/external.shp", mark_executed_a)
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/datastores/file/featuretypes/file.json", mark_executed_b)
+
+    resp = c.post(reverse("upload_vector", kwargs={"uuid": str(project.uuid)}),
+                  {"datatype": type, "file": f if type == "kml" else [f, f, f], "title": "myVector"})
+
+    assert len(project.artifacts.all()) == 1
+    assert all(executed)
+    assert project.artifacts.first().type == ArtifactType.SHAPEFILE.name
+    assert resp.status_code == 201
+
+
+def test_upload_vector_kml(c, fs, projects):
+    _test_upload_vector(c, fs, projects[0], "kml")
+
+
+def test_upload_vector_shp(c, fs, projects):
+    _test_upload_vector(c, fs, projects[0], "shp")
+
+
+def test_upload_geotiff(c, fs, projects):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    executed = [False, False]
+
+    def _mark_executed(i, response_headers):
+        nonlocal executed
+        executed[i] = True
+        return [200, response_headers, ""]
+
+    def mark_executed_a(request, uri, response_headers):
+        return _mark_executed(0, response_headers)
+
+    def mark_executed_b(request, uri, response_headers):
+        return _mark_executed(1, response_headers)
+
+    project: UserProject = projects[0]
+    f = SimpleUploadedFile("file.tif", b"myfile")
+    fs.create_dir("/projects/{}/file/".format(project.uuid))
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
+    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/coveragestores/file/coverages/file.json", mark_executed_b)
+
+    resp = c.post(reverse("upload_geotiff", kwargs={"uuid": str(project.uuid)}),
+                  {"geotiff": f, "title": "myKML"})
+
+    assert len(project.artifacts.all()) == 1
+    assert all(executed)
+    assert project.artifacts.first().type == ArtifactType.ORTHOMOSAIC.name
+    assert resp.status_code == 201
+
+
+def test_preview_flight_url(c, flights):
+    executed = False
+
+    def mark_executed(request, uri, response_headers):
+        nonlocal executed
+        executed = True
+        resp = json.dumps({"coverage": {
+            "nativeBoundingBox": {
+                "minx": 0,
+                "maxx": 1,
+                "miny": 10,
+                "maxy": 11
+            },
+            "srs": "fakeSRS"
+        }})
+        return [200, response_headers, resp]
+
+    flight: Flight = flights[0]
+    httpretty.register_uri(httpretty.GET, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
+                           str(flight.uuid) + "/coveragestores/ortho/coverages/odm_orthophoto.json", mark_executed)
+
+    resp = c.get(reverse("preview_flight_url", kwargs={"uuid": str(flight.uuid)}))
+    assert resp.status_code == 200
+    assert "url" in resp.json()
+    assert executed
+
+
+class MockEmail:
+    def __init__(self, *args):
+        pass
+
+    def attach_alternative(self, *args):
+        pass
+
+    def send(self):
+        pass
+
+
+def test_email_send():
+    from core.views import password_reset_token_created
+
+    class MockPwdResetToken:
+        class MockUser:
+            username = "username"
+            email = "myemail@example.com"
+
+        user = MockUser()
+        key = "tokenkey"
+
+    import core
+
+    from unittest.mock import Mock, MagicMock, ANY, create_autospec
+    mock = create_autospec(core.views.EmailMultiAlternatives)
+    core.views.EmailMultiAlternatives = Mock(return_value=mock)
+    password_reset_token_created(None, None, MockPwdResetToken())
+
+    mock.attach_alternative.assert_called_with(ANY, "text/html")
+    mock.send.assert_called()
+
+
+def test_mapper_get_indices_list(c, projects):
+    project: UserProject = projects[0]
+    art1 = Artifact(title="My Artifact", type=ArtifactType.INDEX.name, name="myartifact")
+    art1.save()
+    art2 = Artifact(title="My Unwanted Artifact", type=ArtifactType.SHAPEFILE.name, name="foo")
+    art2.save()
+    project.artifacts.add(art1)
+    project.artifacts.add(art2)
+    resp = c.get(reverse("mapper_indices", kwargs={"uuid": str(project.uuid)}))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "indices" in data
+    assert len(data["indices"]) == 1
+    assert data["indices"][0]["title"] == "My Artifact"
+    assert data["indices"][0]["name"] == "myartifact"
+
+
+def test_mapper_get_shp_and_geotiff_list(c, projects):
+    project: UserProject = projects[0]
+    art1 = Artifact(title="My Unwanted Artifact", type=ArtifactType.INDEX.name, name="myartifact")
+    art1.save()
+    art2 = Artifact(title="My Artifact", type=ArtifactType.SHAPEFILE.name, name="foo")
+    art2.save()
+    project.artifacts.add(art1)
+    project.artifacts.add(art2)
+    resp = c.get(reverse("mapper_artifacts", kwargs={"uuid": str(project.uuid)}))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "artifacts" in data
+    assert len(data["artifacts"]) == 2
+    assert "My Artifact" in [x["name"] for x in data["artifacts"]]
+
+
+def test_mapper_bbox(c, projects):
+    project: UserProject = projects[0]
+    bbox = json.dumps({"coverage": {"nativeBoundingBox": 123, "srs": "fakeSRS"}, "something": "else"})
+    httpretty.register_uri(httpretty.GET, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+                           str(project.uuid) + "/coveragestores/mainortho/coverages/mainortho.json", body=bbox)
+    resp = c.get(reverse("mapper_bbox", kwargs={"uuid": str(project.uuid)}))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["bbox"] == 123
+    assert data["srs"] == "fakeSRS"
