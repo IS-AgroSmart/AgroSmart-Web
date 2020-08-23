@@ -28,6 +28,7 @@ router.register(r'users', UserViewSet, basename="users")
 router.register(r'flights', FlightViewSet, basename="flights")
 router.register(r'projects', UserProjectViewSet, basename="projects")
 router.register(r'artifacts', ArtifactViewSet, basename="artifacts")
+router.register(r'block_criteria', BlockCriteriaViewSet, basename="block_criteria")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
