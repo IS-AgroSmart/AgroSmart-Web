@@ -583,3 +583,11 @@ def save_push_device(request, device):
             registration_id=token, cloud_message_type="FCM", user=the_user)
 
     return HttpResponse(status=200)
+
+
+class BlockCriteriaViewSet(viewsets.ModelViewSet):
+    #permission_classes = (IsAuthenticated,)
+    serializer_class = BlockCriteriaSerializer
+
+    def get_queryset(self):
+        return BlockCriteria.objects.all()

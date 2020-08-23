@@ -428,3 +428,16 @@ class Artifact(models.Model):
 
     def get_disk_path(self):
         return self.project.get_disk_path() + "/" + self.name + "/" + ArtifactType.filename(self)
+
+
+class BlockType(Enum):
+    USER_NAME = "UserName"
+    IP = "Ip"
+    EMAIL = "Email"
+    DOMAIN = "Domain"
+
+
+class BlockCriteria(models.Model):
+    type = models.CharField(max_length=20, choices=[(tag.name, tag.value) for tag in BlockType])
+    ip = models.GenericIPAddressField(max_length=256, null=True)
+    value = models.CharField(max_length=80, null=True)

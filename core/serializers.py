@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from core.block_verifier import user_verifier
 
 from core.models import *
 
@@ -11,6 +12,11 @@ class UserSerializer(serializers.ModelSerializer):
     first_name=serializers.CharField()
 
     def create(self, validated_data):
+        request = self.context.get("request")
+        if(user_verifier(validated_data, request)):
+            error = {'message': "User request is blocked"}
+            raise serializers.ValidationError(error)
+
         user = User.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -70,3 +76,8 @@ class UserProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProject
         fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description", "is_demo"]
+
+class BlockCriteriaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlockCriteria
+        fields = ["pk", "type", "value", "ip"]
