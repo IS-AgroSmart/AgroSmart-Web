@@ -39,6 +39,7 @@ import ChangePassword from './components/ChangePassword'
 import userRequestDeleted from './components/UserRequestDeleted'
 import userRequestActive from './components/UserRequestActive'
 import userDeleted from "./components/UserDeleted"
+import blockCriteria from "./components/BlockCriteria"
 
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
@@ -87,6 +88,7 @@ const router = new VueRouter({
     { path: '/admin/accountRequestActive', name:"userRequestActive", component:userRequestActive},
     { path: '/admin/accountRequestDeleted', name:"userRequestDeleted",component:userRequestDeleted},
     { path: '/admin/userDeleted', name:"userDeleted",component:userDeleted},
+    { path: '/admin/blockCriteria', name:"blockCriteria",component:blockCriteria},
   ]
 })
 
