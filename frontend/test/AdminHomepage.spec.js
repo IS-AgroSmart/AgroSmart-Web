@@ -315,7 +315,6 @@ describe('Admin homepage component', () => {
     it("navigates to User requests when button clicked", async () => {
         await flushPromises();
 
-        console.log(wrapper.html());
         /*let pendingElement = wrapper.findAll("li")
             .filter(b => b.text() == "Pendientes").at(0);
         await pendingElement.trigger("click");*/

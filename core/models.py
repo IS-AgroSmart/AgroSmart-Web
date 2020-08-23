@@ -207,13 +207,16 @@ class Flight(models.Model):
     def get_png_ortho_path(self):
         return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
 
+    def get_dsm_path(self, extension="png"):
+        return self.get_disk_path() + "/odm_dem/dsm_colored_hillshade.{}".format(extension)
+
     def get_annotated_png_ortho_path(self):
         return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto_annotated.png"
 
     def _get_geoserver_ws_name(self):
         return "flight_" + str(self.uuid)
 
-    def _try_create_image(self, out_path, thumbnail):
+    def _try_create_image_from_ortho(self, out_path, thumbnail):
         if self.state != FlightState.COMPLETE.name:
             return
         if self.camera == Camera.REDEDGE.name:
@@ -248,11 +251,21 @@ class Flight(models.Model):
         except IOError as e:
             print(e)
 
+    def _try_tiff_to_png(self, tiff, png):
+        try:
+            im = Image.open(tiff)
+            im.save(png, "PNG")
+        except IOError as e:
+            print(e)
+
     def try_create_thumbnail(self):
-        self._try_create_image(self.get_thumbnail_path(), True)
+        self._try_create_image_from_ortho(self.get_thumbnail_path(), True)
 
     def try_create_png_ortho(self):
-        self._try_create_image(self.get_png_ortho_path(), False)
+        self._try_create_image_from_ortho(self.get_png_ortho_path(), False)
+
+    def try_create_png_dsm(self):
+        self._try_tiff_to_png(self.get_dsm_path("tif"), self.get_dsm_path("png"))
 
     def try_create_annotated_png_ortho(self):
         # from core.models import *; Flight.objects.first().try_create_annotated_png_ortho()

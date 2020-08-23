@@ -87,18 +87,6 @@ export default {
                     });
                 });
         },
-        deleteUser(idUser){
-            axios.delete(this.api+idUser+'/',{
-                    headers: { "Authorization": "Token " + this.storage.token },
-                }).then(() => this.loadUsers())
-                .catch(() => {
-                    this.$bvToast.toast('Error al procesar la solicitud. Intente más tarde', {
-                        title: "Error",
-                        autoHideDelay: 3000,
-                        variant: "danger",
-                    });
-                });
-        },
         accionRequest(user, accion) {
             let acciong='';
             if (accion == "Eliminar") {
@@ -126,8 +114,8 @@ export default {
                     (user.username.toLowerCase().indexOf(this.opcionFilter) > -1 ||
                         user.email.toLowerCase().indexOf(this.opcionFilter) > -1));
             } else {
-                // Mostrar sólo los usuarios que no son administradores
-                return this.users.filter(user => (user.type == "ACTIVE" || user.type == "ADMIN"));
+                // Mostrar sólo los usuarios activos y administradores
+                return this.users.filter(user => (user.type == "ACTIVE" || user.type == "ADMIN") && this.storage.loggedInUser.username != user.username);
             }
         },
 
