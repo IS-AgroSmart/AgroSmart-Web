@@ -7,7 +7,7 @@ from django.urls import reverse
 from httpretty import httpretty
 from rest_framework.test import APIClient
 
-from core.models import Flight, UserProject, Artifact, ArtifactType, Camera, UserType, User, FlightState
+from core.models import Flight, UserProject, Artifact, ArtifactType, Camera, UserType, User, FlightState, BlockCriteria
 
 
 class BaseTestViewSet:
@@ -645,3 +645,18 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert projects[3].user is None
         assert flights[4].is_demo
         assert flights[4].user is None
+
+
+@pytest.mark.django_db
+class TestBlockCriteriaViewSet(BaseTestViewSet):
+    @pytest.fixture
+    def block_criteria(self):
+        art1 = BlockCriteria.objects.create(type="Ip", ip='127.0.0.8', value=None)
+        art2 = BlockCriteria.objects.create(type="Domain", value="fake.com")
+        return art1, art2
+
+    def test_create_criteria(self, c, users, block_criteria):
+        c.force_authenticate(users[0])
+        resp = c.get(reverse('block_criteria-list')).json()
+        assert any(a["type"] == block_criteria[0].type and a["ip"] == block_criteria[0].ip for a in resp)
+        assert any(a["type"] == block_criteria[1].type and a["value"] == block_criteria[1].value for a in resp)
