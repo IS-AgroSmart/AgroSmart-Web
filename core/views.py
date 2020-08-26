@@ -98,7 +98,7 @@ class FlightViewSet(viewsets.ModelViewSet):
         if not request.user.type == UserType.ADMIN.name:
             return Response(status=status.HTTP_403_FORBIDDEN)
         flight: Flight = self.get_object()
-        flight.delete()
+        flight.unmake_demo(request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
@@ -169,7 +169,12 @@ class UserProjectViewSet(viewsets.ModelViewSet):
         if not request.user.type == UserType.ADMIN.name:
             return Response(status=status.HTTP_403_FORBIDDEN)
         project: UserProject = self.get_object()
-        project.delete()
+        project.is_demo = False
+        project.user = request.user
+        project.demo_users.clear()
+        for flight in project.flights.all():
+            flight.unmake_demo(request.user)
+        project.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
@@ -586,7 +591,7 @@ def save_push_device(request, device):
 
 
 class BlockCriteriaViewSet(viewsets.ModelViewSet):
-    #permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
     serializer_class = BlockCriteriaSerializer
 
     def get_queryset(self):

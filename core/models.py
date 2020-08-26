@@ -363,6 +363,15 @@ class Flight(models.Model):
         self.save()
         return True
 
+    def unmake_demo(self, user):
+        if self.state != FlightState.COMPLETE.name:
+            return False
+        self.is_demo = False
+        self.user = user
+        self.demo_users.clear()
+        self.save()
+        return True
+
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:
