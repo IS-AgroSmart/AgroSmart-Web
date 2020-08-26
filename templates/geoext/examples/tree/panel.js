@@ -457,7 +457,9 @@ function saveMeasurementsListener() {
     });
 
     let link = document.createElement('a');
-    link.download = "measurements.geojson";
+    let filename = prompt("Escriba un nombre para el archivo (opcional)", "Mediciones " + project_name);
+    if (filename !== null && filename.trim() !== "") link.download = filename + ".geojson";
+    else link.download = "measurements.geojson";
     let blob = new Blob([geojson], {type: "application/geo+json;charset=utf-8"});
 
     link.href = URL.createObjectURL(blob);
