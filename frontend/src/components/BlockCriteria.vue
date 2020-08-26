@@ -81,18 +81,6 @@ export default {
                 })
                 .catch(error => this.error = error);
         },
-        patchBlock(criteria) {
-            axios.patch("api/block_criteria/" + criteria.pk + "/", { type: this.type, ip: this.ip, value: this.value}, {
-                    headers: { "Authorization": "Token " + this.storage.token },
-                }).then(() => this.loadCriteria())
-                .catch(() => {
-                    this.$bvToast.toast('Error al procesar la solicitud. Intente más tarde', {
-                        title: "Error",
-                        autoHideDelay: 3000,
-                        variant: "danger",
-                    });
-                });
-        },
         createBlock() {
             axios.post("api/block_criteria/", { type: this.type, ip: this.ip, value: this.value  }, {
                     headers: { "Authorization": "Token " + this.storage.token },
@@ -117,9 +105,6 @@ export default {
                         variant: "danger",
                     });
                 });
-        },
-        accionRequest(block, accion) {
-            this.type = accion;
         },
     },
     computed: {

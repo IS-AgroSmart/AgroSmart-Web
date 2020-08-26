@@ -315,11 +315,40 @@ describe('Admin homepage component', () => {
     it("navigates to User requests when button clicked", async () => {
         await flushPromises();
 
-        /*let pendingElement = wrapper.findAll("li")
-            .filter(b => b.text() == "Pendientes").at(0);
-        await pendingElement.trigger("click");*/
         wrapper.vm.onAdminClick();
         await flushPromises();
         expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/accountRequest");
+    });
+
+    it("navigates to rejected user requests when button clicked", async () => {
+        await flushPromises();
+
+        wrapper.vm.onAdminClickRequestDeleted();
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/accountRequestDeleted");
+    });
+
+    it("navigates to User accounts when button clicked", async () => {
+        await flushPromises();
+
+        wrapper.vm.onAdminClickRequestActive();
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/accountRequestActive");
+    });
+
+    it("navigates to deleted users when button clicked", async () => {
+        await flushPromises();
+
+        wrapper.vm.onAdminClickUserDeleted();
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/userDeleted");
+    });
+
+    it("navigates to blocks when button clicked", async () => {
+        await flushPromises();
+
+        wrapper.vm.onAdminClickUserBloqueados();
+        await flushPromises();
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith("/admin/blockCriteria");
     });
 })

@@ -119,4 +119,29 @@ describe('Shapefile upload component', () => {
 
         expect(wrapper.vm.formatNames(wrapper.vm.files)).toBe("file.shp");
     });
+
+    it("shows the correct message when KML and no files", async () => {
+        wrapper.vm.files = [new File([], "file.kml")];
+        wrapper.vm.datatype = "kml";
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.validFiles).toBe(false);
+        expect(wrapper.text()).toContain("Escoja un único archivo .kml");
+    });
+
+    it("shows the correct message when KML and single file", async () => {
+        wrapper.vm.datatype = "kml";
+        wrapper.vm.files = new File([], "file.kml");
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.validFiles).toBe(true);
+        expect(wrapper.text()).not.toContain("Seleccione un archivo con extensión .kml");
+    });
+
+    it("shows the correct message when wrong datatype", async () => {
+        wrapper.vm.datatype = "foobar";
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.validFiles).toBe(false);
+    });
 });
