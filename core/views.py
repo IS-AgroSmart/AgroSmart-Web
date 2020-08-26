@@ -187,6 +187,12 @@ class UserProjectViewSet(viewsets.ModelViewSet):
         project.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(
+            self.get_queryset().filter(deleted=False))
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_queryset(self):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
             user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
