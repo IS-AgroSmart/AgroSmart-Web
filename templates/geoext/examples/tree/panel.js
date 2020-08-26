@@ -556,8 +556,11 @@ function addInteraction() {
         })
     }, this)
     draw.on('drawend', (evt) => {
-        measureTooltipElement.className = 'tooltip tooltip-static'
-        measureTooltip.setOffset([0, -7])
+        ans = prompt("Escriba el nombre de la medición (opcional)");
+        if (ans !== null && ans.trim() !== "")
+            drawingFeature.set("name", ans)
+        measureTooltipElement.className = 'tooltip tooltip-static';
+        measureTooltip.setOffset([0, -7]);
         drawingFeature.setId(numMeasurement);
         measureTooltips[numMeasurement] = measureTooltip;
         drawingFeature = null
