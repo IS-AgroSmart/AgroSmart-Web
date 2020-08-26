@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
         <b-alert variant="success" show v-if="uploadOK">Subida exitosa. Procesando...</b-alert>
         <b-alert variant="danger" show v-if="uploadError">Subida fallida</b-alert>
         <b-alert variant="danger" show v-if="processingError">No pudo iniciarse el procesamiento</b-alert>
@@ -114,7 +114,7 @@ export default {
                 for (var file of this.files) {
                     data.append("file", file);
                 }
-            else if(this.files instanceof File)
+            else if (this.files instanceof File)
                 data.append("file", this.files)
             data.append("title", this.title);
             data.append("datatype", this.datatype);

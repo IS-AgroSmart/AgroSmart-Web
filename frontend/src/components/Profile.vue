@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
         <div class=" container py-5">
             <b-img :src="require('../assets/person-circle.svg')" class="mb-1 col-md-3" fluid center></b-img>
         </div>

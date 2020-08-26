@@ -1,6 +1,6 @@
 <template>
-  <div class="my-4">
-    <h1>Criterios de Bloqueo</h1>
+<div class="my-4 pt-3" style="padding-left:15px; padding-right:15px;">    
+  <h1>Criterios de Bloqueo</h1>
     <b-form>
       <b-form-input v-model="opcionFilter" placeholder="Buscar criterios por nombre o valor..."></b-form-input>
     </b-form>

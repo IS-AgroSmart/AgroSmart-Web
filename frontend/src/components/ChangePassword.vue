@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="pt-3" style="padding-left:15px; padding-right:15px;">
         <b-alert v-if="error" show variant="danger">
             <p>Error al cambiar contraseña contraseñas no coindicen o no se cumplen con condiciones requeridas</p>
             <span style="white-space: pre;"></span>

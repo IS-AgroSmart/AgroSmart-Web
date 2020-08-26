@@ -21,6 +21,7 @@ import FlightResults from './components/FlightResults'
 import FlightReport from './components/FlightReport.vue'
 import FlightOrthoPreview2 from './components/FlightOrthoPreview2'
 import UploadImages from './components/UploadImages'
+import ProjectMap from './components/ProjectMap'
 import UploadShapefile from './components/UploadShapefile'
 import UploadGeotiff from './components/UploadGeotiff'
 import CreateIndex from './components/CreateIndex'
@@ -72,6 +73,7 @@ const router = new VueRouter({
     { path: '/flights/:uuid/preview', name: "flightOrthoPreview", component: FlightOrthoPreview2 },
     { path: '/flights/new', name: "newFlight", component: NewFlight },
     { path: '/projects', name: "listProjects" ,component: Project },
+    { path: '/projects/:uuid', name: "projectMap", component: ProjectMap },
     { path: '/projects/:uuid/upload/shapefile', name: "uploadShapefile", component: UploadShapefile },
     { path: '/projects/:uuid/upload/geotiff', name: "uploadGeotiff", component: UploadGeotiff },
     { path: '/projects/:uuid/upload/index', name: "createIndex", component: CreateIndex },

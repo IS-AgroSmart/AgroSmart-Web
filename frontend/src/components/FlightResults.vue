@@ -1,5 +1,5 @@
 <template>
-    <div v-if="flight">
+    <div v-if="flight" class=" pt-3" style="padding-left:15px; padding-right:15px;">
         <h1>Artefactos de {{ flight.name }}</h1>
     
         <b-alert variant="danger" v-if="error" show>{{error}}</b-alert>
