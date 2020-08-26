@@ -4,7 +4,7 @@
     
         <div v-if="error">Error!</div>
         <div class="row">
-            <project-partial v-for="project in projects" :project="project" :key="project.uuid"></project-partial>
+            <project-partial v-for="project in projects" :project="project" :key="project.uuid" @delete-confirmed="deleted"></project-partial>
         </div>
         <b-alert v-if="noProjects" variant="info" show>Aún no ha creado ningún proyecto</b-alert>
         <add-new-project/>

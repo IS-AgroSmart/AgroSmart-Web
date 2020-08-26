@@ -7,7 +7,7 @@
             </b-card-text>
             <div v-if="!deleted">
             <b-button :href="mapper_url" variant="primary" class="mx-1 my-1">Ver mapa</b-button>
-            <b-button @click="deleteProject" variant="danger" class="mx-1 my-1">Eliminar</b-button>
+            <b-button @click="deleteProject" :value="deleted" variant="danger" class="mx-1 my-1">Eliminar</b-button>
             </div>
             <div v-else>
                 <b-button @click="finalDeleteProject" variant="danger" class="mx-1 my-1">Eliminar</b-button>

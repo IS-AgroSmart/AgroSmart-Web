@@ -209,12 +209,16 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             target_user = self.request.user
         serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
 
-    def perform_destroy(self, instance: Flight):
+    def perform_destroy(self, instance: UserProject):
         if instance.is_demo:
-            # Remove demo project ONLY FOR USER!
+            # Remove demo flight ONLY FOR USER!
             self.request.user.demo_projects.remove(instance)
         elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
-            instance.delete()
+            if instance.deleted:
+                instance.delete()
+            else:
+                instance.deleted = True
+                instance.save()
 
 
 @csrf_exempt
