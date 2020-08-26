@@ -109,8 +109,8 @@ function initApp() {
 
             let zoomslider = new ol.control.ZoomSlider();
             olMap.addControl(zoomslider);
-            let RotateNorthControl = createNorthControl();
-            olMap.addControl(new RotateNorthControl());
+            let PointControl = createPointControl();
+            olMap.addControl(new PointControl());
             let MeasureLengthControl = createLengthControl();
             olMap.addControl(new MeasureLengthControl());
             let MeasureAreaControl = createAreaControl();
@@ -167,6 +167,7 @@ function initApp() {
                             interactionSource.removeFeature(feature);
                             let id = feature.getId();
                             olMap.removeOverlay(measureTooltips[id]);
+                            popup.hide();
                             delete measureTooltips[id];
                             selectClick.getFeatures().remove(feature);
                         }
@@ -379,6 +380,14 @@ function createNorthControl() {
         "N", "rotate-north", "Rotar mapa");
 }
 
+function createPointControl() {
+    return _createControl(measurePointListener,
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="90%" height="90%" version="1.1">' +
+        '<circle cx="25" cy="25" r="10" stroke="#fff" stroke-width="6" fill="#00000000"></circle>' +
+        '</svg>',
+        "measure-point", "Anotar punto");
+}
+
 function createLengthControl() {
     return _createControl(measureLengthListener,
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 40" width="90%" height="90%">' +
@@ -428,6 +437,12 @@ function removeInteraction() {
     olMap.removeInteraction(draw);
     olMap.un('pointermove', pointerMoveHandler);
     deleteHelpTooltip();
+}
+
+function measurePointListener() {
+    featureType = 'Point';
+    if (isDrawing) removeInteraction();
+    else addInteraction();
 }
 
 function measureLengthListener() {
@@ -560,7 +575,7 @@ function addInteraction() {
     draw.on('drawend', (evt) => {
         ans = prompt("Escriba el nombre de la medición (opcional)");
         if (ans !== null && ans.trim() !== "")
-            drawingFeature.set("name", ans)
+            drawingFeature.set("nombre", ans)
         measureTooltipElement.className = 'tooltip tooltip-static';
         measureTooltip.setOffset([0, -7]);
         drawingFeature.setId(numMeasurement);
@@ -619,7 +634,7 @@ function addMeasureInteraction() {
                 width: 2
             }),
             image: new ol.style.Circle({
-                radius: 7,
+                radius: 5,
                 fill: new ol.style.Fill({
                     color: '#ffcc33'
                 }),
