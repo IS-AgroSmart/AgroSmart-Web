@@ -99,7 +99,7 @@ function initApp() {
                     center: [0, 0],
                     zoom: 2,
                     minZoom: 2,
-                    maxZoom: 19
+                    maxZoom: 24
                 }),
                 target: 'map',
             });
