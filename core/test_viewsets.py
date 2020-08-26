@@ -530,33 +530,69 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         # flight3 should not appear b/c it doesn't belong to user0
         assert str(flights[3].uuid) not in resp.json()["flights"]
 
-    def test_delete_project(self, c, users, projects):
+    def test_user_can_delete_own_project(self, c, users, projects: List[UserProject]):
         c.force_authenticate(users[0])
-        old_uuid = projects[0].uuid
-        assert UserProject.objects.filter(uuid=old_uuid)
-
-        resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[0].uuid)}))
+        resp = c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))
         assert resp.status_code == 204
-        assert not UserProject.objects.filter(uuid=old_uuid)
+        projects[0].refresh_from_db()
+        assert projects[0].deleted
 
     @pytest.mark.xfail(reason="Returns 404, which raises an AssertionError due to some bug (?)")
-    def test_delete_project_other_user(self, c, users, projects):
+    def test_user_cant_delete_other_flight(self, c, users, projects: List[UserProject]):
         c.force_authenticate(users[1])
-        old_uuid = projects[0].uuid
-        assert UserProject.objects.filter(uuid=old_uuid)
+        with pytest.raises(AssertionError):
+            c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))
 
-        resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[0].uuid)}))
-        assert resp.status_code == 404
-        assert UserProject.objects.filter(uuid=old_uuid)
-
-    def test_delete_project_admin_as_other(self, c, users, projects):
-        c.force_authenticate(users[2])
-        old_uuid = projects[0].uuid
-        assert UserProject.objects.filter(uuid=old_uuid)
-
-        resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[0].uuid)}), HTTP_TARGETUSER=users[0].pk)
+    def test_admin_can_delete_any_project(self, c, users, projects: List[UserProject]):
+        c.force_authenticate(users[2])  # Login as admin, try to delete other user's project
+        resp = c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}), HTTP_TARGETUSER=users[0].pk)
         assert resp.status_code == 204
-        assert not UserProject.objects.filter(uuid=old_uuid)
+        projects[0].refresh_from_db()
+        assert projects[0].deleted
+
+    def test_soft_delete(self, c, users, projects: List[UserProject]):
+        c.force_authenticate(users[0])
+        workspace_url = "http://container-nginx/geoserver/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
+        httpretty.register_uri(httpretty.DELETE, workspace_url)
+        c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Send one DELETE request
+        try:
+            project = users[0].user_projects.get(uuid=projects[0].uuid)
+            assert project.deleted
+        except UserProject.DoesNotExist:
+            pytest.fail("Project should have existed")
+        resp = c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Repeat the DELETE request
+        print(resp.status_code)
+        assert len(users[0].user_projects.filter(uuid=projects[0].uuid)) == 0  # Should not find the Project
+
+    def test_soft_delete_already_deleted(self, c, users, projects: List[UserProject]):
+        c.force_authenticate(users[0])
+        workspace_url = "http://container-nginx/geoserver/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
+        httpretty.register_uri(httpretty.DELETE, workspace_url)
+        projects[0].deleted = True  # Manually "delete" the Project
+        projects[0].save()
+        c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Issue single DELETE request
+        assert len(users[0].user_projects.filter(uuid=projects[0].uuid)) == 0  # Should not find the Project
+
+    def test_deleted_list(self, c, users, projects: List[UserProject]):
+        c.force_authenticate(users[0])
+        projects[0].deleted = True  # Manually "delete" the Project
+        projects[0].save()
+
+        resp = c.get(reverse('projects-list')).json()  # GET the /api/projects endpoint
+        assert str(projects[0].uuid) not in [p["uuid"] for p in resp]  # projects[0] should NOT be there
+        assert str(projects[1].uuid) in [p["uuid"] for p in resp]  # projects[1] should be there
+        resp = c.get(reverse('projects-deleted')).json()  # GET the /api/projects/deleted endpoint
+        assert str(projects[0].uuid) in [p["uuid"] for p in resp]  # projects[0] should be there
+        assert str(projects[1].uuid) not in [p["uuid"] for p in resp]  # projects[1] should NOT be there
+
+    def test_deleted_list_admin(self, c, users, projects: List[UserProject]):
+        c.force_authenticate(users[2])
+        projects[0].deleted = True
+        projects[0].save()
+        resp = c.get(reverse('projects-deleted'),
+                     HTTP_TARGETUSER=users[0].pk).json()  # GET the /api/projects/deleted endpoint masquerading as user0
+        assert str(projects[0].uuid) in [p["uuid"] for p in resp]  # projects[0] should be there
+        assert str(projects[3].uuid) not in [p["uuid"] for p in resp]  # Admin's own project should NOT be there
 
     def test_project_creation_demo_user(self, c, users, flights, monkeypatch):
         resp = self._test_project_creation(c, users, flights, monkeypatch, users[3], [])

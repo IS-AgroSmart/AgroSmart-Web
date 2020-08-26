@@ -151,6 +151,16 @@ class UserProjectViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserProjectSerializer
 
+    @action(detail=False)
+    def deleted(self, request):
+        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
+            user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
+        else:
+            user = self.request.user
+        serializer = self.get_serializer(
+            UserProject.objects.filter(user=user, deleted=True), many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=["post"])
     def make_demo(self, request, pk=None):
         if not request.user.type == UserType.ADMIN.name:
@@ -178,6 +188,12 @@ class UserProjectViewSet(viewsets.ModelViewSet):
         project.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(
+            self.get_queryset().filter(deleted=False))
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_queryset(self):
         if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
             user = User.objects.get(pk=self.request.META["HTTP_TARGETUSER"])
@@ -200,12 +216,16 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             target_user = self.request.user
         serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
 
-    def perform_destroy(self, instance: Flight):
+    def perform_destroy(self, instance: UserProject):
         if instance.is_demo:
-            # Remove demo project ONLY FOR USER!
+            # Remove demo flight ONLY FOR USER!
             self.request.user.demo_projects.remove(instance)
         elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
-            instance.delete()
+            if instance.deleted:
+                instance.delete()
+            else:
+                instance.deleted = True
+                instance.save()
 
 
 @csrf_exempt
