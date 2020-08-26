@@ -59,7 +59,7 @@ export default {
                 });
         },
         restoreProject() {
-            axios.patch("api/projects/" + this.flight.uuid + "/", { deleted: false }, {
+            axios.patch("api/projects/" + this.project.uuid + "/", { deleted: false }, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 }).then(() => this.$emit("restore-confirmed"))
                 .catch(() => {
