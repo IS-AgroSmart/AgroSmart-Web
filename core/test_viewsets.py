@@ -393,13 +393,17 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert users[2] not in flights[4].demo_users.all()
         assert flights[4].is_demo
 
-    def test_really_delete_demo(self, c, users: List[User], flights: List[Flight]):
+    def test_unconvert_demo(self, c, users: List[User], flights: List[Flight]):
         self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
 
         c.force_authenticate(users[2])
         resp = c.delete(reverse("flights-delete-demo", kwargs={"pk": str(flights[4].uuid)}))
         assert resp.status_code == 204
-        assert not Flight.objects.filter(uuid=flights[4].uuid)
+        flights[4].refresh_from_db()
+        assert users[0] not in flights[4].demo_users.all()
+        assert users[2] not in flights[4].demo_users.all()
+        assert not flights[4].is_demo
+        assert flights[4].user == users[2]
 
     def test_really_delete_demo_nonadmin(self, c, users: List[User], flights: List[Flight]):
         self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
@@ -407,7 +411,9 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         c.force_authenticate(users[0])
         resp = c.delete(reverse("flights-delete-demo", kwargs={"pk": str(flights[4].uuid)}))
         assert resp.status_code == 403
+        flights[4].refresh_from_db()
         assert Flight.objects.filter(uuid=flights[4].uuid)  # flights[4] was NOT deleted
+        assert flights[4].is_demo
 
 
 @pytest.mark.django_db
@@ -623,7 +629,11 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         c.force_authenticate(users[2])
         resp = c.delete(reverse("projects-delete-demo", kwargs={"pk": str(projects[3].uuid)}))
         assert resp.status_code == 204
-        assert not UserProject.objects.filter(uuid=projects[3].uuid)  # projects[3] doesn't exist
+        projects[3].refresh_from_db()
+        assert users[0] not in projects[3].demo_users.all()
+        assert users[2] not in projects[3].demo_users.all()
+        assert not projects[3].is_demo
+        assert projects[3].user == users[2]
 
     def test_really_delete_demo_nonadmin(self, c, users: List[User], projects: List[UserProject]):
         self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Flight
@@ -631,7 +641,9 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         c.force_authenticate(users[0])
         resp = c.delete(reverse("projects-delete-demo", kwargs={"pk": str(projects[3].uuid)}))
         assert resp.status_code == 403
+        projects[3].refresh_from_db()
         assert UserProject.objects.filter(uuid=projects[3].uuid)  # projects[3] was NOT deleted
+        assert projects[3].is_demo
 
     def test_making_demo_project_makes_all_flights_demo(self, c, users: List[User], flights: List[Flight],
                                                         projects: List[UserProject]):

@@ -32,26 +32,26 @@
                 <h4 class="my-2">Administración de vuelos</h4>
                 <b-row class="my-1">
                     <b-col>
-                        <admin-element-list-partial :elements="candidateDemoFlights" title="Convertir en demo" placeholder="Buscar vuelos..." :nameFunc="flightNameFunc" :filterCriteria="flightFilterCriteria" keyField="uuid" emptyMessage="No hay vuelos disponibles" @element-clicked="onFlightClick">
+                        <admin-element-list-partial :elements="candidateDemoFlights" title="Convertir vuelo a demo" placeholder="Buscar vuelos..." :nameFunc="flightNameFunc" :filterCriteria="flightFilterCriteria" keyField="uuid" emptyMessage="No hay vuelos disponibles" @element-clicked="onFlightClick">
                         </admin-element-list-partial>
                     </b-col>
                 </b-row>
                 <b-row class="my-1">
                     <b-col>
-                        <admin-element-list-partial :elements="demoFlights" title="Eliminar demo" placeholder="Buscar vuelos demo..." :nameFunc="flightNameFunc" :filterCriteria="flightFilterCriteria" keyField="uuid" emptyMessage="No hay vuelos disponibles" @element-clicked="onDemoFlightClick">
+                        <admin-element-list-partial :elements="demoFlights" title="Restaurar demo a vuelo" placeholder="Buscar vuelos demo..." :nameFunc="flightNameFunc" :filterCriteria="flightFilterCriteria" keyField="uuid" emptyMessage="No hay vuelos disponibles" @element-clicked="onDemoFlightClick">
                         </admin-element-list-partial>
                     </b-col>
                 </b-row>
                 <h4 class="my-2">Administración de proyectos</h4>
                 <b-row class="my-1">
                     <b-col>
-                        <admin-element-list-partial :elements="candidateDemoProjects" title="Convertir en demo" placeholder="Buscar proyectos..." :nameFunc="projectNameFunc" :filterCriteria="projectFilterCriteria" keyField="uuid" emptyMessage="No hay proyectos disponibles" @element-clicked="onProjectClick">
+                        <admin-element-list-partial :elements="candidateDemoProjects" title="Convertir proyecto a demo" placeholder="Buscar proyectos..." :nameFunc="projectNameFunc" :filterCriteria="projectFilterCriteria" keyField="uuid" emptyMessage="No hay proyectos disponibles" @element-clicked="onProjectClick">
                         </admin-element-list-partial>
                     </b-col>
                 </b-row>
                 <b-row class="my-1">
                     <b-col>
-                        <admin-element-list-partial :elements="demoProjects" title="Eliminar demo" placeholder="Buscar proyectos demo..." :nameFunc="projectNameFunc" :filterCriteria="projectFilterCriteria" keyField="uuid" emptyMessage="No hay proyectos disponibles" @element-clicked="onDemoProjectClick">
+                        <admin-element-list-partial :elements="demoProjects" title="Restaurar demo a proyecto" placeholder="Buscar proyectos demo..." :nameFunc="projectNameFunc" :filterCriteria="projectFilterCriteria" keyField="uuid" emptyMessage="No hay proyectos disponibles" @element-clicked="onDemoProjectClick">
                         </admin-element-list-partial>
                     </b-col>
                 </b-row>
