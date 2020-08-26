@@ -74,6 +74,7 @@ const router = new VueRouter({
     { path: '/flights/:uuid/preview', name: "flightOrthoPreview", component: FlightOrthoPreview2 },
     { path: '/flights/new', name: "newFlight", component: NewFlight },
     { path: '/projects', name: "listProjects" ,component: Project },
+    { path: '/projects/deleted', component: DeletedProjects },
     { path: '/projects/:uuid', name: "projectMap", component: ProjectMap },
     { path: '/projects/:uuid/upload/shapefile', name: "uploadShapefile", component: UploadShapefile },
     { path: '/projects/:uuid/upload/geotiff', name: "uploadGeotiff", component: UploadGeotiff },
@@ -92,7 +93,6 @@ const router = new VueRouter({
     { path: '/admin/accountRequestDeleted', name:"userRequestDeleted",component:userRequestDeleted},
     { path: '/admin/userDeleted', name:"userDeleted",component:userDeleted},
     { path: '/admin/blockCriteria', name:"blockCriteria",component:blockCriteria},
-    { path: '/projects/deleted', component: DeletedProjects },
   ]
 })
 
