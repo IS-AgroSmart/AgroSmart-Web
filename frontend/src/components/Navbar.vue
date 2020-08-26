@@ -10,6 +10,7 @@
                     <b-nav-item to="/flights">Vuelos</b-nav-item>
                     <b-nav-item to="/flights/deleted">Vuelos eliminados</b-nav-item>
                     <b-nav-item to="/projects">Proyectos</b-nav-item>
+                    <b-nav-item to="/projects/deleted">Proyectos eliminados</b-nav-item>
                 </b-navbar-nav>
     
                 <!-- Right aligned nav items -->

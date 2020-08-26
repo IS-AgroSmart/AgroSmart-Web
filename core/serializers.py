@@ -75,7 +75,7 @@ class UserProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProject
-        fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description", "is_demo"]
+        fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description", "is_demo", "deleted"]
 
 class BlockCriteriaSerializer(serializers.ModelSerializer):
     class Meta:
