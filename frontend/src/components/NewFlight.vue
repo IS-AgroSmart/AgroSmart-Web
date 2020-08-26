@@ -6,7 +6,7 @@
                 <b-form-input id="input-1" v-model="form.name" type="text" required placeholder="Nombre del vuelo"></b-form-input>
             </b-form-group>
             <b-form-group id="input-group-2" label="Fecha:" label-for="input-2">
-                <b-form-input id="input-2" v-model="form.date" type="date" required></b-form-input>
+                <b-form-datepicker id="input-2" v-model="form.date"></b-form-datepicker>
             </b-form-group>
             <b-form-group id="input-group-3" label="Cámara:" label-for="input-3" description="Escoja RGB si no está seguro">
                 <b-form-select id="input-3" v-model="form.camera" :options="cameras" required></b-form-select>
