@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="pt-3" style="padding-left:15px; padding-right:15px;">
         <h1>Mis vuelos eliminados</h1>
     
         <div v-if="error">Error!</div>

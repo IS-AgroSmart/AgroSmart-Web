@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
         <vl-map v-if="flightLoaded" :load-tiles-while-animating="true" :load-tiles-while-interacting="true" style="height: 800px" ref="map" :data-projection="projection">
             <vl-view :zoom.sync="zoom" :center.sync="center" :rotation.sync="rotation" ref="mapView" :projection="projection"></vl-view>
     

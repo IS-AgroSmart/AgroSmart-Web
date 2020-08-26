@@ -6,7 +6,7 @@
                 <p class="white-space: pre;">{{ project.description }}</p>
             </b-card-text>
     
-            <b-button :href="mapper_url" variant="primary" class="mx-1 my-1">Ver mapa</b-button>
+            <b-button :to="{name: 'projectMap', params: {uuid: project.uuid}}" variant="primary" class="mx-1 my-1">Ver mapa</b-button>
             <b-button @click="onDelete" variant="danger" class="mx-1 my-1">Eliminar</b-button>
         </b-card>
     </div>

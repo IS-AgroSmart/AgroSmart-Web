@@ -1,12 +1,12 @@
 <template>
-    <div id="app">
+    <div id="app" style="display: flex; flex-flow: column; height: 100%; width: 100%">
         <navbar></navbar>
     
-        <div class="container pt-3">
+        <b-container fluid style="flex-grow: 1; padding:0">
             <router-view></router-view>
-        </div>
+        </b-container>
     
-        <b-alert v-if="this.storage.otherUserPk" class="position-fixed fixed-bottom m-0 rounded-0" style="z-index: 2000;" variant="warning" show>
+        <b-alert style="height:100px; z-index: 2000;" v-if="this.storage.otherUserPk" class="position-fixed fixed-bottom m-0 rounded-0" variant="warning" show>
             Está trabajando como el usuario {{ this.storage.otherUserPk.username }}.
             <b-link @click="stopMasquerading">Terminar</b-link>
         </b-alert>
@@ -30,3 +30,10 @@ export default {
     }
 }
 </script>
+
+<style>
+html, 
+body {
+    height: 100%;
+}
+</style>

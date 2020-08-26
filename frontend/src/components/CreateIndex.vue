@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="pt-3" style="padding-left:15px; padding-right:15px;">
         <b-alert variant="success" show v-if="indexOK">Índice correcto</b-alert>
         <b-alert variant="danger" show v-if="indexWrong">Error en la fórmula</b-alert>
     

@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
         <b-alert v-if="error" variant="danger" show>{{error}}</b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Nombre:" label-for="input-1">

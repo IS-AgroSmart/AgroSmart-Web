@@ -9,6 +9,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import JsonResponse, HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
 from django.http import QueryDict
@@ -458,6 +459,7 @@ def create_raster_index(request, uuid):
     return HttpResponse(status=200)
 
 
+@xframe_options_exempt
 def mapper(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
 
