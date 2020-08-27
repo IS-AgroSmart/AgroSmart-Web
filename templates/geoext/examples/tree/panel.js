@@ -126,7 +126,7 @@ function initApp() {
                     var options = opt_options || {};
                     var img = document.createElement('img');
                     var someIndexLayer = indices[0].getSource().getParams()["LAYERS"];
-                    img.setAttribute("src", window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=wms&version=1.3.0&request=GetLegendGraphic&format=image/png&layer=" + someIndexLayer);
+                    img.setAttribute("src", window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/styles/gradient.png");
                     var element = document.createElement('div');
                     element.className = 'legend ol-unselectable ol-control';
 
