@@ -202,6 +202,21 @@ class TestUserViewSet(BaseTestViewSet, FlightsMixin):
         new_user.refresh_from_db()
         assert flights[4] in new_user.demo_flights.all()
 
+    def test_new_user_gets_demo_projects(self, c, users, flights):
+        # create a demo Project
+        c.force_authenticate(users[2])  # admin
+        p = users[2].user_projects.create(name="proj1")
+        p.flights.add(flights[4])
+        resp = c.post(reverse("projects-make-demo",
+                              kwargs={"pk": str(p.uuid)}))
+        assert resp.status_code == 200
+
+        # test_user_creation creates user with email foo@example.com
+        self.test_user_creation(c, users)
+        new_user = User.objects.get(email="foo@example.com")
+        new_user.refresh_from_db()
+        assert p in new_user.demo_projects.all()
+
 
 @pytest.mark.django_db
 class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
