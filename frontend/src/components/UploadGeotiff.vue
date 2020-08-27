@@ -1,5 +1,8 @@
 <template>
     <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
+        <b-link href="#" @click="goBack()" class="mb-3">&lt; Volver al proyecto</b-link>
+        <br><br>
+
         <b-alert variant="success" show v-if="uploadOK">Subida exitosa. Procesando...</b-alert>
         <b-alert variant="danger" show v-if="uploadError">Subida fallida</b-alert>
     
@@ -38,6 +41,9 @@ export default {
         anyFile() { return this.file != null; },
     },
     methods: {
+        goBack() {
+            window.history.back();
+        },
         formatName(file) {
             return file[0].name;
         },
@@ -52,9 +58,7 @@ export default {
             axios.post('/api/uploads/' + this.$route.params.uuid + '/geotiff', data, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
-                .then(function() {
-                    window.history.back();
-                })
+                .then(() => this.goBack())
                 .catch(function() {
                     that.uploadError = true;
                     that.uploading = false;

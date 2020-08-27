@@ -1,5 +1,8 @@
 <template>
     <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
+        <b-link href="#" @click="goBack()" class="mb-3">&lt; Volver al proyecto</b-link>
+        <br><br>
+
         <b-alert variant="success" show v-if="uploadOK">Subida exitosa. Procesando...</b-alert>
         <b-alert variant="danger" show v-if="uploadError">Subida fallida</b-alert>
         <b-alert variant="danger" show v-if="processingError">No pudo iniciarse el procesamiento</b-alert>
@@ -100,6 +103,9 @@ export default {
         },
     },
     methods: {
+        goBack() {
+            window.history.back();
+        },
         formatNames(files) {
             if (files.length === 1) {
                 return files[0].name
@@ -124,10 +130,9 @@ export default {
             axios.post('/api/uploads/' + this.$route.params.uuid + '/vectorfile', data, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
-                .then(function() {
-                    window.history.back();
-                })
-                .catch(function() {
+                .then(() => this.goBack())
+                .catch(function(error) {
+                    window.console.log(error);
                     that.uploadError = true;
                     that.uploading = false;
                 });

@@ -22,8 +22,8 @@
         {% endfor %}
     </ul>
     {% if not is_demo %}
-        <button onclick="window.location.href='{{ upload_shapefiles_path }}'">Agregar vector</button>
-        <button onclick="window.location.href='{{ upload_geotiff_path }}'">Agregar GeoTIFF</button>
+        <button onclick="top.window.location.href='{{ upload_shapefiles_path }}'">Agregar vector</button>
+        <button onclick="top.window.location.href='{{ upload_geotiff_path }}'">Agregar GeoTIFF</button>
         {% if is_multispectral %}
             <div class="dropdown">
 
@@ -32,7 +32,7 @@
                     <a href="#" onclick="addIndex('ndvi')">NDVI</a>
                     <a href="#" onclick="addIndex('ndre')">NDRE</a>
                     {#            <a href="#" onclick="addIndex('evi')">EVI</a>#}
-                    <a href="#" onclick="window.location.href='{{ upload_new_index_path }}'">Otro...</a>
+                    <a href="#" onclick="top.window.location.href='{{ upload_new_index_path }}'">Otro...</a>
                 </div>
             </div>
         {% endif %}
