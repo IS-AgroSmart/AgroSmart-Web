@@ -26,9 +26,11 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
 
-        # when user is created, link to all existing demo flights
+        # when user is created, link to all existing demo flights & projects
         for demo_flight in Flight.objects.filter(is_demo=True).all():
             user.demo_flights.add(demo_flight)
+        for demo_project in UserProject.objects.filter(is_demo=True).all():
+            user.demo_projects.add(demo_project)
 
         return user
 
