@@ -284,6 +284,7 @@ def webhook_processing_complete(request):
         flight.try_create_thumbnail()
         flight.try_create_png_ortho()
         flight.try_create_png_dsm()
+        flight.try_create_dsm_colorbar()
         flight.try_create_annotated_png_ortho()
         # _try_create_thumbnail must have been invoked here!
         flight.create_geoserver_workspace_and_upload_geotiff()
@@ -302,6 +303,8 @@ def download_artifact(request, uuid, artifact):
         filepath += "/odm_orthophoto/odm_orthophoto.tif"
     elif artifact == "dsm.png":
         filepath += "/odm_dem/dsm_colored_hillshade.png"
+    elif artifact == "dsm_colorbar.png":
+        filepath += "/odm_dem/colorbar.png"
     elif artifact == "3dmodel":
         filepath += "/odm_meshing/odm_mesh.ply"
     elif artifact == "3dmodel_texture":
