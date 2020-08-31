@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import re
 import shutil
@@ -9,16 +8,15 @@ import matplotlib.pyplot as plt
 import numpy
 
 import pyproj
-from django.db import models, transaction
+from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.template.loader import render_to_string
 from enum import Enum
 import uuid as u
 
-from django.db.models.signals import post_save, post_delete, m2m_changed
+from django.db.models.signals import post_save, post_delete
 
 import requests
-from django.dispatch import receiver
 from requests.auth import HTTPBasicAuth
 from PIL import Image, ImageOps
 from weasyprint import HTML
@@ -267,6 +265,15 @@ class Flight(models.Model):
     def try_create_png_dsm(self):
         self._try_tiff_to_png(self.get_dsm_path("tif"), self.get_dsm_path("png"))
 
+    def try_create_dsm_colorbar(self):
+        from core.utils.colorbar_creator import create_colorbar
+        result = subprocess.run(['gdalinfo', '-mm', 'dsm.tif'], stdout=subprocess.PIPE,
+                                cwd=self.get_disk_path() + "/odm_dem/").stdout.decode("utf-8")
+        min_val, max_val = re.search(r"Computed Min/Max=(-?\d+\.\d+),(-?\d+\.\d+)", result).groups()
+        min_val = "{:.1f} m".format(float(min_val))
+        max_val = "{:.1f} m".format(float(max_val))
+        create_colorbar(min_val, max_val, save_path=self.get_disk_path() + "/odm_dem/colorbar.png")
+
     def try_create_annotated_png_ortho(self):
         # from core.models import *; Flight.objects.first().try_create_annotated_png_ortho()
         result = subprocess.run(['gdalinfo', '-proj4', 'odm_orthophoto.tif'], stdout=subprocess.PIPE,
@@ -286,7 +293,7 @@ class Flight(models.Model):
         im = plt.imread(self.get_png_ortho_path())
         fig = plt.figure()
         plt.axis('off')
-        implot = plt.imshow(im, zorder=1)
+        plt.imshow(im, zorder=1)
         for image_name, (x, y) in image_coords.items():
             plt.scatter(x, y, zorder=2, color="r")
             # Uncomment below to show arrows on images

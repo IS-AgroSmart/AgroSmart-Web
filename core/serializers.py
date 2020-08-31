@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from core.block_verifier import user_verifier
+from core.utils.block_verifier import user_verifier
 
 from core.models import *
 
