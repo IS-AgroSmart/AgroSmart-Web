@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 import pytest
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFont, ImageDraw
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from httpretty import httpretty
@@ -115,12 +115,29 @@ def test_upload_images_admin(c, users, flights, fs):
     assert resp.status_code == 200
 
 
+class MockFont:
+    pass
+
+
+class MockDraw:
+    def textsize(self, text: str, font: MockFont):
+        assert isinstance(font, MockFont)
+        return (100, 10)
+
+    def text(self, pos, text, color, font):
+        assert isinstance(font, MockFont)
+
+
 class MockImage:
     def thumbnail(self, size):
         assert size == (512, 512)
         return self
 
-    def save(self, out_path, format):
+    def resize(self, xy):
+        return self
+
+    def save(self, out_path: str, format: str):
+        assert out_path.endswith(".png")
         assert format == "PNG"
         return self
 
@@ -128,8 +145,16 @@ class MockImage:
         assert isinstance(mask, MockImage)
         return self
 
+    def paste(self, another, xy):
+        assert isinstance(another, MockImage)
+        return self
+
     def split(self):
         return [self]
+
+    def putpixel(self, xy, color):
+        assert xy[1] == 0
+        return self
 
 
 def _test_webhook(c, monkeypatch, fs, flight, code):
@@ -157,8 +182,16 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif.msk".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/images.json".format(flight.uuid), contents="[]")
 
-    def mock_open(*args, **kwargs):
+    def mock_create_image(*args, **kwargs):
         return MockImage()
+
+    def mock_create_font(*args, **kwargs):
+        assert args[0] == "DejaVuSans.ttf"
+        return MockFont()
+
+    def mock_create_draw(*args, **kwargs):
+        assert isinstance(args[0], MockImage)
+        return MockDraw()
 
     def mock_subprocess(*args, **kwargs):
         class FakeStdout:
@@ -166,7 +199,8 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
             def decode(encoding):
                 assert encoding == "utf-8"
                 return "PROJ.4 string is:\n'+proj=longlat +datum=WGS84 +no_defs'\n" \
-                       "Origin = (0.0,0.0)\nPixel Size = (1.0,1.0)"
+                       "Origin = (0.0,0.0)\nPixel Size = (1.0,1.0)\n" \
+                       "Computed Min/Max=0.0,1.0"
 
         class FakeSubprocessCall:
             stdout = FakeStdout()
@@ -205,8 +239,11 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
 
         return FakeNumpy()
 
-    monkeypatch.setattr(Image, "open", mock_open)
-    monkeypatch.setattr(ImageOps, "fit", mock_open)
+    monkeypatch.setattr(Image, "open", mock_create_image)
+    monkeypatch.setattr(Image, "new", mock_create_image)
+    monkeypatch.setattr(ImageFont, "truetype", mock_create_font)
+    monkeypatch.setattr(ImageOps, "fit", mock_create_image)
+    monkeypatch.setattr(ImageDraw, "Draw", mock_create_draw)
     import matplotlib, numpy
     monkeypatch.setattr(matplotlib.pyplot, "imread", donothing)
     monkeypatch.setattr(matplotlib.pyplot, "figure", mock_figure)
@@ -214,6 +251,8 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     monkeypatch.setattr(matplotlib.pyplot, "imshow", donothing)
     monkeypatch.setattr(matplotlib.pyplot, "imsave", donothing)
     monkeypatch.setattr(numpy, "fromstring", mock_fromstring)
+    import core.utils.colorbar_creator
+    #monkeypatch.setattr(core.utils.colorbar_creator, "create_colorbar", donothing)
     import subprocess
     monkeypatch.setattr(subprocess, "run", mock_subprocess)
     resp = c.post(reverse("webhook"), json.dumps(
