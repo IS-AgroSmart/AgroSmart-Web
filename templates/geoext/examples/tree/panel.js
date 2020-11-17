@@ -70,11 +70,11 @@ function initApp() {
                 ],
             });
 
-            rgbLayer = new ol.layer.Image({
+            rgbLayer = new ol.layer.Tile({
                 name: "Ortomosaico RGB",
-                source: new ol.source.ImageWMS({
+                source: new ol.source.TileWMS({
                     url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
-                    params: {"LAYERS": project_path + ":mainortho"}
+                    params: {"LAYERS": project_path + ":mainortho", tiled: true}
                 })
             });
 

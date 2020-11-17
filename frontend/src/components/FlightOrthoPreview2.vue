@@ -6,9 +6,9 @@
             <vl-layer-tile id="satellite">
                 <vl-source-xyz url="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"></vl-source-xyz>
             </vl-layer-tile>
-            <vl-layer-image id="mosaic">
-                <vl-source-image-wms url="/geoserver/geoserver/wms" :layers="layerName" serverType="geoserver" ref="mySource"></vl-source-image-wms>
-            </vl-layer-image>
+            <vl-layer-tile id="mosaic">
+                <vl-source-wms url="/geoserver/geoserver/wms" :layers="layerName" serverType="geoserver" ref="mySource"></vl-source-wms>
+            </vl-layer-tile>
     
         </vl-map>
     

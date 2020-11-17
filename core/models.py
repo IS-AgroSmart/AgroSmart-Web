@@ -215,6 +215,8 @@ class Flight(models.Model):
         return "flight_" + str(self.uuid)
 
     def _try_create_image_from_ortho(self, out_path, thumbnail):
+        import traceback
+        
         if self.state != FlightState.COMPLETE.name:
             return
         if self.camera == Camera.REDEDGE.name:
@@ -247,7 +249,7 @@ class Flight(models.Model):
 
             im.save(out_path, "PNG")
         except IOError as e:
-            print(e)
+            print(traceback.format_exc())
 
     def _try_tiff_to_png(self, tiff, png):
         try:

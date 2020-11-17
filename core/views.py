@@ -282,9 +282,11 @@ def webhook_processing_complete(request):
 
     if flight.state == FlightState.COMPLETE.name:
         flight.try_create_thumbnail()
+        print("Creating PNG ortho...")
         flight.try_create_png_ortho()
         flight.try_create_png_dsm()
         flight.try_create_dsm_colorbar()
+        print("Creating annotated PNG ortho...")
         flight.try_create_annotated_png_ortho()
         # _try_create_thumbnail must have been invoked here!
         flight.create_geoserver_workspace_and_upload_geotiff()
