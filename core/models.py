@@ -205,8 +205,13 @@ class Flight(models.Model):
     def get_png_ortho_path(self):
         return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
 
-    def get_dsm_path(self, extension="png"):
-        return self.get_disk_path() + "/odm_dem/dsm_colored_hillshade.{}".format(extension)
+    @property
+    def orig_dsm_path(self):
+        return self.get_disk_path() + "/odm_dem/dsm.tif"
+
+    def get_dsm_path(self, extension="png", colored=True, hillshade=True):
+        return self.get_disk_path() + "/odm_dem/dsm{}{}.{}".format("_colored" if colored else "",
+                                                                   "_hillshade" if hillshade else "", extension)
 
     def get_annotated_png_ortho_path(self):
         return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto_annotated.png"
@@ -265,7 +270,21 @@ class Flight(models.Model):
         self._try_create_image_from_ortho(self.get_png_ortho_path(), False)
 
     def try_create_png_dsm(self):
-        self._try_tiff_to_png(self.get_dsm_path("tif"), self.get_dsm_path("png"))
+        self._try_tiff_to_png(self.get_dsm_path(extension="tif"), self.get_dsm_path(extension="png"))
+
+    def create_colored_dsm(self):
+        cmd1 = 'gdaldem color-relief {} ./core/utils/color_relief.txt "{}" -alpha -co ALPHA=YES'.format(
+            self.orig_dsm_path, self.get_dsm_path(extension="tif", hillshade=False))
+        os.system(cmd1)
+        cmd2 = 'gdaldem hillshade {} {} -z 1.0 -s 1.0 -az 315.0 -alt 45.0'.format(
+            self.orig_dsm_path, self.get_dsm_path(extension="tif", colored=False))
+        os.system(cmd2)
+        cmd3 = 'python3 ./core/utils/hsv_merge.py {} {} {}'.format(
+            self.get_dsm_path(extension="tif", colored=True, hillshade=False),
+            self.get_dsm_path(extension="tif", colored=False, hillshade=True),
+            self.get_dsm_path(extension="tif"),
+        )
+        os.system(cmd3)
 
     def try_create_dsm_colorbar(self):
         from core.utils.colorbar_creator import create_colorbar
