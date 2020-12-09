@@ -314,6 +314,8 @@ def download_artifact(request, uuid, artifact):
         filepath = "./tmp/" + str(uuid) + "_thumbnail.png"
     elif artifact == "pointcloud.ply":
         filepath += "/odm_filterpoints/point_cloud.ply"
+    elif artifact == "dsm.tif":
+        filepath += "/odm_dem/dsm.tif"
     elif artifact == "report.pdf":
         filepath = flight.create_report(request.GET)
     else:

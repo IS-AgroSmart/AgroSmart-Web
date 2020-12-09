@@ -27,9 +27,9 @@ export default {
         return {
             flight: {},
             error: "",
-            artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D (PLY)","Nube de puntos (PLY)"],
+            artifacts: ["Ortomosaico (PNG)", "Ortomosaico (GeoTIFF)", "Modelo 3D (PLY)","Nube de puntos (PLY)", "Modelo Digital de Superficie (TIF)"],
             downloads: [false, false],
-            urls: ["/orthomosaic.png", "/orthomosaic.tiff", "/3dmodel","/pointcloud.ply"]
+            urls: ["/orthomosaic.png", "/orthomosaic.tiff", "/3dmodel","/pointcloud.ply","/dsm.tif"]
 
         };
     },
