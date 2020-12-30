@@ -409,7 +409,7 @@ def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
                           "name": (None, instance.name),
                           "webhook": (None, "http://container-nginx/api/webhook-processing-complete"),
                           "options": (
-                              None, json.dumps([{"name": "dsm", "value": True}, {"name": "time", "value": True}])
+                              None, json.dumps([{"name": "dsm", "value": True}, {"name": "dtm", "value": True}, {"name": "time", "value": True}])
                           )
                       })
 
