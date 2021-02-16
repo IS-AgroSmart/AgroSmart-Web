@@ -17,6 +17,7 @@
     "js-file-download": "^0.4.9",
     "leaflet": "^1.6.0",
     "proj4": "^2.6.0",
+    "serve": "^11.3.2",
     "vue": "^2.6.10",
     "vue-3d-model": "^1.2.2",
     "vue-axios": "^2.1.5",
