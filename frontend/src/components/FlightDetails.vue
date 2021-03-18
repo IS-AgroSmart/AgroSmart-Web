@@ -17,7 +17,7 @@
                 <b-link v-if="isDoneSuccessfully" :to="{name: 'flightOrthoPreview', params: {uuid: flight.uuid}}">
                     <b-img v-if="isDoneSuccessfully" :src="orthomosaicThumbUrl" fluid rounded="circle" /></b-link>
                 <h4 class="my-3 text-center">Notas</h4>
-                <span style="white-space: pre;">{{flight.annotations}}</span>
+                <span style="white-space: pre-wrap;">{{flight.annotations}}</span>
             </div>
     
             <div class="col-sm-4">
