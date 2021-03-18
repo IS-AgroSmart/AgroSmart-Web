@@ -7,7 +7,7 @@
                 <b-spinner variant="success" type="grow" v-if="isBusy" title="En proceso"></b-spinner>
                 <span v-if="isBusy">{{progress}}</span>
                 <b-spinner variant="danger" type="grow" v-if="isErrored" title="Error!"></b-spinner>
-                <span style="white-space: pre;">{{flight.annotations}}</span>
+                <span style="white-space: pre-wrap;">{{flight.annotations}}</span>
             </b-card-text>
     
             <b-button v-if="!deleted" :to="{name: 'flightDetails', params: {uuid: flight.uuid}}" variant="primary">Ver detalles</b-button>
