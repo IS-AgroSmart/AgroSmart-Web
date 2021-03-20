@@ -381,7 +381,7 @@ def upload_vectorfile(request, uuid):
         os.system('ogr2ogr -f "ESRI Shapefile" "{0}.shp" "{0}.kml"'.format(file_name))
         os.chdir(original_dir)
 
-    GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
+    GEOSERVER_BASE_URL = "http://container-geoserver:8080/geoserver/rest/workspaces/"
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
@@ -418,7 +418,7 @@ def upload_geotiff(request, uuid):
         for chunk in file.chunks():
             f.write(chunk)
 
-    GEOSERVER_BASE_URL = "http://container-nginx/geoserver/geoserver/rest/workspaces/"
+    GEOSERVER_BASE_URL = "http://container-geoserver:8080/geoserver/rest/workspaces/"
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" +
@@ -448,7 +448,7 @@ def preview_flight_url(request, uuid):
     flight = get_object_or_404(Flight, uuid=uuid)
 
     ans = requests.get(
-        "http://container-nginx/geoserver/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
+        "http://container-geoserver:8080/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
         "/coveragestores/ortho/coverages/odm_orthophoto.json",
         auth=HTTPBasicAuth('admin', 'geoserver')).json()
     bbox = ans["coverage"]["nativeBoundingBox"]
@@ -510,7 +510,7 @@ def mapper_bbox(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
 
     ans = requests.get(
-        "http://container-nginx/geoserver/geoserver/rest/workspaces/" + project._get_geoserver_ws_name() +
+        "http://container-geoserver:8080/geoserver/rest/workspaces/" + project._get_geoserver_ws_name() +
         "/coveragestores/mainortho/coverages/mainortho.json",
         auth=HTTPBasicAuth('admin', 'geoserver')).json()
 
