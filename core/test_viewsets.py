@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import List
 
@@ -56,6 +57,7 @@ class FlightsMixin:
         httpretty.enable()
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/init", body="")
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/remove", status=200)
+        httpretty.register_uri(httpretty.POST, re.compile(r"http://container-webhook-adapter:8080/register/.+"), status=200)
 
     def teardown_class(self):
         httpretty.disable()
