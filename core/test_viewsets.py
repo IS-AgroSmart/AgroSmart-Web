@@ -309,7 +309,7 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_soft_delete(self, c, users, flights):
         c.force_authenticate(users[0])
-        workspace_url = "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
+        workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
         c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Send one DELETE request
         try:
@@ -323,7 +323,7 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_soft_delete_already_deleted(self, c, users, flights):
         c.force_authenticate(users[0])
-        workspace_url = "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
+        workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
         flights[0].deleted = True  # Manually "delete" the Flight
         flights[0].save()
@@ -462,7 +462,7 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
 
     def setup_class(self):
         httpretty.enable()
-        httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces", "")
+        httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces", "")
 
     def teardown_class(self):
         httpretty.disable()
@@ -567,7 +567,7 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_soft_delete(self, c, users, projects: List[UserProject]):
         c.force_authenticate(users[0])
-        workspace_url = "http://container-nginx/geoserver/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
+        workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
         c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Send one DELETE request
         try:
@@ -581,7 +581,7 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_soft_delete_already_deleted(self, c, users, projects: List[UserProject]):
         c.force_authenticate(users[0])
-        workspace_url = "http://container-nginx/geoserver/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
+        workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
         projects[0].deleted = True  # Manually "delete" the Project
         projects[0].save()

@@ -44,7 +44,7 @@ def flights(users):
 @pytest.fixture
 def projects(users, flights):
     httpretty.enable()
-    httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces", "")
+    httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces", "")
     p1 = users[0].user_projects.create(name="proj1")
     p1.flights.add(flights[0])
     return p1,
@@ -171,10 +171,10 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     def mark_executed_config(request, uri, response_headers):
         return _mark_executed(1, response_headers)
 
-    httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces", "")
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
+    httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces", "")
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/external.geotiff", mark_executed_upload)
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/coverages/rgb.json", mark_executed_config)
 
     fs.create_dir("/flights/{}/odm_orthophoto".format(flight.uuid))
@@ -361,9 +361,9 @@ def _test_upload_vector(c, fs, project, type):
 
     f = SimpleUploadedFile("file.{}".format(type), b"myfile")
     fs.create_dir("/projects/{}/file/".format(project.uuid))
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/datastores/file/external.shp", mark_executed_a)
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/datastores/file/featuretypes/file.json", mark_executed_b)
 
     resp = c.post(reverse("upload_vector", kwargs={"uuid": str(project.uuid)}),
@@ -402,9 +402,9 @@ def test_upload_geotiff(c, fs, projects):
     project: UserProject = projects[0]
     f = SimpleUploadedFile("file.tif", b"myfile")
     fs.create_dir("/projects/{}/file/".format(project.uuid))
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/file/coverages/file.json", mark_executed_b)
 
     resp = c.post(reverse("upload_geotiff", kwargs={"uuid": str(project.uuid)}),
@@ -426,11 +426,11 @@ def test_upload_index(c, fs, flights, projects):
     import django, lark
     fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
     fs.add_real_directory(os.path.dirname(inspect.getfile(lark)))
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/my_index/external.imagemosaic", "")
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/my_index/coverages/my_index.json", "")
-    httpretty.register_uri(httpretty.PUT, "http://container-nginx/geoserver/geoserver/rest/layers/project_" +
+    httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/layers/project_" +
                            str(project.uuid) + ":my_index.json", "")
     resp = c.post(reverse("create_raster_index", kwargs={"uuid": str(project.uuid)}),
                   json.dumps({"index": "my_index", "formula": "red+1"}), content_type="application/text")
@@ -455,7 +455,7 @@ def test_preview_flight_url(c, flights):
         return [200, response_headers, resp]
 
     flight: Flight = flights[0]
-    httpretty.register_uri(httpretty.GET, "http://container-nginx/geoserver/geoserver/rest/workspaces/flight_" +
+    httpretty.register_uri(httpretty.GET, "http://container-geoserver:8080/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/coverages/odm_orthophoto.json", mark_executed)
 
     resp = c.get(reverse("preview_flight_url", kwargs={"uuid": str(flight.uuid)}))
@@ -544,7 +544,7 @@ def test_mapper_get_shp_and_geotiff_list(c, projects):
 def test_mapper_bbox(c, projects):
     project: UserProject = projects[0]
     bbox = json.dumps({"coverage": {"nativeBoundingBox": 123, "srs": "fakeSRS"}, "something": "else"})
-    httpretty.register_uri(httpretty.GET, "http://container-nginx/geoserver/geoserver/rest/workspaces/project_" +
+    httpretty.register_uri(httpretty.GET, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/mainortho/coverages/mainortho.json", body=bbox)
     resp = c.get(reverse("mapper_bbox", kwargs={"uuid": str(project.uuid)}))
     assert resp.status_code == 200
