@@ -55,7 +55,7 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
             nonlocal put_requests
             put_requests.append({"url": args[0], "headers": kwargs["headers"], "data": kwargs["data"]})
 
-        httpretty.register_uri(httpretty.POST, "http://container-nginx/geoserver/geoserver/rest/workspaces",
+        httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces",
                                mark_create_ws_executed)
         import inspect, django, pytz
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
