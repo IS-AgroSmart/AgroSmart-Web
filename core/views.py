@@ -245,7 +245,7 @@ def upload_images(request, uuid):
         files.append(('images', open(tmp_file, "rb")))
     # upload files to NodeODM server
     r = requests.post(
-        "http://container-nodeodm:3000/task/new/upload/" + str(flight.uuid), files=files)
+        f"{settings.NODEODM_SERVER_URL}/task/new/upload/{str(flight.uuid)}?token={settings.NODEODM_SERVER_TOKEN}", files=files)
     if r.status_code != 200:
         return HttpResponse(status=500)
     for f in filenames:  # delete temp files from disk
@@ -253,7 +253,7 @@ def upload_images(request, uuid):
 
     # start processing Flight on NodeODM
     r = requests.post(
-        "http://container-nodeodm:3000/task/new/commit/" + str(flight.uuid))
+        f"{settings.NODEODM_SERVER_URL}/task/new/commit/{str(flight.uuid)}?token={settings.NODEODM_SERVER_TOKEN}")
     if r.status_code != 200:
         return HttpResponse(status=500)
 

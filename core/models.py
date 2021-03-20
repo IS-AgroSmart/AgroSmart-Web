@@ -21,6 +21,7 @@ from requests.auth import HTTPBasicAuth
 from PIL import Image, ImageOps
 from weasyprint import HTML
 
+from django.conf import settings
 from core.parser import FormulaParser
 
 
@@ -192,7 +193,7 @@ class Flight(models.Model):
         if self.state != FlightState.PROCESSING.name:
             return {}
 
-        data = requests.get("http://container-nodeodm:3000/task/" + str(self.uuid) + "/info").json()
+        data = requests.get(f"{settings.NODEODM_SERVER_URL}/task/{str(self.uuid)}/info?token={settings.NODEODM_SERVER_TOKEN}").json()
         return {"processingTime": data.get("processingTime", 0), "progress": data.get("progress", 0),
                 "numImages": data.get("imagesCount", 0)}
 
@@ -407,15 +408,16 @@ def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
                       headers={"set-uuid": str(instance.uuid)},
                       files={
                           "name": (None, instance.name),
-                          "webhook": (None, "http://container-nginx/api/webhook-processing-complete"),
+                          #"webhook": (None, "http://container-django:8000/api/webhook-processing-complete"),
                           "options": (
                               None, json.dumps([{"name": "dsm", "value": True}, {"name": "dtm", "value": True}, {"name": "time", "value": True}])
                           )
                       })
+        requests.post(f'http://container-webhook-adapter:8080/register/{str(instance.uuid)}')
 
 
 def delete_nodeodm_task(sender, instance: Flight, **kwargs):
-    requests.post("http://container-nodeodm:3000/task/remove",
+    requests.post(f"{settings.NODEODM_SERVER_URL}/task/remove?token={settings.NODEODM_SERVER_TOKEN}",
                   headers={'Content-Type': "application/x-www-form-urlencoded"},
                   data="uuid=" + str(instance.uuid), )
 

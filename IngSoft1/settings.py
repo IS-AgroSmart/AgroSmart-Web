@@ -176,3 +176,6 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', cast=str)
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', cast=str)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+NODEODM_SERVER_URL = config('NODEODM_SERVER_URL', cast=str)
+NODEODM_SERVER_TOKEN = config('NODEODM_SERVER_TOKEN', default="dummy", cast=str)
