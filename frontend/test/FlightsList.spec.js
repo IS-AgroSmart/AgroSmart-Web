@@ -116,7 +116,8 @@ describe("Flight list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(wrapper.text()).toContain("Crear vuelo");
+        expect(wrapper.findAll("a.btn")
+            .filter(b => b.text() == "Crear vuelo")).toHaveLength(1);
     });
 
     it("doesn't show New Flight button for demo users", async () => {
@@ -148,6 +149,38 @@ describe("Flight list component", () => {
         await flushPromises();
 
         expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+    });
+
+    it("respects impersonated User permissions (impersonated Demo = can't create Flights)", async () => {
+        mockFlights();
+        wrapper.vm.storage.loggedInUser.type = "ADMIN"; // current user is Admin...
+        wrapper.vm.storage.otherUserPk = { // ...impersonating a Demo user
+            pk: 123,
+            type: "DEMO_USER"
+        };
+        mountComponent();
+        await flushPromises();
+
+        // When Admin impersonates Demo, no Create Flight button should appear
+        expect(wrapper.findAll("a.btn")
+            .filter(b => b.text() == "Crear vuelo")).toHaveLength(0);
+        expect(wrapper.text()).toContain("No puede crear vuelos");
+    });
+
+    it("respects impersonated User permissions (impersonated Active = can create Flights)", async () => {
+        mockFlights();
+        wrapper.vm.storage.loggedInUser.type = "ADMIN"; // current user is Admin...
+        wrapper.vm.storage.otherUserPk = { // ...impersonating an Active user
+            pk: 123,
+            type: "ACTIVE"
+        };
+        mountComponent();
+        await flushPromises();
+
+        // When Admin impersonates an Active user, the Create Flight button should appear
+        expect(wrapper.findAll("a.btn")
+            .filter(b => b.text() == "Crear vuelo")).toHaveLength(1);
+        expect(wrapper.text()).not.toContain("No puede crear vuelos");
     });
 
     it("shows progress info on PROCESSING flights", async () => {
