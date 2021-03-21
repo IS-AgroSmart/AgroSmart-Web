@@ -21,7 +21,7 @@
                         <b-button to="signUp" variant="secondary">Crear cuenta</b-button>
                     </b-col>
                     <b-col cols="3" class="text-center">
-                        <b-button to="restorePassword" variant="warning">Olvide mi contraseña</b-button>
+                        <b-button to="restorePassword" variant="warning">Olvidé mi contraseña</b-button>
                     </b-col>
                 </b-row>
             </b-container>

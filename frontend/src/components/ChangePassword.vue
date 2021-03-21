@@ -1,8 +1,7 @@
 <template>
     <div class="pt-3" style="padding-left:15px; padding-right:15px;">
         <b-alert v-if="error" show variant="danger">
-            <p>Error al cambiar contraseña contraseñas no coindicen o no se cumplen con condiciones requeridas</p>
-            <span style="white-space: pre;"></span>
+            Error al cambiar contraseña: las contraseñas no coindicen o no se cumplen las condiciones requeridas
         </b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Nueva Contraseña:" label-for="input-1">
@@ -15,7 +14,7 @@
             <b-form-group id="input-group-2" label="Repetir Contraseña Nueva:" label-for="input-2">
                 <b-form-input id="input-2" v-model="form.repeatedPassword" :state="passwordRepeatedState" type="password" required placeholder="Confirme su nueva contraseña"></b-form-input>
                 <b-form-invalid-feedback id="input-live-feedback">
-                    Contraseñas no coindicen
+                    Las contraseñas no coinciden
                 </b-form-invalid-feedback>
             </b-form-group>
     

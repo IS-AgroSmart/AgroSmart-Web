@@ -3,7 +3,7 @@
         <b-card :title="projectName" class="my-3">
     
             <b-card-text>
-                <p class="white-space: pre;">{{ project.description }}</p>
+                <p class="white-space: pre-wrap;">{{ project.description }}</p>
             </b-card-text>
             <div v-if="!deleted">
                 <b-button :to="{name: 'projectMap', params: {uuid: project.uuid}}" variant="primary" class="mx-1 my-1">Ver mapa</b-button>

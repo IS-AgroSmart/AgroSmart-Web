@@ -30,7 +30,7 @@
                 <b-form-input id="input-4" type="email" v-model="form.email" required placeholder="E-mail para enviar notificaciones"></b-form-input>
             </b-form-group>
     
-            <b-form-group id="input-group-2" label="Organizacion:" label-for="input-5">
+            <b-form-group id="input-group-2" label="Organización:" label-for="input-5">
                 <b-form-input id="input-5" type="text" v-model="form.organization" :state="organizationState" required placeholder="Nombre Organización"></b-form-input>
                 <b-form-invalid-feedback id="input-live-feedback">
                     Escriba el nombre de su Organización en menos de 20 caracteres
