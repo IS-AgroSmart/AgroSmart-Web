@@ -158,19 +158,25 @@ class MockImage:
 
 
 def _test_webhook(c, monkeypatch, fs, flight, code):
-    executed = [False, False]
+    executed = [False] * 3
 
     def _mark_executed(i, response_headers):
         nonlocal executed
         executed[i] = True
         return [200, response_headers, ""]
 
-    def mark_executed_upload(request, uri, response_headers):
-        return _mark_executed(0, response_headers)
+    def mark_executed_download_results(*args, **kwargs):
+        _mark_executed(0, None)
 
-    def mark_executed_config(request, uri, response_headers):
+    def mark_executed_upload(request, uri, response_headers):
         return _mark_executed(1, response_headers)
 
+    def mark_executed_config(request, uri, response_headers):
+        return _mark_executed(2, response_headers)
+
+    httpretty.register_uri(httpretty.GET, "http://container-nodeodm:3000/task/{}/download/all.zip".format(flight.uuid),
+                           mark_executed_download_results)
+    monkeypatch.setattr(Flight, "download_and_decompress_results", mark_executed_download_results)
     httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces", "")
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/flight_" +
                            str(flight.uuid) + "/coveragestores/ortho/external.geotiff", mark_executed_upload)
@@ -252,13 +258,15 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     monkeypatch.setattr(matplotlib.pyplot, "imsave", donothing)
     monkeypatch.setattr(numpy, "fromstring", mock_fromstring)
     import core.utils.colorbar_creator
-    #monkeypatch.setattr(core.utils.colorbar_creator, "create_colorbar", donothing)
+    # monkeypatch.setattr(core.utils.colorbar_creator, "create_colorbar", donothing)
     import subprocess
     monkeypatch.setattr(subprocess, "run", mock_subprocess)
     resp = c.post(reverse("webhook"), json.dumps(
         {"uuid": str(flight.uuid), "status": {"code": code}}), content_type="application/text")
     if code == 40:
         assert all(executed)
+    else:
+        assert not any(executed)
     return resp
 
 

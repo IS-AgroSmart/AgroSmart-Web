@@ -272,7 +272,7 @@ def webhook_processing_complete(request):
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
     elif data["status"]["code"] == 40:
-        success_message = "El análisis de su vuelo ha terminado entre para ver los resultados"
+        success_message = "El procesamiento de su vuelo ha terminado. Entre a la aplicación para ver los resultados."
         flight.state = FlightState.COMPLETE.name
         send_notification_by_user(username, success_message)
     elif data["status"]["code"] == 50:
@@ -281,6 +281,7 @@ def webhook_processing_complete(request):
     flight.save()
 
     if flight.state == FlightState.COMPLETE.name:
+        flight.download_and_decompress_results()
         flight.try_create_thumbnail()
         flight.try_create_png_ortho()
         flight.create_colored_dsm()

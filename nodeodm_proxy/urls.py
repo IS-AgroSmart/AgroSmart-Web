@@ -1,0 +1,9 @@
+from django.urls import path
+
+from nodeodm_proxy import views
+
+urlpatterns = [
+    path('task/<uuid:uuid>/info', views.task_info),
+    path('task/<uuid:uuid>/output', views.task_output),
+    path('task/cancel', views.cancel_task),
+]

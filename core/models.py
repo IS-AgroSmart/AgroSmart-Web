@@ -4,6 +4,8 @@ import re
 import shutil
 import subprocess
 from typing import Union
+from zipfile import ZipFile
+
 import matplotlib.pyplot as plt
 import numpy
 
@@ -193,7 +195,8 @@ class Flight(models.Model):
         if self.state != FlightState.PROCESSING.name:
             return {}
 
-        data = requests.get(f"{settings.NODEODM_SERVER_URL}/task/{str(self.uuid)}/info?token={settings.NODEODM_SERVER_TOKEN}").json()
+        data = requests.get(
+            f"{settings.NODEODM_SERVER_URL}/task/{str(self.uuid)}/info?token={settings.NODEODM_SERVER_TOKEN}").json()
         return {"processingTime": data.get("processingTime", 0), "progress": data.get("progress", 0),
                 "numImages": data.get("imagesCount", 0)}
 
@@ -220,9 +223,27 @@ class Flight(models.Model):
     def _get_geoserver_ws_name(self):
         return "flight_" + str(self.uuid)
 
+    def download_and_decompress_results(self):
+        try:
+            os.mkdir(self.get_disk_path())
+        except FileExistsError:
+            pass  # just ignore it and continue as you were
+        zip_url = f"{settings.NODEODM_SERVER_URL}/task/{str(self.uuid)}/download/all.zip?token={settings.NODEODM_SERVER_TOKEN}"
+        zip_local_name = f"./tmp/{str(self.uuid)}.zip"
+        # https://stackoverflow.com/a/16696317
+        with requests.get(zip_url) as r:
+            r.raise_for_status()
+            with open(zip_local_name, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+        with ZipFile(zip_local_name, 'r') as zip:
+            zip.extractall(path=self.get_disk_path())
+        os.remove(zip_local_name)
+
     def _try_create_image_from_ortho(self, out_path, thumbnail):
         import traceback
-        
+
         if self.state != FlightState.COMPLETE.name:
             return
         if self.camera == Camera.REDEDGE.name:
@@ -404,13 +425,14 @@ class Flight(models.Model):
 
 def create_nodeodm_task(sender, instance: Flight, created, **kwargs):
     if created:
-        requests.post('http://container-nodeodm:3000/task/new/init',
+        requests.post(f'{settings.NODEODM_SERVER_URL}/task/new/init?token={settings.NODEODM_SERVER_TOKEN}',
                       headers={"set-uuid": str(instance.uuid)},
                       files={
                           "name": (None, instance.name),
-                          #"webhook": (None, "http://container-django:8000/api/webhook-processing-complete"),
+                          # "webhook": (None, "http://container-django:8000/api/webhook-processing-complete"),
                           "options": (
-                              None, json.dumps([{"name": "dsm", "value": True}, {"name": "dtm", "value": True}, {"name": "time", "value": True}])
+                              None, json.dumps([{"name": "dsm", "value": True}, {"name": "dtm", "value": True},
+                                                {"name": "time", "value": True}])
                           )
                       })
         requests.post(f'http://container-webhook-adapter:8080/register/{str(instance.uuid)}')
