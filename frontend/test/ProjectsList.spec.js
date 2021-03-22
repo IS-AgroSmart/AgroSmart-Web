@@ -135,6 +135,38 @@ describe("Project list component", () => {
         expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);;
     });
 
+    it("respects impersonated User permissions (impersonated Demo = can't create Projects)", async () => {
+        mockProjects();
+        wrapper.vm.storage.loggedInUser.type = "ADMIN"; // current user is Admin...
+        wrapper.vm.storage.otherUserPk = { // ...impersonating a Demo user
+            pk: 123,
+            type: "DEMO_USER"
+        };
+        mountComponent();
+        await flushPromises();
+
+        // When Admin impersonates Demo, no Create Project button should appear
+        expect(wrapper.findAll("a.btn")
+            .filter(b => b.text() == "Crear proyecto")).toHaveLength(0);
+        expect(wrapper.text()).toContain("No puede crear proyectos");
+    });
+
+    it("respects impersonated User permissions (impersonated Active = can create Projects)", async () => {
+        mockProjects();
+        wrapper.vm.storage.loggedInUser.type = "ADMIN"; // current user is Admin...
+        wrapper.vm.storage.otherUserPk = { // ...impersonating an Active user
+            pk: 123,
+            type: "ACTIVE"
+        };
+        mountComponent();
+        await flushPromises();
+
+        // When Admin impersonates an Active user, the Create Project button should appear
+        expect(wrapper.findAll("a.btn")
+            .filter(b => b.text() == "Crear proyecto")).toHaveLength(1);
+        expect(wrapper.text()).not.toContain("No puede crear proyectos");
+    });
+
     it("shows a Show map button on all projects", async () => {
         mockProjects();
         mountComponent();

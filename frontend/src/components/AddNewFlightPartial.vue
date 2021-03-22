@@ -22,7 +22,11 @@ export default {
         };
     },
     computed: {
-        canCreateFlights: function() { return ["ACTIVE", "ADMIN"].includes(this.storage.loggedInUser.type); },
+        targetUser: function() {
+            // returns this.storage.otherUserPk. If it's null, it falls back to this.storage.loggedInUser
+            return this.storage.otherUserPk || this.storage.loggedInUser;
+        },
+        canCreateFlights: function() { return ["ACTIVE", "ADMIN"].includes(this.targetUser.type); },
     },
     mixins: [forceLogin]
 }

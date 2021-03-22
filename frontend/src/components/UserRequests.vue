@@ -1,5 +1,5 @@
 <template>
-  <div class="my-4 pt-3" style="padding-left:15px; padding-right:15px;">
+  <div class="pt-3" style="padding-left:15px; padding-right:15px;">
     <h1>Solicitudes pendientes<b-dropdown ref="dropdown">
             <b-dropdown-item-button
               @click="onAdminClickRequestDeleted()"

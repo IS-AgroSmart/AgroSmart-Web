@@ -1,5 +1,5 @@
 <template>
-<div class="my-4 pt-3" style="padding-left:15px; padding-right:15px;">    
+<div class="pt-3" style="padding-left:15px; padding-right:15px;">    
   <h1>Criterios de Bloqueo</h1>
     <b-form>
       <b-form-input v-model="opcionFilter" placeholder="Buscar criterios por nombre o valor..."></b-form-input>
@@ -21,7 +21,7 @@
         <b-form-input v-model="ip" placeholder="p. ej. 127.0.0.1" id="input-3"></b-form-input>
       </b-form-group>
     </b-form>
-    <b-button v-on:click="createBlock">Crear</b-button>
+    <p><b-button v-on:click="createBlock">Crear</b-button></p>
     <b-alert v-if="criterios.length === 0" show variant="info">¡No hay criterios creados!</b-alert>
 
     <div class="row">
