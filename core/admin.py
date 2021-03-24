@@ -8,7 +8,7 @@ from .models import *
 
 
 class FlightAdmin(admin.ModelAdmin):
-    list_display = ("name", "uuid", "user", "date", "camera", "multispectral_processing", "state")
+    list_display = ("name", "uuid", "user", "date", "camera", "state")
 
 
 class UserProjectAdmin(admin.ModelAdmin):

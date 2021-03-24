@@ -178,7 +178,6 @@ class Flight(models.Model):
     name = models.CharField(max_length=50)
     date = models.DateField()
     camera = models.CharField(max_length=10, choices=[(tag.name, tag.value) for tag in Camera])
-    multispectral_processing = models.BooleanField(default=False)
     annotations = models.TextField()
     deleted = models.BooleanField(default=False)
     state = models.CharField(max_length=10,
