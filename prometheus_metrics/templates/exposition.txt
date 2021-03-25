@@ -1,0 +1,19 @@
+# HELP agrosmart_users The number of signed-up users.
+# TYPE agrosmart_users gauge
+{% for user_type in users %}
+agrosmart_users{state="{{ user_type.type }}"} {{ user_type.count }}
+{% endfor %}
+
+# HELP agrosmart_flights The number of Flights created by the users.
+# TYPE agrosmart_flights gauge
+{% for flight_type in flights %}
+agrosmart_flights{state="{{ flight_type.state }}"} {{ flight_type.count }}
+{% endfor %}
+
+# HELP agrosmart_pics_per_flight A histogram of the number of pictures submitted per flight.
+# TYPE agrosmart_pics_per_flight histogram
+{% for bucket in images_per_flight %}
+agrosmart_pics_per_flight_bucket{le="{{ bucket.0 }}"} {{ bucket.1 }}
+{% endfor %}
+agrosmart_pics_per_flight_sum {{ images_per_flight_sum }}
+agrosmart_pics_per_flight_count {{ images_per_flight_count }}
