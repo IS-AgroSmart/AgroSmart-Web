@@ -441,7 +441,9 @@ def test_upload_geotiff(c, fs, projects):
 
     project: UserProject = projects[0]
     f = SimpleUploadedFile("file.tif", b"myfile")
-    fs.create_dir("/projects/{}/file/".format(project.uuid))
+    # fs.create_dir("/projects/{}/file/".format(project.uuid))
+    import django
+    fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
