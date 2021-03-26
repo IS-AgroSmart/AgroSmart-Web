@@ -6,9 +6,11 @@ import requests
 
 from django.views.decorators.csrf import csrf_exempt
 
+from nodeodm_proxy import api
+
 
 def task_info(request, uuid):
-    response = requests.get(f"{settings.NODEODM_SERVER_URL}/task/{uuid}/info?token={settings.NODEODM_SERVER_TOKEN}")
+    response = api.get_info(settings.NODEODM_SERVER_URL, uuid, settings.NODEODM_SERVER_TOKEN)
     return HttpResponse(content=response.content, status=response.status_code)
 
 

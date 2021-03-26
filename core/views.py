@@ -245,7 +245,8 @@ def upload_images(request, uuid):
         files.append(('images', open(tmp_file, "rb")))
     # upload files to NodeODM server
     r = requests.post(
-        f"{settings.NODEODM_SERVER_URL}/task/new/upload/{str(flight.uuid)}?token={settings.NODEODM_SERVER_TOKEN}", files=files)
+        f"{settings.NODEODM_SERVER_URL}/task/new/upload/{str(flight.uuid)}?token={settings.NODEODM_SERVER_TOKEN}",
+        files=files)
     if r.status_code != 200:
         return HttpResponse(status=500)
     for f in filenames:  # delete temp files from disk
@@ -268,6 +269,10 @@ def webhook_processing_complete(request):
     data = json.loads(request.body.decode("utf-8"))
     flight = Flight.objects.get(uuid=data["uuid"])
     username = flight.user.username
+
+    # BUGFIX 117: get the real data from a trusted source
+    from nodeodm_proxy import api
+    data = api.get_info(settings.NODEODM_SERVER_URL, flight.uuid, settings.NODEODM_SERVER_TOKEN).json()
 
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
