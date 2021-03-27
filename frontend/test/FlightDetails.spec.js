@@ -37,13 +37,20 @@ localVue.prototype.$cameras = [{
         value: "RGB"
     }
 ];
-localVue.prototype.$processingSteps = {
+localVue.prototype.$processingStepsODM = {
     10: "En cola",
     20: "Procesando",
     30: "Fallido",
     40: "Terminado",
     50: "Cancelado"
 }
+localVue.prototype.$processingStepsDjango = {
+    "WAITING": "En cola",
+    "PROCESSING": "Procesando",
+    "ERROR": "Fallido",
+    "COMPLETE": "Terminado",
+    "CANCELED": "Cancelado"
+  }
 localVue.use(ReactiveStorage, {
     "token": "",
     "isAdmin": false,
