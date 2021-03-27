@@ -25,7 +25,7 @@ module.exports = {
   chainWebpack: config => {
     config.plugin('html').tap(options => {
       // Configure HtmlWebpackExcludeAssets to ignore chunk-vendors.js (it's added manually and served by GitHack)
-      options[0].excludeAssets = /chunk-vendors.js/;
+      //options[0].excludeAssets = /chunk-vendors.js/;
       return options;
     });
   },
