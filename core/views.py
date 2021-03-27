@@ -573,7 +573,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
         'username': reset_password_token.user.username,
         'email': reset_password_token.user.email,
         # 'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
-        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(
+        'reset_password_url': "http://flysensorec.com/#/restorePassword/reset?token={}".format(
             reset_password_token.key)
     }
 
@@ -585,11 +585,11 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
 
     msg = EmailMultiAlternatives(
         # title:
-        "Password Reset for {title}".format(title="AgroSmart"),
+        "AgroSmart - Recuperación de contraseña",
         # message:
         email_plaintext_message,
         # from:
-        "AgroSmart Team",
+        "AgroSmart",
         # to:
         [reset_password_token.user.email]
     )
