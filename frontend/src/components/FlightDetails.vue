@@ -162,7 +162,7 @@ export default {
             return this.cameras[this.flight.camera]
         },
         processingState() {
-            return this.$processingSteps[this.info.status.code];
+            return this.$processingStepsODM[this.info.status?.code] ?? this.$processingStepsDjango[this.flight.state];
         },
         processingTimeFriendly() {
             return this.formatDuration(Math.max(this.flight.processing_time, this.info.processingTime));
@@ -179,10 +179,10 @@ export default {
         progress() {
             return this.isBusy ? " (" + this.info.progress.toFixed(0) + "%)" : "";
         },
-        isBusy() { return this.info.status.code == 20; },
-        isDoneSuccessfully() { return this.info.status.code == 40 || this.flight.state == "COMPLETE"; },
-        isDoneError() { return this.info.status.code == 30 || this.flight.state == "ERROR"; },
-        isDoneCanceled() { return this.info.status.code == 50 || this.flight.state == "CANCELED"; },
+        isBusy() { return this.info.status?.code == 20; },
+        isDoneSuccessfully() { return this.info.status?.code == 40 || this.flight.state == "COMPLETE"; },
+        isDoneError() { return this.info.status?.code == 30 || this.flight.state == "ERROR"; },
+        isDoneCanceled() { return this.info.status?.code == 50 || this.flight.state == "CANCELED"; },
         isStopped() {
             return this.isDoneSuccessfully || this.isDoneCanceled || this.isDoneError;
         },
@@ -190,7 +190,7 @@ export default {
             return this.flight.date ? this.$moment(this.flight.date, "YYYY-MM-DD").format("dddd D [de] MMMM, YYYY") : ""
         },
         consoleToText() {
-            return this.console.join("\n");
+            return typeof this.console == "string" ? this.console : this.console.join("\n");
         },
         orthomosaicThumbUrl() {
             return baseUrl + this.flight.uuid + "/thumbnail"
