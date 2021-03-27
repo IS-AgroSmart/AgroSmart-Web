@@ -284,11 +284,29 @@ class Flight(models.Model):
         except IOError as e:
             print(e)
 
+    def create_rgb_tiff(self):
+        original_dir = os.getcwd()
+        os.chdir(f"{self.get_disk_path()}/odm_orthophoto/")
+
+        if self.camera == Camera.RGB.name:
+            cmd = f'gdal_translate -b 1 -b 2 -b 3 -b mask odm_orthophoto.tif rgb.tif -scale 0 255 -ot Byte -co "TILED=YES"'
+        elif self.camera == Camera.REDEDGE.name:
+            cmd = f'gdal_translate -b 3 -b 2 -b 1 -b mask odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"'
+        else:
+            cmd = ""  # should never happen!
+        os.system(cmd)
+
+        os.chdir(original_dir)
+
     def try_create_thumbnail(self):
-        self._try_create_image_from_ortho(self.get_thumbnail_path(), True)
+        # self._try_create_image_from_ortho(self.get_thumbnail_path(), True)
+        cmd = f"gdal_translate -of PNG -outsize 0 512 {self.get_disk_path()}/odm_orthophoto/rgb.tif {self.get_thumbnail_path()}"
+        os.system(cmd)
 
     def try_create_png_ortho(self):
-        self._try_create_image_from_ortho(self.get_png_ortho_path(), False)
+        # self._try_create_image_from_ortho(self.get_png_ortho_path(), False)
+        cmd = f"gdal_translate -of PNG {self.get_disk_path()}/odm_orthophoto/rgb.tif {self.get_png_ortho_path()}"
+        os.system(cmd)
 
     def try_create_png_dsm(self):
         self._try_tiff_to_png(self.get_dsm_path(extension="tif"), self.get_dsm_path(extension="png"))
@@ -450,7 +468,7 @@ def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **k
                     auth=HTTPBasicAuth('admin', 'geoserver'))
 
 
-def delete_on_disk(sender, instance: UserProject, **kwargs):
+def delete_on_disk(sender, instance: Union[Flight, UserProject], **kwargs):
     shutil.rmtree(instance.get_disk_path())
 
 
@@ -464,6 +482,7 @@ post_delete.connect(delete_nodeodm_task, sender=Flight)
 post_delete.connect(delete_thumbnail, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=UserProject)
+post_delete.connect(delete_on_disk, sender=Flight)
 post_delete.connect(delete_on_disk, sender=UserProject)
 
 

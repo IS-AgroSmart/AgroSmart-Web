@@ -287,8 +287,9 @@ def webhook_processing_complete(request):
 
     if flight.state == FlightState.COMPLETE.name:
         flight.download_and_decompress_results()
-        flight.try_create_thumbnail()
+        flight.create_rgb_tiff()
         flight.try_create_png_ortho()
+        flight.try_create_thumbnail()
         flight.create_colored_dsm()
         flight.try_create_png_dsm()
         flight.try_create_dsm_colorbar()
