@@ -209,6 +209,7 @@ def _test_webhook(c, monkeypatch, fs, flight, false_code, real_code):
     fs.create_dir("/flights/{}/odm_orthophoto".format(flight.uuid))
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif.msk".format(flight.uuid), contents="")
+    fs.create_file("/flights/{}/odm_orthophoto/odm_orthophoto_small.tif".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/images.json".format(flight.uuid), contents="[]")
 
     def mock_create_image(*args, **kwargs):

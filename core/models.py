@@ -205,6 +205,9 @@ class Flight(models.Model):
     def get_thumbnail_path(self):
         return "./tmp/" + str(self.uuid) + "_thumbnail.png"
 
+    def get_small_ortho_path(self, extension="png"):
+        return f"{self.get_disk_path()}/odm_orthophoto/odm_orthophoto_small.{extension}"
+
     def get_png_ortho_path(self):
         return self.get_disk_path() + "/odm_orthophoto/odm_orthophoto.png"
 
@@ -240,58 +243,42 @@ class Flight(models.Model):
             zip.extractall(path=self.get_disk_path())
         os.remove(zip_local_name)
 
-    def _try_create_image_from_ortho(self, out_path, thumbnail):
-        import traceback
+    @staticmethod
+    def tiff_to_png(tiff: str, png: str):
+        assert tiff.endswith(".tif"), f"Input file {tiff} must be a TIFF file!"
+        assert png.endswith(".png"), f"Output file {png} must be a PNG file!"
+        assert tiff.startswith("/"), f"Input filename {tiff} must be an absolute path"
+        assert png.startswith("/"), f"Output filename {png} must be an absolute path"
 
-        if self.state != FlightState.COMPLETE.name:
-            return
-        if self.camera == Camera.REDEDGE.name:
-            original_dir = os.getcwd()
-            os.chdir(self.get_disk_path() + "/odm_orthophoto/")
-            os.system(
-                'gdal_translate -b 3 -b 2 -b 1 -mask "6" odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"')
-            os.chdir(original_dir)
+        cmd = f"gdal_translate {tiff} {png}"
+        os.system(cmd)
 
-            source_image = "rgb.tif"
-            mask = source_image + ".msk"
+    def create_rgb_tiff(self):
+        original_dir = os.getcwd()
+        os.chdir(f"{self.get_disk_path()}/odm_orthophoto/")
+
+        if self.camera == Camera.RGB.name:
+            cmd = f'gdal_translate -b 1 -b 2 -b 3 -b mask odm_orthophoto.tif rgb.tif -scale 0 255 -ot Byte -co "TILED=YES"'
+        elif self.camera == Camera.REDEDGE.name:
+            cmd = f'gdal_translate -b 3 -b 2 -b 1 -b mask odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"'
         else:
-            source_image = "odm_orthophoto.tif"
-            mask = None
+            cmd = ""  # should never happen!
+        os.system(cmd)
 
-        size = (512, 512)
+        os.chdir(original_dir)
 
-        infile = self.get_disk_path() + "/odm_orthophoto/" + source_image
-        try:
-            im = Image.open(infile)
-            if thumbnail:
-                im.thumbnail(size)
-                im = ImageOps.fit(im, size)
-            if mask:
-                msk = Image.open(self.get_disk_path() + "/odm_orthophoto/" + mask).split()[0]
-                if thumbnail:
-                    msk.thumbnail(size)
-                    msk = ImageOps.fit(msk, size)
-                im.putalpha(msk)
-
-            im.save(out_path, "PNG")
-        except IOError as e:
-            print(traceback.format_exc())
-
-    def _try_tiff_to_png(self, tiff, png):
-        try:
-            im = Image.open(tiff)
-            im.save(png, "PNG")
-        except IOError as e:
-            print(e)
+    def _create_orthomosaic(self, height, out_name):
+        cmd = f"gdal_translate -outsize 0 {height} {self.get_disk_path()}/odm_orthophoto/rgb.tif {out_name}"
+        os.system(cmd)
 
     def try_create_thumbnail(self):
-        self._try_create_image_from_ortho(self.get_thumbnail_path(), True)
+        self._create_orthomosaic(512, self.get_thumbnail_path())
 
     def try_create_png_ortho(self):
-        self._try_create_image_from_ortho(self.get_png_ortho_path(), False)
+        self.tiff_to_png(f"{self.get_disk_path()}/odm_orthophoto/rgb.tif", self.get_png_ortho_path())
 
     def try_create_png_dsm(self):
-        self._try_tiff_to_png(self.get_dsm_path(extension="tif"), self.get_dsm_path(extension="png"))
+        self.tiff_to_png(self.get_dsm_path(extension="tif"), self.get_dsm_path(extension="png"))
 
     def create_colored_dsm(self):
         cmd1 = 'gdaldem color-relief {} ./core/utils/color_relief.txt "{}" -alpha -co ALPHA=YES'.format(
@@ -317,9 +304,12 @@ class Flight(models.Model):
         create_colorbar(min_val, max_val, save_path=self.get_disk_path() + "/odm_dem/colorbar.png")
 
     def try_create_annotated_png_ortho(self):
-        # from core.models import *; Flight.objects.first().try_create_annotated_png_ortho()
-        result = subprocess.run(['gdalinfo', '-proj4', 'odm_orthophoto.tif'], stdout=subprocess.PIPE,
-                                cwd=self.get_disk_path() + "/odm_orthophoto").stdout.decode("utf-8")
+        self._create_orthomosaic(1080, self.get_small_ortho_path(extension="tif"))
+        self.tiff_to_png(self.get_small_ortho_path(extension="tif"), self.get_small_ortho_path(extension="png"))
+
+        result = subprocess.run(
+            ['gdalinfo', '-proj4', self.get_small_ortho_path(extension="tif")],
+            stdout=subprocess.PIPE).stdout.decode("utf-8")
         local_proj = re.search(r"PROJ\.4 string is:[\r\n]+'([^\r\n']+)'", result).groups()[0]
         offs_x, offs_y = re.search(r"Origin = \((-?\d+\.\d+),(-?\d+\.\d+)\)", result).groups()
         ps_x, ps_y = re.search(r"Pixel Size = \((-?\d+\.\d+),(-?\d+\.\d+)\)", result).groups()
@@ -332,7 +322,7 @@ class Flight(models.Model):
             pixel_x = int((coord_x - float(offs_x)) / float(ps_x))
             pixel_y = int((coord_y - float(offs_y)) / float(ps_y))
             image_coords[image["filename"]] = (pixel_x, pixel_y)
-        im = plt.imread(self.get_png_ortho_path())
+        im = plt.imread(self.get_small_ortho_path(extension="png"))
         fig = plt.figure()
         plt.axis('off')
         plt.imshow(im, zorder=1)
@@ -450,7 +440,7 @@ def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **k
                     auth=HTTPBasicAuth('admin', 'geoserver'))
 
 
-def delete_on_disk(sender, instance: UserProject, **kwargs):
+def delete_on_disk(sender, instance: Union[Flight, UserProject], **kwargs):
     shutil.rmtree(instance.get_disk_path())
 
 
@@ -464,6 +454,7 @@ post_delete.connect(delete_nodeodm_task, sender=Flight)
 post_delete.connect(delete_thumbnail, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=Flight)
 post_delete.connect(delete_geoserver_workspace, sender=UserProject)
+post_delete.connect(delete_on_disk, sender=Flight)
 post_delete.connect(delete_on_disk, sender=UserProject)
 
 
