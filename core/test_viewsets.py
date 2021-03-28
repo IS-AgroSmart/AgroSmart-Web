@@ -57,7 +57,8 @@ class FlightsMixin:
         httpretty.enable()
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/init", body="")
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/remove", status=200)
-        httpretty.register_uri(httpretty.POST, re.compile(r"http://container-webhook-adapter:8080/register/.+"), status=200)
+        httpretty.register_uri(httpretty.POST, re.compile(r"http://container-webhook-adapter:8080/register/.+"),
+                               status=200)
 
     def teardown_class(self):
         httpretty.disable()
@@ -309,21 +310,29 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[2].uuid)}), HTTP_TARGETUSER=users[0].pk)
         assert resp.status_code == 204
 
-    def test_soft_delete(self, c, users, flights):
+    def test_soft_delete(self, c, fs, users, flights: List[Flight]):
+        fs.create_dir(flights[0].get_disk_path())
         c.force_authenticate(users[0])
         workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
+        import os.path
+        assert os.path.isdir(flights[0].get_disk_path())  # dir should still exist
         c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Send one DELETE request
         try:
             flight = users[0].flight_set.get(uuid=flights[0].uuid)
             assert flight.deleted
         except Flight.DoesNotExist:
             pytest.fail("Flight should have existed")
+        if not os.path.isdir(flights[0].get_disk_path()):
+            pytest.fail("/flights folder should NOT be deleted when Flight is soft-deleted")
         resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Repeat the DELETE request
         print(resp.status_code)
         assert len(users[0].flight_set.filter(uuid=flights[0].uuid)) == 0  # Should not find the Flight
+        assert not os.path.isdir(flights[0].get_disk_path())  # dir should no longer exist
 
-    def test_soft_delete_already_deleted(self, c, users, flights):
+    def test_soft_delete_already_deleted(self, c, fs, users, flights):
+        import os.path
+        fs.create_dir(flights[0].get_disk_path())
         c.force_authenticate(users[0])
         workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/flight_{}".format(flights[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
@@ -331,6 +340,7 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         flights[0].save()
         c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Issue single DELETE request
         assert len(users[0].flight_set.filter(uuid=flights[0].uuid)) == 0  # Should not find the Flight
+        assert not os.path.isdir(flights[0].get_disk_path())  # dir should no longer exist
 
     def test_deleted_list(self, c, users, flights):
         c.force_authenticate(users[0])
