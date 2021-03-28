@@ -308,11 +308,11 @@ function fillShapefiles() {
                             })
                         }));
                     else if (art.type === "ORTHOMOSAIC")
-                        shapefiles.push(new ol.layer.Image({
+                        shapefiles.push(new ol.layer.Tile({
                             name: art.name,
-                            source: new ol.source.ImageWMS({
+                            source: new ol.source.TileWMS({
                                 url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
-                                params: {"LAYERS": art.layer}
+                                params: {"LAYERS": art.layer, tiled: true}
                             })
                         }));
                 }
