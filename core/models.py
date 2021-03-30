@@ -184,6 +184,7 @@ class Flight(models.Model):
                              choices=[(tag.name, tag.value) for tag in FlightState],
                              default=FlightState.WAITING.name)
     processing_time = models.PositiveIntegerField(default=0)
+    num_images = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [
