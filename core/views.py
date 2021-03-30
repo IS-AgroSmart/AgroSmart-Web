@@ -245,7 +245,8 @@ def upload_images(request, uuid):
         files.append(('images', open(tmp_file, "rb")))
     # upload files to NodeODM server
     r = requests.post(
-        f"{settings.NODEODM_SERVER_URL}/task/new/upload/{str(flight.uuid)}?token={settings.NODEODM_SERVER_TOKEN}", files=files)
+        f"{settings.NODEODM_SERVER_URL}/task/new/upload/{str(flight.uuid)}?token={settings.NODEODM_SERVER_TOKEN}",
+        files=files)
     if r.status_code != 200:
         return HttpResponse(status=500)
     for f in filenames:  # delete temp files from disk
@@ -269,6 +270,10 @@ def webhook_processing_complete(request):
     flight = Flight.objects.get(uuid=data["uuid"])
     username = flight.user.username
 
+    # BUGFIX 117: get the real data from a trusted source
+    from nodeodm_proxy import api
+    data = api.get_info(settings.NODEODM_SERVER_URL, flight.uuid, settings.NODEODM_SERVER_TOKEN).json()
+
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
     elif data["status"]["code"] == 40:
@@ -278,12 +283,14 @@ def webhook_processing_complete(request):
     elif data["status"]["code"] == 50:
         flight.state = FlightState.CANCELED.name
     flight.processing_time = data.get("processingTime", 0)
+    flight.num_images = data.get("imagesCount", 0)
     flight.save()
 
     if flight.state == FlightState.COMPLETE.name:
         flight.download_and_decompress_results()
-        flight.try_create_thumbnail()
+        flight.create_rgb_tiff()
         flight.try_create_png_ortho()
+        flight.try_create_thumbnail()
         flight.create_colored_dsm()
         flight.try_create_png_dsm()
         flight.try_create_dsm_colorbar()
@@ -568,7 +575,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
         'username': reset_password_token.user.username,
         'email': reset_password_token.user.email,
         # 'reset_password_url': "http://localhost/#/restorePassword/reset?token={}".format(reset_password_token.key)
-        'reset_password_url': "http://droneapp.ngrok.io/#/restorePassword/reset?token={}".format(
+        'reset_password_url': "http://flysensorec.com/#/restorePassword/reset?token={}".format(
             reset_password_token.key)
     }
 
@@ -580,11 +587,11 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
 
     msg = EmailMultiAlternatives(
         # title:
-        "Password Reset for {title}".format(title="AgroSmart"),
+        "AgroSmart - Recuperación de contraseña",
         # message:
         email_plaintext_message,
         # from:
-        "AgroSmart Team",
+        "AgroSmart",
         # to:
         [reset_password_token.user.email]
     )

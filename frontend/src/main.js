@@ -113,12 +113,19 @@ Vue.prototype.$cameras = [
   { text: 'Micasense Rededge', value: "REDEDGE" },
   { text: 'RGB', value: "RGB" }
 ];
-Vue.prototype.$processingSteps = {
+Vue.prototype.$processingStepsODM = {
   10: "En cola",
   20: "Procesando",
   30: "Fallido",
   40: "Terminado",
   50: "Cancelado"
+}
+Vue.prototype.$processingStepsDjango = {
+  "WAITING": "En cola",
+  "PROCESSING": "Procesando",
+  "ERROR": "Fallido",
+  "COMPLETE": "Terminado",
+  "CANCELED": "Cancelado"
 }
 
 new Vue({

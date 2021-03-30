@@ -157,7 +157,19 @@ class MockImage:
         return self
 
 
-def _test_webhook(c, monkeypatch, fs, flight, code):
+def _test_webhook(c, monkeypatch, fs, flight, false_code, real_code):
+    """
+    Helper function that tests the webhook with configurable behavior
+    Args:
+        c: The HTTP client fixture
+        monkeypatch: The monkeypatch fixture
+        fs: The pyfakefs fixture
+        flight: A Flight object to test the webhook on
+        false_code: The status code that will be in the webhook POST data (false_code because it should NOT be trusted, as anybody can send a webhook request)
+        real_code: The status code that will be returned by NodeODM (real_code because it's The Final Truth, and unforgeable from the outside)
+
+    Returns: The status code returned by the webhook view
+    """
     executed = [False] * 3
 
     def _mark_executed(i, response_headers):
@@ -168,6 +180,15 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     def mark_executed_download_results(*args, **kwargs):
         _mark_executed(0, None)
 
+    def get_real_info(request, uri, response_headers):
+        assert str(flight.uuid) in uri
+        data = {
+            "uuid": str(flight.uuid),
+            "status": {"code": real_code},
+            "processingTime": 12345
+        }
+        return [200, response_headers, json.dumps(data)]
+
     def mark_executed_upload(request, uri, response_headers):
         return _mark_executed(1, response_headers)
 
@@ -176,6 +197,8 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
 
     httpretty.register_uri(httpretty.GET, "http://container-nodeodm:3000/task/{}/download/all.zip".format(flight.uuid),
                            mark_executed_download_results)
+    httpretty.register_uri(httpretty.GET, "http://container-nodeodm:3000/task/{}/info".format(flight.uuid),
+                           get_real_info)
     monkeypatch.setattr(Flight, "download_and_decompress_results", mark_executed_download_results)
     httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces", "")
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/flight_" +
@@ -186,6 +209,7 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     fs.create_dir("/flights/{}/odm_orthophoto".format(flight.uuid))
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif.msk".format(flight.uuid), contents="")
+    fs.create_file("/flights/{}/odm_orthophoto/odm_orthophoto_small.tif".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/images.json".format(flight.uuid), contents="[]")
 
     def mock_create_image(*args, **kwargs):
@@ -262,8 +286,8 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
     import subprocess
     monkeypatch.setattr(subprocess, "run", mock_subprocess)
     resp = c.post(reverse("webhook"), json.dumps(
-        {"uuid": str(flight.uuid), "status": {"code": code}}), content_type="application/text")
-    if code == 40:
+        {"uuid": str(flight.uuid), "status": {"code": false_code}}), content_type="application/text")
+    if real_code == 40:
         assert all(executed)
     else:
         assert not any(executed)
@@ -271,25 +295,34 @@ def _test_webhook(c, monkeypatch, fs, flight, code):
 
 
 def test_webhook_successful(c, monkeypatch, fs, flights):
-    resp = _test_webhook(c, monkeypatch, fs, flights[0], code=40)
+    resp = _test_webhook(c, monkeypatch, fs, flights[0], false_code=40, real_code=40)
     assert resp.status_code == 200
     flights[0].refresh_from_db()  # HACK seems to be necessary to reload status?
     assert flights[0].state == FlightState.COMPLETE.name
-    # TODO maybe assert that the Geoserver APIs are called, if possible
 
 
 def test_webhook_with_error(c, monkeypatch, fs, flights):
-    resp = _test_webhook(c, monkeypatch, fs, flights[0], code=30)
+    resp = _test_webhook(c, monkeypatch, fs, flights[0], false_code=30, real_code=30)
     assert resp.status_code == 200
     flights[0].refresh_from_db()
     assert flights[0].state == FlightState.ERROR.name
 
 
 def test_webhook_canceled(c, monkeypatch, fs, flights):
-    resp = _test_webhook(c, monkeypatch, fs, flights[0], code=50)
+    resp = _test_webhook(c, monkeypatch, fs, flights[0], false_code=50, real_code=50)
     assert resp.status_code == 200
     flights[0].refresh_from_db()
     assert flights[0].state == FlightState.CANCELED.name
+
+
+def test_webhook_doesnt_trust_webhook_data(c, monkeypatch, fs, flights):
+    resp = _test_webhook(c, monkeypatch, fs, flights[0], false_code=50, real_code=40)
+    assert resp.status_code == 200
+    flights[0].refresh_from_db()
+    assert flights[0].state == FlightState.COMPLETE.name  # Should be COMPLETE (40), not CANCELED (50)
+    # This time comes from the REAL API call, the webhook POST has no processing time
+    # Therefore, if time is actually 12345, then the webhook is trusting the real data
+    assert flights[0].processing_time == 12345
 
 
 def test_download_artifact(c, flights, fs):
@@ -409,7 +442,9 @@ def test_upload_geotiff(c, fs, projects):
 
     project: UserProject = projects[0]
     f = SimpleUploadedFile("file.tif", b"myfile")
-    fs.create_dir("/projects/{}/file/".format(project.uuid))
+    # fs.create_dir("/projects/{}/file/".format(project.uuid))
+    import django
+    fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
