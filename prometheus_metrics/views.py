@@ -9,11 +9,11 @@ def metrics(request):
     users = User.objects.values("type").annotate(count=Count("*"))
     flights = Flight.objects.values("state").annotate(count=Count("*"))
 
-    images_per_flight_sum = Flight.objects.aggregate(total=Sum("processing_time"))["total"] # FIXME change processing_time field to num_images
+    images_per_flight_sum = Flight.objects.aggregate(total=Sum("num_images"))["total"]
     images_per_flight_count = Flight.objects.count()
     images_per_flight = []
     for stop in [50, 100, 200, 500, 1000]:
-        images_per_flight.append((stop, Flight.objects.filter(processing_time__lte=stop).count())) # FIXME change processing_time field to num_images
+        images_per_flight.append((stop, Flight.objects.filter(num_images__lte=stop).count()))
 
     return render(request, "exposition.txt", {
         "users": users,
