@@ -34,6 +34,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'api/', include(router.urls)),
     path(r'nodeodm/', include("nodeodm_proxy.urls")),
+    path(r'metrics/', include("prometheus_metrics.urls")),
 
     path('api/api-auth', obtain_auth_token, name='api_auth'),
     path('api/upload-files/<uuid:uuid>', upload_images, name='upload_files'),

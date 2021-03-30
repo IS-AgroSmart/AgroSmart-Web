@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'push_notifications',
     "core",
+    "nodeodm_proxy",
+    "prometheus_metrics",
     'rest_framework',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
