@@ -283,6 +283,7 @@ def webhook_processing_complete(request):
     elif data["status"]["code"] == 50:
         flight.state = FlightState.CANCELED.name
     flight.processing_time = data.get("processingTime", 0)
+    flight.num_images = data.get("imagesCount", 0)
     flight.save()
 
     if flight.state == FlightState.COMPLETE.name:
