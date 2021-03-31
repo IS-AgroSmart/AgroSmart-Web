@@ -17,3 +17,7 @@ agrosmart_pics_per_flight_bucket{le="{{ bucket.0 }}"} {{ bucket.1 }}
 {% endfor %}
 agrosmart_pics_per_flight_sum {{ images_per_flight_sum }}
 agrosmart_pics_per_flight_count {{ images_per_flight_count }}
+
+# HELP agrosmart_build_info A pseudo-metric exposing the Git tag used on the server
+# TYPE agrosmart_build_info gauge
+agrosmart_build_info{branch="{{ build_info.branch }}", revision="{{ build_info.revision }}", version="{{ build_info.version }}"} 1
