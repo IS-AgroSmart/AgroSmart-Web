@@ -73,6 +73,9 @@ export default {
             let cameraName = this.$cameras.find((x) => x.value == flight.camera).text;
             return `${flight.name} (${cameraName})`
         },
+        _isCandidate(flight) {
+            return flight.state == "COMPLETE" && !flight.is_demo
+        }
     },
     computed: {
         anyFlights: function() {
@@ -88,7 +91,7 @@ export default {
             .get("api/flights", {
                 headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
             })
-            .then(response => (this.flights = response.data.filter(flight => flight.state == "COMPLETE")))
+            .then(response => (this.flights = response.data.filter(this._isCandidate)))
             .catch(error => (this.error = error));
     }
 };
