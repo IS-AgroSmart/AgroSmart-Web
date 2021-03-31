@@ -53,23 +53,34 @@ describe('New Project component', () => {
             uuid: "uuid1",
             name: "First Flight",
             camera: "RGB",
-            state: "COMPLETE"
+            state: "COMPLETE",
+            is_demo: false
         }, {
             uuid: "uuid2",
             name: "Second Flight",
             camera: "RGB",
-            state: "COMPLETE"
+            state: "COMPLETE",
+            is_demo: false
         }, {
             uuid: "uuid3",
             name: "Third Flight",
             camera: "REDEDGE",
-            state: "COMPLETE"
+            state: "COMPLETE",
+            is_demo: false
         }, {
             uuid: "uuid4",
             name: "Fourth Flight",
             camera: "RGB",
-            state: "PROCESSING"
-        }]);
+            state: "PROCESSING",
+            is_demo: false
+        }, {
+            uuid: "uuid5",
+            name: "Demo Flight",
+            camera: "RGB",
+            state: "COMPLETE",
+            is_demo: true
+        }
+        ]);
     });
 
     afterEach(function () {
@@ -130,6 +141,13 @@ describe('New Project component', () => {
         expect(wrapper.text()).toContain("Second Flight (RGB)");
         expect(wrapper.text()).toContain("Third Flight (Micasense Rededge)");
         expect(wrapper.text()).not.toContain("Fourth Flight");
+    });
+
+    it("doesnt't show Demo flights", async () => {
+        mountComponent();
+        await flushPromises();
+
+        expect(wrapper.text()).not.toContain("Demo Flight");
     });
 
     it("requests flights as other user", async () => {
