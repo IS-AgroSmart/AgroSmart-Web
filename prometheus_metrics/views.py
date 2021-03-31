@@ -18,7 +18,7 @@ def _get_git_info():
         version = subprocess.check_output(["git", "describe"], stderr=subprocess.STDOUT, text=True).strip()
     except subprocess.CalledProcessError as e:
         assert e.output.startswith("fatal:"), f"Message {e.output} should have begun with fatal"
-        version = ""
+        version = "<label not found>"
 
     os.chdir(original_dir)
     return {"version": version, "revision": revision, "branch": branch}
