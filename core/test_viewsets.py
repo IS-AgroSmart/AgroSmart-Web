@@ -13,17 +13,20 @@ from core.models import Flight, UserProject, Artifact, ArtifactType, Camera, Use
 
 class BaseTestViewSet:
     @pytest.fixture
-    def users(self):
-        u1 = User.objects.create_user(username='temporary', email='temporary@gmail.com', password='temporary',
-                                      type=UserType.ACTIVE.name)
-        u2 = User.objects.create_user(username='temporary2', email='temporary2@gmail.com', password='temporary2',
-                                      type=UserType.ACTIVE.name)
-        admin = User.objects.create_user(username='admin', email='admin@gmail.com', password='admin',
-                                         type=UserType.ADMIN.name)
-        demo = User.objects.create_user(username='demo', email='demo@gmail.com', password='demo',
-                                        type=UserType.DEMO_USER.name)
-        deleted = User.objects.create_user(username='deleted', email='deleted@gmail.com', password='deleted',
-                                           type=UserType.DELETED.name, is_active=False)
+    def users(self, fs):
+        from pyfakefs.fake_filesystem_unittest import Pause
+        with Pause(fs):
+            # Pause(fs) stops the fake filesystem and allows Django access to the common password list
+            u1 = User.objects.create_user(username='temporary', email='temporary@gmail.com', password='temporary',
+                                          type=UserType.ACTIVE.name)
+            u2 = User.objects.create_user(username='temporary2', email='temporary2@gmail.com', password='temporary2',
+                                          type=UserType.ACTIVE.name)
+            admin = User.objects.create_user(username='admin', email='admin@gmail.com', password='admin',
+                                             type=UserType.ADMIN.name)
+            demo = User.objects.create_user(username='demo', email='demo@gmail.com', password='demo',
+                                            type=UserType.DEMO_USER.name)
+            deleted = User.objects.create_user(username='deleted', email='deleted@gmail.com', password='deleted',
+                                               type=UserType.DELETED.name, is_active=False)
         return u1, u2, admin, demo, deleted
 
     @pytest.fixture
@@ -65,7 +68,7 @@ class FlightsMixin:
 
 
 @pytest.mark.django_db
-class TestUserViewSet(BaseTestViewSet, FlightsMixin):
+class TestUserViewSet(FlightsMixin, BaseTestViewSet):
     def test_user_list(self, c, users):
         c.force_authenticate(users[0])
         resp = c.get(reverse('users-list')).json()

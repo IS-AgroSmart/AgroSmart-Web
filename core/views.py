@@ -297,6 +297,9 @@ def webhook_processing_complete(request):
         flight.try_create_annotated_png_ortho()
         # _try_create_thumbnail must have been invoked here!
         flight.create_geoserver_workspace_and_upload_geotiff()
+
+        flight.update_disk_space()
+        flight.user.update_disk_space()
     return HttpResponse()
 
 

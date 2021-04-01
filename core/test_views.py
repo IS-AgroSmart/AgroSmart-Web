@@ -2,6 +2,7 @@ import inspect
 import json
 import os
 from datetime import datetime
+from typing import List
 
 import pytest
 from PIL import Image, ImageOps, ImageFont, ImageDraw
@@ -207,7 +208,7 @@ def _test_webhook(c, monkeypatch, fs, flight, false_code, real_code):
                            str(flight.uuid) + "/coveragestores/ortho/coverages/rgb.json", mark_executed_config)
 
     fs.create_dir("/flights/{}/odm_orthophoto".format(flight.uuid))
-    fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flight.uuid), contents="")
+    fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flight.uuid), contents="A" * 1024 * 1024)
     fs.create_file("/flights/{}/odm_orthophoto/rgb.tif.msk".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/odm_orthophoto/odm_orthophoto_small.tif".format(flight.uuid), contents="")
     fs.create_file("/flights/{}/images.json".format(flight.uuid), contents="[]")
@@ -323,6 +324,26 @@ def test_webhook_doesnt_trust_webhook_data(c, monkeypatch, fs, flights):
     # This time comes from the REAL API call, the webhook POST has no processing time
     # Therefore, if time is actually 12345, then the webhook is trusting the real data
     assert flights[0].processing_time == 12345
+
+
+def test_webhook_updates_used_disk(c, monkeypatch, fs, flights: List[Flight]):
+    assert flights[0].user.used_space == 0
+    _test_webhook(c, monkeypatch, fs, flights[0], false_code=40, real_code=40)
+    flights[0].refresh_from_db()
+    flights[0].user.refresh_from_db()
+
+    assert flights[0].used_space == 1024  # 1MB used by flight
+    assert flights[0].user.used_space == flights[0].used_space
+
+
+def test_webhook_doesnt_update_disk_on_failed(c, monkeypatch, fs, flights: List[Flight]):
+    assert flights[0].user.used_space == 0
+    _test_webhook(c, monkeypatch, fs, flights[0], false_code=50, real_code=50)
+    flights[0].refresh_from_db()
+    flights[0].user.refresh_from_db()
+
+    assert flights[0].used_space == 0  # 1MB used by flight
+    assert flights[0].user.used_space == 0
 
 
 def test_download_artifact(c, flights, fs):

@@ -25,6 +25,7 @@ from weasyprint import HTML
 
 from django.conf import settings
 from core.parser import FormulaParser
+from core.utils.disk_space_tracking import DiskSpaceTrackerMixin, DiskRelationTrackerMixin
 
 
 class UserType(Enum):
@@ -34,13 +35,19 @@ class UserType(Enum):
     ADMIN = "Admin"
 
 
-class User(AbstractUser):
+class User(DiskRelationTrackerMixin, AbstractUser):
     organization = models.CharField(max_length=20, blank=True)
     type = models.CharField(max_length=20,
                             choices=[(tag.name, tag.value) for tag in UserType],
                             default=UserType.DEMO_USER.name)
     demo_flights = models.ManyToManyField('Flight', related_name='demo_users')
     demo_projects = models.ManyToManyField('UserProject', related_name='demo_users')
+
+    used_space = models.PositiveIntegerField(default=0)
+    maximum_space = models.PositiveIntegerField(default=45 * 1024 * 1024)
+
+    def get_disk_related_models(self):
+        return list(self.flight_set.filter(is_demo=False)) + list(self.user_projects.filter(is_demo=False))
 
 
 class BaseProject(models.Model):
@@ -53,11 +60,13 @@ class BaseProject(models.Model):
         abstract = True
 
 
-class UserProject(BaseProject):
+class UserProject(DiskSpaceTrackerMixin, BaseProject):
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name="user_projects")
     flights = models.ManyToManyField("Flight", related_name="user_projects")
     must_create_workspace = models.BooleanField(default=True)
     is_demo = models.BooleanField(default=False)
+
+    used_space = models.PositiveIntegerField(default=0)
 
     def _get_geoserver_ws_name(self):
         return "project_" + str(self.uuid)
@@ -171,7 +180,7 @@ class FlightState(Enum):
     ERROR = "Error"
 
 
-class Flight(models.Model):
+class Flight(DiskSpaceTrackerMixin, models.Model):
     uuid = models.UUIDField(primary_key=True, default=u.uuid4, editable=False)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
     is_demo = models.BooleanField(default=False)
@@ -185,6 +194,8 @@ class Flight(models.Model):
                              default=FlightState.WAITING.name)
     processing_time = models.PositiveIntegerField(default=0)
     num_images = models.PositiveIntegerField(default=0)
+
+    used_space = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [

@@ -17,7 +17,7 @@ class UserProjectAdmin(admin.ModelAdmin):
 
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ("Additional data", {'fields': ('type',)}),
+        ("Additional data", {'fields': ('type', 'used_space')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
         (None, {'fields': ('type',)}),
