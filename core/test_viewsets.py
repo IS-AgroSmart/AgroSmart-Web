@@ -580,10 +580,11 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         projects[0].refresh_from_db()
         assert projects[0].deleted
 
-    def test_soft_delete(self, c, users, projects: List[UserProject]):
+    def test_soft_delete(self, c, fs, users, projects: List[UserProject]):
         c.force_authenticate(users[0])
         workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
+        fs.create_dir(projects[0].get_disk_path())
         c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Send one DELETE request
         try:
             project = users[0].user_projects.get(uuid=projects[0].uuid)
@@ -594,10 +595,11 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         print(resp.status_code)
         assert len(users[0].user_projects.filter(uuid=projects[0].uuid)) == 0  # Should not find the Project
 
-    def test_soft_delete_already_deleted(self, c, users, projects: List[UserProject]):
+    def test_soft_delete_already_deleted(self, c, fs, users, projects: List[UserProject]):
         c.force_authenticate(users[0])
         workspace_url = "http://container-geoserver:8080/geoserver/rest/workspaces/project_{}".format(projects[0].uuid)
         httpretty.register_uri(httpretty.DELETE, workspace_url)
+        fs.create_dir(projects[0].get_disk_path())
         projects[0].deleted = True  # Manually "delete" the Project
         projects[0].save()
         c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Issue single DELETE request

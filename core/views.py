@@ -379,7 +379,7 @@ def upload_vectorfile(request, uuid):
         name=file_name, type=ArtifactType.SHAPEFILE.name, title=request.POST["title"])
 
     # Write file(s) to disk on project folder
-    os.makedirs(project.get_disk_path() + "/" + file_name)
+    os.makedirs(project.get_disk_path() + "/" + file_name, exist_ok=True)
     for file in request.FILES.getlist("file") if datatype == "shp" else [request.FILES["file"]]:
         extension = file.name.split(".")[-1]
         with open(project.get_disk_path() + "/" + file_name + "/" + file_name + "." + extension, "wb") as f:
@@ -424,7 +424,7 @@ def upload_geotiff(request, uuid):
         name=geotiff_name, type=ArtifactType.ORTHOMOSAIC.name, title=request.POST["title"])
 
     # Write file to disk on project folder
-    os.makedirs(project.get_disk_path() + "/" + geotiff_name)
+    os.makedirs(project.get_disk_path() + "/" + geotiff_name, exist_ok=True)
     with open(project.get_disk_path() + "/" + geotiff_name + "/" + geotiff_name + ".tiff", "wb") as f:
         for chunk in file.chunks():
             f.write(chunk)

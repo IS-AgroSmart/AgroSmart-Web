@@ -421,12 +421,12 @@ def _test_upload_vector(c, fs, project, type):
     def mark_executed_b(request, uri, response_headers):
         return _mark_executed(1, response_headers)
 
-    f = SimpleUploadedFile("file.{}".format(type), b"myfile")
-    fs.create_dir("/projects/{}/file/".format(project.uuid))
+    f = SimpleUploadedFile(f"file2_{type}.{type}", b"myfile")
+    fs.create_dir(f"/projects/{project.uuid}/file2_{type}")
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
-                           str(project.uuid) + "/datastores/file/external.shp", mark_executed_a)
+                           str(project.uuid) + f"/datastores/file2_{type}/external.shp", mark_executed_a)
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
-                           str(project.uuid) + "/datastores/file/featuretypes/file.json", mark_executed_b)
+                           str(project.uuid) + f"/datastores/file2_{type}/featuretypes/file2_{type}.json", mark_executed_b)
 
     resp = c.post(reverse("upload_vector", kwargs={"uuid": str(project.uuid)}),
                   {"datatype": type, "file": f if type == "kml" else [f, f, f], "title": "myVector"})
@@ -462,10 +462,8 @@ def test_upload_geotiff(c, fs, projects):
         return _mark_executed(1, response_headers)
 
     project: UserProject = projects[0]
-    f = SimpleUploadedFile("file.tif", b"myfile")
-    # fs.create_dir("/projects/{}/file/".format(project.uuid))
-    import django
-    fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
+    f = SimpleUploadedFile("file.tiff", b"myfile")
+    fs.create_dir("/projects/{}/file/".format(project.uuid))
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                            str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
     httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
