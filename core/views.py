@@ -409,6 +409,8 @@ def upload_vectorfile(request, uuid):
         headers={"Content-Type": "application/json"},
         data='{"featureType": {"enabled": true, "srs": "EPSG:4326" }}',
         auth=HTTPBasicAuth('admin', 'geoserver'))
+    project.update_disk_space()
+    project.user.update_disk_space()
     return HttpResponse(status=201)
 
 
@@ -452,6 +454,8 @@ def upload_geotiff(request, uuid):
             ]}
         }}),
         auth=HTTPBasicAuth('admin', 'geoserver'))
+    project.update_disk_space()
+    project.user.update_disk_space()
     return HttpResponse(status=201)
 
 

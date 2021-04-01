@@ -413,7 +413,8 @@ class TestStandaloneViews:
         def mark_executed_b(request, uri, response_headers):
             return _mark_executed(1, response_headers)
 
-        f = SimpleUploadedFile(f"file2_{type}.{type}", b"myfile")
+        kml_files = [SimpleUploadedFile(f"file2_{type}.{type}", b"A" * 1024 * 25)]
+        shp_files = [SimpleUploadedFile(f"file2_{type}.{ext}", b"A" * 1024 * 25) for ext in ("shp", "shx", "dbf")]
         fs.create_dir(f"/projects/{project.uuid}/file2_{type}")
         httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                                str(project.uuid) + f"/datastores/file2_{type}/external.shp", mark_executed_a)
@@ -422,18 +423,28 @@ class TestStandaloneViews:
                                mark_executed_b)
 
         resp = c.post(reverse("upload_vector", kwargs={"uuid": str(project.uuid)}),
-                      {"datatype": type, "file": f if type == "kml" else [f, f, f], "title": "myVector"})
+                      {"datatype": type, "file": kml_files if type == "kml" else shp_files, "title": "myVector"})
 
         assert len(project.artifacts.all()) == 1
         assert all(executed)
         assert project.artifacts.first().type == ArtifactType.SHAPEFILE.name
         assert resp.status_code == 201
 
-    def test_upload_vector_kml(self, c, fs, projects):
+    def test_upload_vector_kml(self, c, fs, projects: List[UserProject]):
         self._test_upload_vector(c, fs, projects[0], "kml")
 
-    def test_upload_vector_shp(self, c, fs, projects):
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 25
+        assert projects[0].user.used_space == 25
+
+    def test_upload_vector_shp(self, c, fs, projects: List[UserProject]):
         self._test_upload_vector(c, fs, projects[0], "shp")
+
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 75  # 3 files (.shp, .shx, .dbf), each of 25KB
+        assert projects[0].user.used_space == 75  # User only has one Project of 75KB
 
     def test_upload_geotiff(self, c, fs, projects):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -452,7 +463,7 @@ class TestStandaloneViews:
             return _mark_executed(1, response_headers)
 
         project: UserProject = projects[0]
-        f = SimpleUploadedFile("file.tiff", b"myfile")
+        f = SimpleUploadedFile("file.tiff", b"G" * 1024 ** 2)
         fs.create_dir("/projects/{}/file/".format(project.uuid))
         httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                                str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
@@ -466,6 +477,11 @@ class TestStandaloneViews:
         assert all(executed)
         assert project.artifacts.first().type == ArtifactType.ORTHOMOSAIC.name
         assert resp.status_code == 201
+
+        project.refresh_from_db()
+        project.user.refresh_from_db()
+        assert project.used_space == 1024
+        assert project.user.used_space == 1024
 
     def test_upload_index(self, c, fs, flights, projects):
         project: UserProject = projects[0]
@@ -489,8 +505,8 @@ class TestStandaloneViews:
 
         project.refresh_from_db()
         project.user.refresh_from_db()
-        assert project.used_space == 1024 # 1MB for the fake index
-        assert project.user.used_space == 2048 # 1MB for the fake index in the Flight, same for the Project
+        assert project.used_space == 1024  # 1MB for the fake index
+        assert project.user.used_space == 2048  # 1MB for the fake index in the Flight, same for the Project
 
     def test_preview_flight_url(self, c, flights):
         executed = False
