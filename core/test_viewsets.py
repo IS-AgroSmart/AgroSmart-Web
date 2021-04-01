@@ -736,10 +736,6 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
 
     def test_project_creation_disk_space(self, c, fs, users: List[User], flights: List[Flight],
                                          projects: List[UserProject]):
-        def fake_create_datastore(*args, **kwargs):
-            pass
-
-        # monkeypatch.setattr(UserProject, "_create_mainortho_datastore", fake_create_datastore)
         f1 = flights[0]
         f2 = flights[1]
         httpretty.register_uri(httpretty.PUT,

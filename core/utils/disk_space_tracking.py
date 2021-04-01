@@ -25,18 +25,18 @@ class DiskSpaceTrackerMixin:
     # https://stackoverflow.com/a/4368431
     # This method is *supposed to* return exactly the same number as du -sb
     @staticmethod
-    def _sizeOfDir(path):
+    def _size_of_dir(path):
         total_size = os.path.getsize(path)
         for item in os.listdir(path):
             itempath = os.path.join(path, item)
             if os.path.isfile(itempath):
                 total_size += os.path.getsize(itempath)
             elif os.path.isdir(itempath):
-                total_size += DiskSpaceTrackerMixin._sizeOfDir(itempath)
+                total_size += DiskSpaceTrackerMixin._size_of_dir(itempath)
         return total_size
 
     def update_disk_space(self):
-        self.used_space = DiskSpaceTrackerMixin._sizeOfDir(self.get_disk_path()) // 1024
+        self.used_space = DiskSpaceTrackerMixin._size_of_dir(self.get_disk_path()) // 1024
         self.save()  # this will call Flight.save() or UserProject.save()
 
 

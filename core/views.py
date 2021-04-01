@@ -494,7 +494,10 @@ def create_raster_index(request, uuid):
     print("FORMULA->" + formula)
     for flight in project.flights.all():
         flight.create_index_raster(clean_index, formula)
+        flight.update_disk_space()
     project._create_index_datastore(clean_index)
+    project.update_disk_space()
+    project.user.update_disk_space()
     project.artifacts.create(
         name=clean_index, type=ArtifactType.INDEX.name, title=clean_index.upper())
     return HttpResponse(status=200)
