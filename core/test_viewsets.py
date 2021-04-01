@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 import pytest
@@ -47,7 +47,7 @@ class FlightsMixin:
     @pytest.fixture
     def flights(self, users):
         f1 = users[0].flight_set.create(name="flight1", date=datetime.now())
-        f2 = users[0].flight_set.create(name="flight2", date=datetime.now())
+        f2 = users[0].flight_set.create(name="flight2", date=datetime.now() - timedelta(days=2))
         f3 = users[0].flight_set.create(name="flight3", date=datetime.now())
         f4 = users[1].flight_set.create(name="flight4", date=datetime.now())
         f5 = users[2].flight_set.create(name="flight5", date=datetime.now(), state=FlightState.COMPLETE.name)
@@ -509,40 +509,48 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert any(str(flights[0].uuid) in proj['flights'] for proj in resp)  # First flight must appear
         assert not any(str(flights[2].uuid) in proj['flights'] for proj in resp)  # Third flight must NOT appear
 
-    def _test_project_creation(self, c, users, flights, monkeypatch, user, proj_flights, as_user=None):
-        def fake_create_datastore(*args, **kwargs):
-            pass
-
-        monkeypatch.setattr(UserProject, "_create_mainortho_datastore", fake_create_datastore)
+    def _test_project_creation(self, c, fs, users, flights, monkeypatch, user, proj_flights, as_user=None):
+        httpretty.register_uri(httpretty.PUT,
+                               re.compile(
+                                   r"http://container-geoserver:8080/geoserver/rest/workspaces/project_.+/coveragestores/mainortho/external.imagemosaic"),
+                               status=200)
+        httpretty.register_uri(httpretty.PUT,
+                               re.compile(
+                                   r"http://container-geoserver:8080/geoserver/rest/workspaces/project_.+/coveragestores/mainortho/coverages/mainortho.json"),
+                               status=200)
+        for f in proj_flights:
+            fs.create_file(f"{f.get_disk_path()}/odm_orthophoto/odm_orthophoto.tif", contents="A" * 1024 * 1024)
+            fs.create_file(f"{f.get_disk_path()}/odm_orthophoto/rgb.tif", contents="A" * 1024 * 1024)
         c.force_authenticate(user)
         kwargs = {"HTTP_TARGETUSER": as_user} if as_user else {}
         resp = c.post(reverse('projects-list'),
-                      {"flights": proj_flights, "name": "foo", "description": "descr"}, **kwargs)
+                      {"flights": [f.uuid for f in proj_flights], "name": "foo", "description": "descr"}, **kwargs)
         return resp
 
-    def test_project_creation_normal(self, c, users, flights, monkeypatch):
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[0],
-                                           [flights[0].uuid, flights[1].uuid])
+    def test_project_creation_normal(self, c, fs, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[0],
+                                           [flights[0], flights[1]])
         assert resp.status_code == 201
         assert str(flights[0].uuid) in resp.json()["flights"]
         assert str(flights[1].uuid) in resp.json()["flights"]
 
-    def test_project_creation_admin_as_self(self, c, users, flights, monkeypatch):
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[4].uuid])
+    def test_project_creation_admin_as_self(self, c, fs, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[2], [flights[4]])
         assert resp.status_code == 201
         assert str(flights[4].uuid) in resp.json()["flights"]
 
-    def test_project_creation_admin_as_other(self, c, users, flights, monkeypatch):
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[0].uuid, flights[1].uuid],
+    def test_project_creation_admin_as_other(self, c, fs, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[2],
+                                           [flights[0], flights[1]],
                                            as_user=users[0].pk)
         assert resp.status_code == 201
         assert resp.json()["user"] == users[0].pk  # Project should belong to user0
         assert str(flights[0].uuid) in resp.json()["flights"]
         assert str(flights[1].uuid) in resp.json()["flights"]
 
-    def test_project_creation_admin_as_other_mixed_flights(self, c, users, flights, monkeypatch):
+    def test_project_creation_admin_as_other_mixed_flights(self, c, fs, users, flights, monkeypatch):
         # Try to create a Project as user0 with flights 0 and 4, but flight4 belongs to admin so it shouldn't appear
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[2], [flights[0].uuid, flights[4].uuid],
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[2], [flights[0], flights[4]],
                                            as_user=users[0].pk)
         assert resp.status_code == 201
         assert resp.json()["user"] == users[0].pk  # Project should belong to user0
@@ -550,9 +558,9 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert str(flights[4].uuid) not in resp.json()[
             "flights"]  # flight4 should NOT be there b/c admin is simulating user0
 
-    def test_project_creation_normal_as_other(self, c, users, flights, monkeypatch):
+    def test_project_creation_normal_as_other(self, c, fs, users, flights, monkeypatch):
         # user0 tries to create a Project in the name of user1, it shouldn't work
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[0], [flights[0].pk, flights[3].pk],
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[0], [flights[0], flights[3]],
                                            as_user=users[1].pk)  # Try to pass as user1
         assert resp.status_code == 201
         assert resp.json()["user"] == users[0].pk  # Project should belong to user0, not to user1
@@ -626,12 +634,12 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert str(projects[0].uuid) in [p["uuid"] for p in resp]  # projects[0] should be there
         assert str(projects[3].uuid) not in [p["uuid"] for p in resp]  # Admin's own project should NOT be there
 
-    def test_project_creation_demo_user(self, c, users, flights, monkeypatch):
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[3], [])
+    def test_project_creation_demo_user(self, c, fs, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[3], [])
         assert resp.status_code == 403
 
-    def test_project_creation_deleted_user(self, c, users, flights, monkeypatch):
-        resp = self._test_project_creation(c, users, flights, monkeypatch, users[4], [])
+    def test_project_creation_deleted_user(self, c, fs, users, flights, monkeypatch):
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[4], [])
         assert resp.status_code == 403
 
     def test_convert_to_demo(self, c, users: List[User], projects: List[UserProject]):
@@ -725,6 +733,37 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert projects[3].user is None
         assert flights[4].is_demo
         assert flights[4].user is None
+
+    def test_project_creation_disk_space(self, c, fs, users: List[User], flights: List[Flight],
+                                         projects: List[UserProject]):
+        def fake_create_datastore(*args, **kwargs):
+            pass
+
+        # monkeypatch.setattr(UserProject, "_create_mainortho_datastore", fake_create_datastore)
+        f1 = flights[0]
+        f2 = flights[1]
+        httpretty.register_uri(httpretty.PUT,
+                               re.compile(
+                                   r"http://container-geoserver:8080/geoserver/rest/workspaces/project_.+/coveragestores/mainortho/external.imagemosaic"),
+                               status=200)
+        httpretty.register_uri(httpretty.PUT,
+                               re.compile(
+                                   r"http://container-geoserver:8080/geoserver/rest/workspaces/project_.+/coveragestores/mainortho/coverages/mainortho.json"),
+                               status=200)
+        for f in (f1, f2):
+            fs.create_file(f"{f.get_disk_path()}/odm_orthophoto/odm_orthophoto.tif", contents="A" * 1024 * 1024)
+            fs.create_file(f"{f.get_disk_path()}/odm_orthophoto/rgb.tif", contents="A" * 1024 * 1024)
+            f.update_disk_space()
+        c.force_authenticate(users[0])
+        assert users[0].used_space == 0
+
+        resp = c.post(reverse('projects-list'),
+                      {"flights": [f1.uuid, f2.uuid], "name": "foo", "description": "descr"})
+        assert resp.status_code == 201
+        data = resp.json()
+        p = UserProject.objects.get(uuid=data["uuid"])
+        assert p.used_space == 2048  # 2 orthomosaics, each takes 1MB
+        assert users[0].used_space == 6144  # 2 flights of 2MB each (2 orthos, 1MB each) and the project takes 2MB
 
 
 @pytest.mark.django_db

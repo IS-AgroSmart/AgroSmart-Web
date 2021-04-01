@@ -73,6 +73,8 @@ class UserProjectSerializer(serializers.ModelSerializer):
         proj.flights.set(flights)
         proj.artifacts.set(artifacts)
         proj._create_geoserver_proj_workspace()
+        proj.update_disk_space()
+        proj.user.update_disk_space()
         return proj
 
     class Meta:
