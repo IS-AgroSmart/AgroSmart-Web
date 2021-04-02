@@ -9,11 +9,13 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(validators=[UniqueValidator(queryset=User.objects.all())])
     organization = serializers.CharField()
-    first_name=serializers.CharField()
+    first_name = serializers.CharField()
+    used_space = serializers.ReadOnlyField()
+    maximum_space = serializers.ReadOnlyField()
 
     def create(self, validated_data):
         request = self.context.get("request")
-        if(user_verifier(validated_data, request)):
+        if user_verifier(validated_data, request):
             error = {'message': "User request is blocked"}
             raise serializers.ValidationError(error)
 
@@ -26,7 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
 
-        # when user is created, link to all existing demo flights & projects
+        # when user is created, link him to all existing demo flights & projects
         for demo_flight in Flight.objects.filter(is_demo=True).all():
             user.demo_flights.add(demo_flight)
         for demo_project in UserProject.objects.filter(is_demo=True).all():
@@ -36,13 +38,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["pk", 'username', 'email', 'is_staff', 'password', 'type', 'organization' , 'first_name']
+        fields = ["pk", 'username', 'email', 'is_staff', 'password', 'type', 'organization', 'first_name',
+                  'used_space', 'maximum_space']
 
 
 class FlightSerializer(serializers.ModelSerializer):
     nodeodm_info = serializers.SerializerMethodField()
 
-    def get_nodeodm_info(self, flight):
+    @staticmethod
+    def get_nodeodm_info(flight):
         return flight.get_nodeodm_info()
 
     class Meta:
@@ -80,6 +84,7 @@ class UserProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProject
         fields = ['uuid', 'user', 'flights', 'artifacts', "name", "description", "is_demo", "deleted"]
+
 
 class BlockCriteriaSerializer(serializers.ModelSerializer):
     class Meta:

@@ -86,8 +86,8 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         users[0].used_space = 50 * 1024 ** 2  # user0 is using 50GB
         users[0].save()
         c.force_authenticate(users[2])  # Login as admin (who is NOT over quota)
-        resp = self._create_flight(c, 402, users[0].pk)  # try to create flight as user0
-        # flight creation should have failed
+        self._create_flight(c, 402, users[0].pk)  # try to create flight as user0
+        # flight creation should have failed with HTTP 402 Payment Required
 
     @pytest.mark.xfail(reason="Returns 401, which raises an AssertionError due to some bug (?)")
     def test_anon_cannot_create_flight(self, c, users):
@@ -127,7 +127,6 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         if not os.path.isdir(flights[0].get_disk_path()):
             pytest.fail("/flights folder should NOT be deleted when Flight is soft-deleted")
         resp = c.delete(reverse('flights-detail', kwargs={"pk": str(flights[0].uuid)}))  # Repeat the DELETE request
-        print(resp.status_code)
         assert len(users[0].flight_set.filter(uuid=flights[0].uuid)) == 0  # Should not find the Flight
         assert not os.path.isdir(flights[0].get_disk_path())  # dir should no longer exist
 

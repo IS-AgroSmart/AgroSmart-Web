@@ -38,9 +38,8 @@ class FlightsMixin:
 
     Automatically activates API mocking for the NodeODM endpoint
 
-    Attributes:
+    Exposed fixtures:
         flights (([User]) -> [Flight]): Pytest fixture, returns four Flights
-
     """
 
     @pytest.fixture
@@ -73,6 +72,21 @@ class TestUserViewSet(FlightsMixin, BaseTestViewSet):
         resp = c.get(reverse('users-list')).json()
         assert any(users[0].email == u["email"] for u in resp)  # Logged in user in response
         assert not any(users[1].email == u["email"] for u in resp)  # Other users NOT in response
+
+    def test_user_details_contain_disk_info(self, c, users: List[User]):
+        """
+        Tests that the user detail JSON contains disk quota info (maximum allowed space & currently used space)
+        Args:
+            c: The APIClient fixture
+            users: A fixture containing pre-generated Users
+        """
+        users[0].used_space = 20000  # approx. 20MB
+        users[0].save()
+        c.force_authenticate(users[0])
+        resp = c.get(reverse('users-detail', kwargs={"pk": users[0].pk})).json()
+
+        assert resp.get("used_space") == 20000
+        assert resp.get("maximum_space") == 45 * 1024 ** 2
 
     @pytest.mark.xfail(reason="Returns 401, which raises an AssertionError due to some bug (?)")
     def test_anonymous_not_allowed(self, c, users):
@@ -174,7 +188,8 @@ class TestUserViewSet(FlightsMixin, BaseTestViewSet):
         with pytest.raises(AssertionError):
             c.post(reverse('api_auth'), {"username": "deletednew", "password": "deletednew"})
 
-    def _test_user_delete_as(self, c, as_user, target_user):
+    @staticmethod
+    def _test_user_delete_as(c, as_user, target_user):
         c.force_authenticate(as_user)
         resp = c.delete(reverse('users-detail', kwargs={"pk": target_user.pk}))
         assert resp.status_code == 204

@@ -1,19 +1,11 @@
 import glob
-import signal
 from datetime import datetime
 from typing import List
-import os
-import requests
-from django.db.models.signals import post_save, post_delete
-import json
 
 import pytest
 from django.db import IntegrityError
-from django.test import TestCase
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from httpretty import httpretty
-from rest_framework.test import APIClient
 
 from core.models import *
 from core.test_viewsets import FlightsMixin, BaseTestViewSet
@@ -47,6 +39,7 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
         put_requests = []
 
         def mark_create_ws_executed(request, uri, response_headers):
+            del (request, uri)
             nonlocal create_ws_executed
             create_ws_executed = True
             return [200, response_headers, ""]
@@ -57,7 +50,9 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
 
         httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces",
                                mark_create_ws_executed)
-        import inspect, django, pytz
+        import inspect
+        import django
+        import pytz
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
         fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
         fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flights[1].uuid), contents="")
@@ -103,8 +98,9 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
 
 @pytest.mark.django_db
 class TestArtifactModel(ProjectsMixin, BaseTestViewSet):
-    def _test_disk_path(self, projects, type, name, filename, title):
-        art = Artifact.objects.create(project=projects[0], type=type.name, name=name,
+    @staticmethod
+    def _test_disk_path(projects, art_type, name, filename, title):
+        art = Artifact.objects.create(project=projects[0], type=art_type.name, name=name,
                                       title=title)
         path = art.get_disk_path()
         assert "/projects/" in path

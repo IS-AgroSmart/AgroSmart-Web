@@ -289,7 +289,6 @@ class TestStandaloneViews:
         def donothing(*args, **kwargs):
             del (args, kwargs)  # unused
             # intentionally empty
-            pass
 
         def mock_figure(*args, **kwargs):
             del (args, kwargs)  # unused

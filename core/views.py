@@ -240,7 +240,6 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             self.request.user.demo_projects.remove(instance)
         elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
             if instance.deleted:
-                print("Hard deleting")
                 instance.delete()
             else:
                 instance.deleted = True

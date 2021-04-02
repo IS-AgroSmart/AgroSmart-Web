@@ -1,7 +1,6 @@
 import re
 
 from core.models import BlockCriteria
-from core.models import User
 from django.db.models import Q
 
 
@@ -19,7 +18,7 @@ def get_client_ip(request):
 def user_verifier(user, request):
     user_name = user['username']
     user_email = user['email']
-    user_domain = re.search('@[\w.]+', user['email']).group()[1::]
+    user_domain = re.search(r'@[\w.]+', user['email']).group()[1::]
     user_ip = get_client_ip(request)
     if user_ip:
         block_criteria = BlockCriteria.objects.filter(
