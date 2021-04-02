@@ -76,6 +76,19 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         resp = self._create_flight(c, 201, users[0].pk)  # try to create flight as user1
         assert resp.json()["user"] == users[1].pk  # Flight must have been created as property of user0!
 
+    def test_flight_creation_over_quota(self, c, users: List[User]):
+        """
+        Tests that a User can't create a Flight when he is over his disk quota
+        Args:
+            c: The APIClient fixture
+            users: A fixture containing pre-generated Users
+        """
+        users[0].used_space = 50 * 1024 ** 2  # user0 is using 50GB
+        users[0].save()
+        c.force_authenticate(users[2])  # Login as admin (who is NOT over quota)
+        resp = self._create_flight(c, 402, users[0].pk)  # try to create flight as user0
+        # flight creation should have failed
+
     @pytest.mark.xfail(reason="Returns 401, which raises an AssertionError due to some bug (?)")
     def test_anon_cannot_create_flight(self, c, users):
         c.force_authenticate(user=None)
@@ -172,10 +185,16 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert str(flights[0].uuid) in [f["uuid"] for f in resp]  # flights[0] should be there
         assert str(flights[4].uuid) not in [f["uuid"] for f in resp]  # Admin's own flight should NOT be there
 
-    def test_convert_to_demo(self, c, users: List[User], flights: List[Flight]):
+    def test_convert_to_demo(self, c, fs, users: List[User], flights: List[Flight]):
         c.force_authenticate(users[2])  # admin
         assert not flights[4].is_demo
         assert flights[4] not in users[0].demo_flights.all()
+        assert users[2].used_space == 0
+        fs.create_dir(f"{flights[4].get_disk_path()}/odm_orthophoto")
+        fs.create_file(flights[4].get_png_ortho_path(), contents="A" * 1024 * 20)
+        flights[4].update_disk_space()
+        flights[4].user.update_disk_space()
+        assert users[2].used_space == 20
 
         resp = c.post(reverse("flights-make-demo",
                               kwargs={"pk": str(flights[4].uuid)}))
@@ -184,6 +203,8 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert flights[4].is_demo
         assert flights[4].user is None
         assert all([flights[4] in u.demo_flights.all() for u in User.objects.all()])
+
+        assert all([u.used_space == 0 for u in User.objects.all()])
 
     def test_try_convert_to_demo_nonadmin(self, c, users: List[User], flights: List[Flight]):
         c.force_authenticate(users[0])  # not admin
@@ -195,20 +216,20 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert not flights[0].is_demo
         assert not any([flights[0] in u.demo_flights.all() for u in User.objects.all()])
 
-    def test_list_flight_includes_demo(self, c, users: List[User], flights: List[Flight]):
+    def test_list_flight_includes_demo(self, c, fs, users: List[User], flights: List[Flight]):
         c.force_authenticate(users[0])
         resp = c.get(reverse("flights-list")).json()
         assert str(flights[4].uuid) not in [f["uuid"] for f in resp]
 
-        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+        self.test_convert_to_demo(c, fs, users, flights)  # flights[4] is now a Demo Flight
         assert flights[4] in users[0].demo_flights.all()
 
         c.force_authenticate(users[0])
         resp = c.get(reverse("flights-list")).json()
         assert str(flights[4].uuid) in [f["uuid"] for f in resp]
 
-    def test_delete_demo(self, c, users: List[User], flights: List[Flight]):
-        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+    def test_delete_demo(self, c, fs, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, fs, users, flights)  # flights[4] is now a Demo Flight
 
         c.force_authenticate(users[0])
         resp = c.delete(reverse("flights-detail", kwargs={"pk": str(flights[4].uuid)}))
@@ -218,8 +239,8 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert users[2] in flights[4].demo_users.all()  # admin is still in flight4's demo users
         assert flights[4].is_demo
 
-    def test_delete_demo_admin(self, c, users: List[User], flights: List[Flight]):
-        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+    def test_delete_demo_admin(self, c, fs, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, fs, users, flights)  # flights[4] is now a Demo Flight
 
         c.force_authenticate(users[2])
         resp = c.delete(reverse("flights-detail", kwargs={"pk": str(flights[4].uuid)}))
@@ -229,8 +250,9 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert users[2] not in flights[4].demo_users.all()
         assert flights[4].is_demo
 
-    def test_unconvert_demo(self, c, users: List[User], flights: List[Flight]):
-        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+    def test_unconvert_demo(self, c, fs, users: List[User], flights: List[Flight]):
+        assert users[2].used_space == 0
+        self.test_convert_to_demo(c, fs, users, flights)  # flights[4] is now a Demo Flight with a 20KB file inside
 
         c.force_authenticate(users[2])
         resp = c.delete(reverse("flights-delete-demo", kwargs={"pk": str(flights[4].uuid)}))
@@ -240,9 +262,11 @@ class TestFlightViewSet(FlightsMixin, BaseTestViewSet):
         assert users[2] not in flights[4].demo_users.all()
         assert not flights[4].is_demo
         assert flights[4].user == users[2]
+        users[2].refresh_from_db()
+        assert users[2].used_space == 20
 
-    def test_really_delete_demo_nonadmin(self, c, users: List[User], flights: List[Flight]):
-        self.test_convert_to_demo(c, users, flights)  # flights[4] is now a Demo Flight
+    def test_really_delete_demo_nonadmin(self, c, fs, users: List[User], flights: List[Flight]):
+        self.test_convert_to_demo(c, fs, users, flights)  # flights[4] is now a Demo Flight
 
         c.force_authenticate(users[0])
         resp = c.delete(reverse("flights-delete-demo", kwargs={"pk": str(flights[4].uuid)}))

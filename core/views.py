@@ -91,7 +91,9 @@ class FlightViewSet(viewsets.ModelViewSet):
         if not request.user.type == UserType.ADMIN.name:
             return Response(status=status.HTTP_403_FORBIDDEN)
         flight: Flight = self.get_object()
+        prev_user: User = flight.user
         flight.make_demo()
+        prev_user.update_disk_space()
         return Response({})
 
     @action(detail=True, methods=["delete"])
@@ -100,6 +102,7 @@ class FlightViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_403_FORBIDDEN)
         flight: Flight = self.get_object()
         flight.unmake_demo(request.user)
+        request.user.update_disk_space()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
@@ -115,17 +118,23 @@ class FlightViewSet(viewsets.ModelViewSet):
             user = self.request.user
         return Flight.objects.filter(user=user) | user.demo_flights.all()
 
+    @staticmethod
+    def _get_effective_user(request):
+        if request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in request.META:
+            return User.objects.get(pk=request.META["HTTP_TARGETUSER"])
+        else:
+            return request.user
+
     def create(self, request, *args, **kwargs):
         if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
             return Response(status=403)
+        user = self._get_effective_user(request)
+        if user.used_space >= user.maximum_space:
+            return Response(status=402)
         return super(FlightViewSet, self).create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
-            serializer.save(user=User.objects.get(
-                pk=self.request.META["HTTP_TARGETUSER"]))
-        else:
-            serializer.save(user=self.request.user)
+        serializer.save(user=self._get_effective_user(self.request))
 
     def perform_destroy(self, instance: Flight):
         if instance.is_demo:
@@ -167,12 +176,14 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_403_FORBIDDEN)
         project: UserProject = self.get_object()
         project.is_demo = True
+        prev_user: User = project.user
         project.user = None
         for user in User.objects.all():
             user.demo_projects.add(project)
         for flight in project.flights.all():
             flight.make_demo()
         project.save()
+        prev_user.update_disk_space()
         return Response({})
 
     @action(detail=True, methods=["delete"])
@@ -186,6 +197,7 @@ class UserProjectViewSet(viewsets.ModelViewSet):
         for flight in project.flights.all():
             flight.unmake_demo(request.user)
         project.save()
+        request.user.update_disk_space()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
@@ -201,19 +213,25 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             user = self.request.user
         return UserProject.objects.filter(user=user) | user.demo_projects.all()
 
+    @staticmethod
+    def _get_effective_user(request):
+        if request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in request.META:
+            return User.objects.get(pk=request.META["HTTP_TARGETUSER"])
+        else:
+            return request.user
+
     def create(self, request, *args, **kwargs):
         if request.user.type in (UserType.DEMO_USER.name, UserType.DELETED.name):
             return Response(status=403)
+        user = self._get_effective_user(request)
+        if user.used_space >= user.maximum_space:
+            return Response(status=402)
         return super(UserProjectViewSet, self).create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         all_flights = [Flight.objects.get(
             uuid=uuid) for uuid in self.request.POST.getlist("flights")]
-        if self.request.user.type == UserType.ADMIN.name and "HTTP_TARGETUSER" in self.request.META:
-            target_user = User.objects.get(
-                pk=self.request.META["HTTP_TARGETUSER"])
-        else:
-            target_user = self.request.user
+        target_user = self._get_effective_user(self.request)
         serializer.save(user=target_user, flights=[f for f in all_flights if f.user == target_user])
 
     def perform_destroy(self, instance: UserProject):
@@ -222,6 +240,7 @@ class UserProjectViewSet(viewsets.ModelViewSet):
             self.request.user.demo_projects.remove(instance)
         elif self.request.user.type == UserType.ADMIN.name or instance.user == self.request.user:
             if instance.deleted:
+                print("Hard deleting")
                 instance.delete()
             else:
                 instance.deleted = True
@@ -234,6 +253,8 @@ def upload_images(request, uuid):
     user = Token.objects.get(key=request.headers["Authorization"][6:]).user
     if not user.type == UserType.ADMIN.name and not flight.user == user:
         return HttpResponse(status=403)
+    if flight.user.used_space >= flight.user.maximum_space:
+        return HttpResponse(status=402)  # HTTP 402 Payment Required
 
     files = []
     filenames = []
@@ -367,6 +388,10 @@ def upload_vectorfile(request, uuid):
 
     datatype = request.POST.get("datatype", "shp")
     project = UserProject.objects.get(pk=uuid)
+
+    if project.user.used_space >= project.user.maximum_space:
+        return HttpResponse(status=402)
+
     # shapefile is an array with files [X.shp, X.shx, X.dbf], in some order
     if datatype == "shp":
         file: UploadedFile = request.FILES.getlist(
@@ -419,6 +444,10 @@ def upload_geotiff(request, uuid):
     from django.core.files.uploadedfile import UploadedFile
 
     project = UserProject.objects.get(pk=uuid)
+
+    if project.user.used_space >= project.user.maximum_space:
+        return HttpResponse(status=402)
+
     file: UploadedFile = request.FILES.get("geotiff")  # file is called X.tiff
     geotiff_name = ".".join(file.name.split(
         ".")[:-1])  # Remove extension, get X
@@ -484,6 +513,8 @@ def check_formula(request):
 @csrf_exempt
 def create_raster_index(request, uuid):
     project = UserProject.objects.get(uuid=uuid)
+    if project.user.used_space >= project.user.maximum_space:
+        return HttpResponse(status=402)
 
     if not project.all_flights_multispectral():
         return HttpResponse("Not all flights are multispectral!", status=400)

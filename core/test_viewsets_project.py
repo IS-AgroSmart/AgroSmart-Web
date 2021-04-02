@@ -97,6 +97,25 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert str(flights[0].uuid) in resp.json()["flights"]
         assert str(flights[1].uuid) in resp.json()["flights"]
 
+    def test_project_creation_over_quota(self, c, fs, monkeypatch, users: List[User], flights: List[Flight]):
+        """
+        Tests that a User can't create a Project when he is over his disk quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            monkeypatch: The monkeypatching fixture
+            users: A fixture containing pre-generated Users
+            flights: A fixture containing pre-generated Flights
+        """
+        users[0].used_space = 50 * 1024 ** 2  # user0 is using 50GB
+        users[0].save()
+        c.force_authenticate(users[2])  # Login as admin (who is NOT over quota)
+        resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[2],
+                                           [flights[0], flights[1]],
+                                           as_user=users[0].pk)
+        assert resp.status_code == 402
+        # project creation should have failed
+
     def test_project_creation_admin_as_other_mixed_flights(self, c, fs, users, flights, monkeypatch):
         # Try to create a Project as user0 with flights 0 and 4, but flight4 belongs to admin so it shouldn't appear
         resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[2], [flights[0], flights[4]],
@@ -148,7 +167,7 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
             assert project.deleted
         except UserProject.DoesNotExist:
             pytest.fail("Project should have existed")
-        resp = c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Repeat the DELETE request
+        c.delete(reverse('projects-detail', kwargs={"pk": str(projects[0].uuid)}))  # Repeat the DELETE request
         assert len(users[0].user_projects.filter(uuid=projects[0].uuid)) == 0  # Should not find the Project
 
     def test_soft_delete_already_deleted(self, c, fs, users, projects: List[UserProject]):
@@ -190,10 +209,15 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         resp = self._test_project_creation(c, fs, users, flights, monkeypatch, users[4], [])
         assert resp.status_code == 403
 
-    def test_convert_to_demo(self, c, users: List[User], projects: List[UserProject]):
+    def test_convert_to_demo(self, c, fs, users: List[User], projects: List[UserProject]):
         c.force_authenticate(users[2])  # admin
         assert not projects[3].is_demo
         assert projects[3] not in users[0].demo_projects.all()
+        assert users[2].used_space == 0
+        fs.create_file(f"{projects[3].get_disk_path()}/whatever.png", contents="A" * 1024 * 20)
+        projects[3].update_disk_space()
+        projects[3].user.update_disk_space()
+        assert users[2].used_space == 20
 
         resp = c.post(reverse("projects-make-demo",
                               kwargs={"pk": str(projects[3].uuid)}))
@@ -202,6 +226,7 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert projects[3].is_demo
         assert projects[3].user is None
         assert all([projects[3] in u.demo_projects.all() for u in User.objects.all()])
+        assert all([u.used_space == 0 for u in User.objects.all()])
 
     def test_try_convert_to_demo_nonadmin(self, c, users: List[User], projects: List[UserProject]):
         c.force_authenticate(users[0])  # not admin
@@ -213,20 +238,20 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert not projects[0].is_demo
         assert not any([projects[0] in u.demo_projects.all() for u in User.objects.all()])
 
-    def test_list_flight_includes_demo(self, c, users: List[User], projects: List[UserProject]):
+    def test_list_flight_includes_demo(self, c, fs, users: List[User], projects: List[UserProject]):
         c.force_authenticate(users[0])
         resp = c.get(reverse("projects-list")).json()
         assert str(projects[3].uuid) not in [p["uuid"] for p in resp]
 
-        self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Project
+        self.test_convert_to_demo(c, fs, users, projects)  # projects[3] is now a Demo Project
         assert projects[3] in users[0].demo_projects.all()
 
         c.force_authenticate(users[0])
         resp = c.get(reverse("projects-list")).json()
         assert str(projects[3].uuid) in [p["uuid"] for p in resp]
 
-    def test_delete_demo(self, c, users: List[User], projects: List[UserProject]):
-        self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Project
+    def test_delete_demo(self, c, fs, users: List[User], projects: List[UserProject]):
+        self.test_convert_to_demo(c, fs, users, projects)  # projects[3] is now a Demo Project
 
         c.force_authenticate(users[0])
         resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[3].uuid)}))
@@ -236,8 +261,8 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert users[2] in projects[3].demo_users.all()  # admin is still in project3's demo users
         assert projects[3].is_demo
 
-    def test_delete_demo_admin(self, c, users: List[User], projects: List[UserProject]):
-        self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Project
+    def test_delete_demo_admin(self, c, fs, users: List[User], projects: List[UserProject]):
+        self.test_convert_to_demo(c, fs, users, projects)  # projects[3] is now a Demo Project
 
         c.force_authenticate(users[2])
         resp = c.delete(reverse("projects-detail", kwargs={"pk": str(projects[3].uuid)}))
@@ -247,20 +272,21 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert users[2] not in projects[3].demo_users.all()
         assert projects[3].is_demo
 
-    def test_really_delete_demo(self, c, users: List[User], projects: List[UserProject]):
-        self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Project
-
+    def test_unconvert_demo(self, c, fs, users: List[User], projects: List[UserProject]):
+        self.test_convert_to_demo(c, fs, users, projects)  # projects[3] is now a Demo Project
         c.force_authenticate(users[2])
         resp = c.delete(reverse("projects-delete-demo", kwargs={"pk": str(projects[3].uuid)}))
         assert resp.status_code == 204
         projects[3].refresh_from_db()
-        assert users[0] not in projects[3].demo_users.all()
-        assert users[2] not in projects[3].demo_users.all()
+        assert projects[3].demo_users.count() == 0
         assert not projects[3].is_demo
         assert projects[3].user == users[2]
 
-    def test_really_delete_demo_nonadmin(self, c, users: List[User], projects: List[UserProject]):
-        self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Flight
+        users[2].refresh_from_db()
+        assert users[2].used_space == 20
+
+    def test_really_delete_demo_nonadmin(self, c, fs, users: List[User], projects: List[UserProject]):
+        self.test_convert_to_demo(c, fs, users, projects)  # projects[3] is now a Demo Project
 
         c.force_authenticate(users[0])
         resp = c.delete(reverse("projects-delete-demo", kwargs={"pk": str(projects[3].uuid)}))
@@ -269,10 +295,10 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         assert UserProject.objects.filter(uuid=projects[3].uuid)  # projects[3] was NOT deleted
         assert projects[3].is_demo
 
-    def test_making_demo_project_makes_all_flights_demo(self, c, users: List[User], flights: List[Flight],
+    def test_making_demo_project_makes_all_flights_demo(self, c, fs, users: List[User], flights: List[Flight],
                                                         projects: List[UserProject]):
         assert not flights[4].is_demo
-        self.test_convert_to_demo(c, users, projects)  # projects[3] is now a Demo Flight
+        self.test_convert_to_demo(c, fs, users, projects)  # projects[3] is now a Demo Flight
         # projects[3] pulls flights[4] to demo-land
 
         flights[4].refresh_from_db()
@@ -329,4 +355,4 @@ class TestUserProjectViewSet(FlightsMixin, BaseTestViewSet):
         c.delete(reverse('projects-detail', kwargs={"pk": str(p.uuid)}))  # Issue single DELETE request
 
         users[0].refresh_from_db()
-        assert users[0].used_space < prev_space # not 0 because there are leftover FLights and Projects
+        assert users[0].used_space < prev_space  # not 0 because there are leftover FLights and Projects

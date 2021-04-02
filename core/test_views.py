@@ -7,13 +7,12 @@ from typing import List
 
 import pytest
 from PIL import Image, ImageOps, ImageFont, ImageDraw
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from httpretty import httpretty
-from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
 
-from core.models import FlightState, UserType, Flight, Camera, UserProject, ArtifactType, Artifact
+from core.models import FlightState, UserType, Flight, Camera, UserProject, ArtifactType, Artifact, User
 
 
 class MockFont:
@@ -21,11 +20,15 @@ class MockFont:
 
 
 class MockDraw:
-    def textsize(self, text: str, font: MockFont):
+    @staticmethod
+    def textsize(text: str, font: MockFont):
+        del (text,)  # unused
         assert isinstance(font, MockFont)
-        return (100, 10)
+        return 100, 10
 
-    def text(self, pos, text, color, font):
+    @staticmethod
+    def text(pos, text, color, font):
+        del (pos, text, color)  # unused
         assert isinstance(font, MockFont)
 
 
@@ -35,11 +38,12 @@ class MockImage:
         return self
 
     def resize(self, xy):
+        del (xy,)  # unused
         return self
 
-    def save(self, out_path: str, format: str):
+    def save(self, out_path: str, fmt: str):
         assert out_path.endswith(".png")
-        assert format == "PNG"
+        assert fmt == "PNG"
         return self
 
     def putalpha(self, mask):
@@ -47,6 +51,7 @@ class MockImage:
         return self
 
     def paste(self, another, xy):
+        del (xy,)  # unused
         assert isinstance(another, MockImage)
         return self
 
@@ -54,6 +59,7 @@ class MockImage:
         return [self]
 
     def putpixel(self, xy, color):
+        del (color,)  # unused
         assert xy[1] == 0
         return self
 
@@ -65,7 +71,6 @@ class TestStandaloneViews:
         from pyfakefs.fake_filesystem_unittest import Pause
         with Pause(fs):
             # Pause(fs) stops the fake filesystem and allows Django access to the common password list
-            User = get_user_model()
             u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1")
             u2 = User.objects.create_user(username="u2", email="u2@example.com", password="u2")
             admin = User.objects.create_user(username="admin", email="admin@example.com", password="admin",
@@ -98,18 +103,20 @@ class TestStandaloneViews:
     def c(self):
         return APIClient()
 
-    def _auth(self, c, user):
+    @staticmethod
+    def _auth(c, user):
         token = Token.objects.get(user=user)
         c.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
 
-    @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
+    # @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
     def test_upload_images_succesful(self, c, users, flights, fs):
         self._auth(c, users[0])
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
                                "")
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
                                "")
-        import django, pytz
+        import django
+        import pytz
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
         fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
         fs.create_file("/tmp/image1.jpg", contents="foobar")
@@ -119,7 +126,8 @@ class TestStandaloneViews:
 
     def test_upload_images_error_on_creation(self, c, users, flights, fs):
         import inspect
-        import django, pytz
+        import django
+        import pytz
 
         self._auth(c, users[0])
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
@@ -132,7 +140,8 @@ class TestStandaloneViews:
 
     def test_upload_images_error_on_commit(self, c, users, flights, fs):
         import inspect
-        import django, pytz
+        import django
+        import pytz
 
         self._auth(c, users[0])
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
@@ -159,6 +168,31 @@ class TestStandaloneViews:
         resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}))
         assert resp.status_code == 200
 
+    def test_upload_images_user_disk_full(self, c, fs, users: List[User], flights):
+        """
+        Tests that image upload fails if the user is over his disk quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            users: A fixture containing some pre-created Users
+            flights: A fixture containing some pre-created Flights
+        """
+        self._auth(c, users[0])
+        users[0].used_space = 50 * 1024 ** 2  # 50GB used
+        users[0].save()
+        users[0].refresh_from_db()
+        assert users[0].used_space > users[0].maximum_space
+        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
+                               "")
+        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
+                               "")
+        import django
+        import pytz
+        fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
+        fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
+        resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": []})
+        assert resp.status_code == 402
+
     def _test_webhook(self, c, monkeypatch, fs, flight, false_code, real_code):
         """
         Helper function that tests the webhook with configurable behavior
@@ -167,8 +201,10 @@ class TestStandaloneViews:
             monkeypatch: The monkeypatch fixture
             fs: The pyfakefs fixture
             flight: A Flight object to test the webhook on
-            false_code: The status code that will be in the webhook POST data (false_code because it should NOT be trusted, as anybody can send a webhook request)
-            real_code: The status code that will be returned by NodeODM (real_code because it's The Final Truth, and unforgeable from the outside)
+            false_code: The status code that will be in the webhook POST data
+                (false_code because it should NOT be trusted, as anybody can send a webhook request)
+            real_code: The status code that will be returned by NodeODM (real_code because it's The Final Truth,
+                and unforgeable from the outside)
 
         Returns: The status code returned by the webhook view
         """
@@ -180,9 +216,11 @@ class TestStandaloneViews:
             return [200, response_headers, ""]
 
         def mark_executed_download_results(*args, **kwargs):
+            del (args, kwargs)  # unused
             _mark_executed(0, None)
 
         def get_real_info(request, uri, response_headers):
+            del (request,)  # unused
             assert str(flight.uuid) in uri
             data = {
                 "uuid": str(flight.uuid),
@@ -192,9 +230,11 @@ class TestStandaloneViews:
             return [200, response_headers, json.dumps(data)]
 
         def mark_executed_upload(request, uri, response_headers):
+            del (request, uri)  # unused
             return _mark_executed(1, response_headers)
 
         def mark_executed_config(request, uri, response_headers):
+            del (request, uri)  # unused
             return _mark_executed(2, response_headers)
 
         httpretty.register_uri(httpretty.GET,
@@ -216,17 +256,22 @@ class TestStandaloneViews:
         fs.create_file("/flights/{}/images.json".format(flight.uuid), contents="[]")
 
         def mock_create_image(*args, **kwargs):
+            del (args, kwargs)  # unused
             return MockImage()
 
         def mock_create_font(*args, **kwargs):
+            del (kwargs,)  # unused
             assert args[0] == "DejaVuSans.ttf"
             return MockFont()
 
         def mock_create_draw(*args, **kwargs):
+            del (kwargs,)  # unused
             assert isinstance(args[0], MockImage)
             return MockDraw()
 
         def mock_subprocess(*args, **kwargs):
+            del (kwargs,)  # unused
+
             class FakeStdout:
                 @staticmethod
                 def decode(encoding):
@@ -242,10 +287,13 @@ class TestStandaloneViews:
             return FakeSubprocessCall()
 
         def donothing(*args, **kwargs):
+            del (args, kwargs)  # unused
             # intentionally empty
             pass
 
         def mock_figure(*args, **kwargs):
+            del (args, kwargs)  # unused
+
             class MockCanvas:
                 def draw(self):
                     # intentionally empty
@@ -257,7 +305,7 @@ class TestStandaloneViews:
 
                 @staticmethod
                 def get_width_height():
-                    return (100, 200)
+                    return 100, 200
 
             class MockFigure:
                 canvas = MockCanvas()
@@ -265,6 +313,8 @@ class TestStandaloneViews:
             return MockFigure()
 
         def mock_fromstring(*args, **kwargs):
+            del (args, kwargs)  # unused
+
             class FakeNumpy:
                 def reshape(self, new_shape):
                     assert new_shape == (200, 100, 3)  # Reverse X and Y, add a 3 for RGB channels
@@ -277,15 +327,14 @@ class TestStandaloneViews:
         monkeypatch.setattr(ImageFont, "truetype", mock_create_font)
         monkeypatch.setattr(ImageOps, "fit", mock_create_image)
         monkeypatch.setattr(ImageDraw, "Draw", mock_create_draw)
-        import matplotlib, numpy
+        import matplotlib
+        import numpy
         monkeypatch.setattr(matplotlib.pyplot, "imread", donothing)
         monkeypatch.setattr(matplotlib.pyplot, "figure", mock_figure)
         monkeypatch.setattr(matplotlib.pyplot, "axis", donothing)
         monkeypatch.setattr(matplotlib.pyplot, "imshow", donothing)
         monkeypatch.setattr(matplotlib.pyplot, "imsave", donothing)
         monkeypatch.setattr(numpy, "fromstring", mock_fromstring)
-        import core.utils.colorbar_creator
-        # monkeypatch.setattr(core.utils.colorbar_creator, "create_colorbar", donothing)
         import subprocess
         monkeypatch.setattr(subprocess, "run", mock_subprocess)
         resp = c.post(reverse("webhook"), json.dumps(
@@ -371,6 +420,7 @@ class TestStandaloneViews:
         report_invoked = False
 
         def mock_report(*args, **kwargs):
+            del (args, kwargs)  # unused
             nonlocal report_invoked
             report_invoked = True
             return "/flights/" + uuid + "/report.pdf"
@@ -388,8 +438,7 @@ class TestStandaloneViews:
         assert c.post(reverse("check_formula"), {"formula": "foobar"}).status_code == 400
 
     def test_save_push_device(self, c):
-        User = get_user_model()
-        u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1")
+        User.objects.create_user(username="u1", email="u1@example.com", password="u1")
         assert c.post(reverse("push_devices",
                               kwargs={"device": "android"}),
                       {"username": "u1", "token": "dummyToken"}).status_code == 200
@@ -397,7 +446,8 @@ class TestStandaloneViews:
                               kwargs={"device": "android"}),
                       {"username": "u3", "token": "dummyToken"}).status_code == 400
 
-    def _test_upload_vector(self, c, fs, project, type):
+    @staticmethod
+    def _test_upload_vector(c, fs, project, type, should_succeed=True):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         executed = [False, False]
@@ -408,9 +458,11 @@ class TestStandaloneViews:
             return [200, response_headers, ""]
 
         def mark_executed_a(request, uri, response_headers):
+            del (request, uri)  # unused
             return _mark_executed(0, response_headers)
 
         def mark_executed_b(request, uri, response_headers):
+            del (request, uri)  # unused
             return _mark_executed(1, response_headers)
 
         kml_files = [SimpleUploadedFile(f"file2_{type}.{type}", b"A" * 1024 * 25)]
@@ -424,31 +476,68 @@ class TestStandaloneViews:
 
         resp = c.post(reverse("upload_vector", kwargs={"uuid": str(project.uuid)}),
                       {"datatype": type, "file": kml_files if type == "kml" else shp_files, "title": "myVector"})
-
-        assert len(project.artifacts.all()) == 1
-        assert all(executed)
-        assert project.artifacts.first().type == ArtifactType.SHAPEFILE.name
-        assert resp.status_code == 201
+        if should_succeed:
+            assert all(executed)
+        return resp
 
     def test_upload_vector_kml(self, c, fs, projects: List[UserProject]):
-        self._test_upload_vector(c, fs, projects[0], "kml")
+        resp = self._test_upload_vector(c, fs, projects[0], "kml")
 
+        assert len(projects[0].artifacts.all()) == 1
+        assert projects[0].artifacts.first().type == ArtifactType.SHAPEFILE.name
+        assert resp.status_code == 201
         projects[0].refresh_from_db()
         projects[0].user.refresh_from_db()
         assert projects[0].used_space == 25
         assert projects[0].user.used_space == 25
 
     def test_upload_vector_shp(self, c, fs, projects: List[UserProject]):
-        self._test_upload_vector(c, fs, projects[0], "shp")
+        """
+        Tests the upload of a Shapefile (plus companion files) to a Project
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            projects: A fixture containing pregenerated Projects
+        """
+        resp = self._test_upload_vector(c, fs, projects[0], "shp")
 
+        assert len(projects[0].artifacts.all()) == 1
+        assert projects[0].artifacts.first().type == ArtifactType.SHAPEFILE.name
+        assert resp.status_code == 201
         projects[0].refresh_from_db()
         projects[0].user.refresh_from_db()
         assert projects[0].used_space == 75  # 3 files (.shp, .shx, .dbf), each of 25KB
         assert projects[0].user.used_space == 75  # User only has one Project of 75KB
 
-    def test_upload_geotiff(self, c, fs, projects):
-        from django.core.files.uploadedfile import SimpleUploadedFile
+    def test_upload_vector_over_quota(self, c, fs, projects: List[UserProject]):
+        """
+        Tests that uploading a vector file fails if User is over his disk quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            projects: A fixture containing pregenerated Projects
+        """
+        projects[0].user.used_space = 50 * 1024 ** 2
+        projects[0].user.save()
+        resp = self._test_upload_vector(c, fs, projects[0], "kml", should_succeed=False)
 
+        assert resp.status_code == 402
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 0  # no extra disk space should be used!
+        assert projects[0].user.used_space == 50 * 1024 ** 2
+
+    @staticmethod
+    def _upload_geotiff(c, fs, projects, should_succeed=True):
+        """
+        Helper function to upload a GeoTIFF to a Project
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            projects: A fixture containing pregenerated Projects
+            should_succeed: True if the creation request should be successful
+        """
+        from django.core.files.uploadedfile import SimpleUploadedFile
         executed = [False, False]
 
         def _mark_executed(i, response_headers):
@@ -457,9 +546,11 @@ class TestStandaloneViews:
             return [200, response_headers, ""]
 
         def mark_executed_a(request, uri, response_headers):
+            del (request, uri)  # unused
             return _mark_executed(0, response_headers)
 
         def mark_executed_b(request, uri, response_headers):
+            del (request, uri)  # unused
             return _mark_executed(1, response_headers)
 
         project: UserProject = projects[0]
@@ -469,28 +560,68 @@ class TestStandaloneViews:
                                str(project.uuid) + "/coveragestores/file/external.geotiff", mark_executed_a)
         httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
                                str(project.uuid) + "/coveragestores/file/coverages/file.json", mark_executed_b)
-
         resp = c.post(reverse("upload_geotiff", kwargs={"uuid": str(project.uuid)}),
                       {"geotiff": f, "title": "myKML"})
 
-        assert len(project.artifacts.all()) == 1
-        assert all(executed)
-        assert project.artifacts.first().type == ArtifactType.ORTHOMOSAIC.name
+        if should_succeed:
+            assert all(executed)
+        return resp
+
+    def test_upload_geotiff(self, c, fs, projects):
+        """
+        Tests uploading a GeoTIFF in the successful case
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            projects: A fixture containing pregenerated Projects
+        """
+        resp = self._upload_geotiff(c, fs, projects)
+
+        assert len(projects[0].artifacts.all()) == 1
+        assert projects[0].artifacts.first().type == ArtifactType.ORTHOMOSAIC.name
         assert resp.status_code == 201
 
-        project.refresh_from_db()
-        project.user.refresh_from_db()
-        assert project.used_space == 1024
-        assert project.user.used_space == 1024
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 1024
+        assert projects[0].user.used_space == 1024
 
-    def test_upload_index(self, c, fs, flights, projects):
+    def test_upload_geotiff_over_quota(self, c, fs, projects):
+        """
+        Tests that uploading a GeoTIFF to a Project fails if the User is over his disk quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            projects: A fixture containing pregenerated Projects
+        """
+        projects[0].user.used_space = 50 * 1024 ** 2
+        projects[0].user.save()
+        resp = self._upload_geotiff(c, fs, projects, should_succeed=False)
+
+        assert resp.status_code == 402
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 0
+        assert projects[0].user.used_space == 50 * 1024 ** 2
+
+    @staticmethod
+    def _upload_index(c, fs, flights, projects):
+        """
+        Helper function to upload a raster index to a Project
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            flights: A fixture containing pregenerated Projects
+            projects: A fixture containing pregenerated Projects
+        """
         project: UserProject = projects[0]
         flight: Flight = flights[0]
         flight.state = FlightState.COMPLETE.name
         flight.save()
         fs.create_dir("/projects/{}".format(project.uuid))
         fs.create_file("/flights/{}/odm_orthophoto/my_index.tif".format(flight.uuid), contents="A" * 1024 ** 2)
-        import django, lark
+        import django
+        import lark
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
         fs.add_real_directory(os.path.dirname(inspect.getfile(lark)))
         httpretty.register_uri(httpretty.PUT, "http://container-geoserver:8080/geoserver/rest/workspaces/project_" +
@@ -501,20 +632,52 @@ class TestStandaloneViews:
                                str(project.uuid) + ":my_index.json", "")
         resp = c.post(reverse("create_raster_index", kwargs={"uuid": str(project.uuid)}),
                       json.dumps({"index": "my_index", "formula": "red+1"}), content_type="application/text")
+        return resp
+
+    def test_upload_index(self, c, fs, flights, projects):
+        """
+        Tests uploading a raster index in the successful case
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            flights: A fixture containing pregenerated Projects
+            projects: A fixture containing pregenerated Projects
+        """
+        resp = self._upload_index(c, fs, flights, projects)
         assert resp.status_code == 200
 
-        project.refresh_from_db()
-        project.user.refresh_from_db()
-        assert project.used_space == 1024  # 1MB for the fake index
-        assert project.user.used_space == 2048  # 1MB for the fake index in the Flight, same for the Project
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 1024  # 1MB for the fake index
+        assert projects[0].user.used_space == 2048  # 1MB for the fake index in the Flight, same for the Project
+
+    def test_upload_index_over_quota(self, c, fs, flights, projects):
+        """
+        Tests that uploading a raster index to a Project fails if the User is over his disk quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            flights: A fixture containing pregenerated Projects
+            projects: A fixture containing pregenerated Projects
+        """
+        projects[0].user.used_space = 50 * 1024 ** 2
+        projects[0].user.save()
+        resp = self._upload_index(c, fs, flights, projects)
+
+        assert resp.status_code == 402
+        projects[0].refresh_from_db()
+        projects[0].user.refresh_from_db()
+        assert projects[0].used_space == 0
+        assert projects[0].user.used_space == 50 * 1024 ** 2
 
     def test_preview_flight_url(self, c, flights):
         executed = False
 
         def mark_executed(request, uri, response_headers):
+            del (request, uri)  # unused
             nonlocal executed
             executed = True
-            resp = json.dumps({"coverage": {
+            _resp = json.dumps({"coverage": {
                 "nativeBoundingBox": {
                     "minx": 0,
                     "maxx": 1,
@@ -523,7 +686,7 @@ class TestStandaloneViews:
                 },
                 "srs": "fakeSRS"
             }})
-            return [200, response_headers, resp]
+            return [200, response_headers, _resp]
 
         flight: Flight = flights[0]
         httpretty.register_uri(httpretty.GET, "http://container-geoserver:8080/geoserver/rest/workspaces/flight_" +
@@ -555,7 +718,8 @@ class TestStandaloneViews:
         mock.attach_alternative.assert_called_with(ANY, "text/html")
         mock.send.assert_called()
 
-    def _test_mapper_serve_static(self, c, fs, url, filename, contents):
+    @staticmethod
+    def _test_mapper_serve_static(c, fs, url, filename, contents):
         fs.create_file(filename, contents=contents)
         resp = c.get(url)
         assert next(resp.streaming_content).decode("utf-8") == contents

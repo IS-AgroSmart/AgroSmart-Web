@@ -30,14 +30,14 @@ class DiskSpaceTrackerMixin:
         for item in os.listdir(path):
             itempath = os.path.join(path, item)
             if os.path.isfile(itempath):
-                # print(itempath,"=",os.path.getsize(itempath)) # Uncomment to print filename and size for every file
+                print(itempath,"=",os.path.getsize(itempath)) # Uncomment to print filename and size for every file
                 total_size += os.path.getsize(itempath)
             elif os.path.isdir(itempath):
                 total_size += DiskSpaceTrackerMixin._size_of_dir(itempath)
         return total_size
 
     def update_disk_space(self):
-        # print("DISK SPACE", self) # Uncomment if debug info required
+        print("DISK SPACE", self) # Uncomment if debug info required
         self.used_space = DiskSpaceTrackerMixin._size_of_dir(self.get_disk_path()) // 1024
         self.save()  # this will call Flight.save() or UserProject.save()
 
@@ -65,5 +65,8 @@ class DiskRelationTrackerMixin:
         raise NotImplementedError("get_disk_related_models() should be implemented!")
 
     def update_disk_space(self):
+        print("DISK SPACE USER", self) # Uncomment if debug info required
+        print(self.get_disk_related_models())
         self.used_space = sum([obj.used_space for obj in self.get_disk_related_models()])
         self.save()  # this will call User.save()
+        print("DISK SPACE USER", self, self.used_space)  # Uncomment if debug info required
