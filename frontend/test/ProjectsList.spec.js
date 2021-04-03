@@ -6,7 +6,11 @@ import flushPromises from "flush-promises";
 
 import FlightDetails from 'components/Project.vue';
 
-import { ButtonPlugin, CardPlugin, AlertPlugin } from 'bootstrap-vue'
+import {
+    ButtonPlugin,
+    CardPlugin,
+    AlertPlugin
+} from 'bootstrap-vue'
 import ReactiveStorage from "vue-reactive-localstorage";
 
 const localVue = createLocalVue();
@@ -19,7 +23,9 @@ localVue.use(ReactiveStorage, {
     "isAdmin": false,
     "otherUserPk": 0,
     "loggedInUser": {
-        type: "DEMO_USER"
+        type: "DEMO_USER",
+        used_space: 50 * Math.pow(1024, 2),
+        maximum_space: 120 * Math.pow(1024, 2)
     }
 });
 
@@ -112,6 +118,7 @@ describe("Project list component", () => {
 
         expect(wrapper.text()).not.toContain("Crear proyecto");
         expect(wrapper.text()).toContain("No puede crear proyectos");
+        expect(wrapper.text()).toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
     });
 
     it("doesn't show New Project button for deleted users", async () => {
@@ -122,6 +129,21 @@ describe("Project list component", () => {
 
         expect(wrapper.text()).not.toContain("Crear proyecto");
         expect(wrapper.text()).toContain("No puede crear proyectos");
+        expect(wrapper.text()).toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
+    });
+
+
+    it("doesn't show New Project button for users who are over disk quota", async () => {
+        mockProjects();
+        wrapper.vm.storage.loggedInUser.type = "ACTIVE";
+        wrapper.vm.storage.loggedInUser.used_space = 200 * Math.pow(1024, 2); // 200GB used, 120GB max space
+        mountComponent();
+        await flushPromises();
+
+        expect(wrapper.text()).not.toContain("Crear proyecto");
+        expect(wrapper.text()).toContain("No puede crear proyectos");
+        expect(wrapper.text()).not.toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 
     it("requests Projects as other user when impersonating", async () => {
@@ -132,7 +154,7 @@ describe("Project list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);;
+        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("respects impersonated User permissions (impersonated Demo = can't create Projects)", async () => {

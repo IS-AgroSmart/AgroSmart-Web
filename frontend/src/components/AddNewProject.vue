@@ -4,7 +4,7 @@
             <div class="text-center">
                 <b-button v-if="canCreateProjects" :to="{name: 'newProject'}" variant="primary">Crear proyecto</b-button>
                 <b-card-text v-else>
-                    <small class="text-muted">No puede crear proyectos. Póngase en contacto con AgroSmart para activar su cuenta.</small>
+                    <small class="text-muted">No puede crear proyectos. {{ unableReason }}</small>
                 </b-card-text>
             </div>
         </b-card>
@@ -15,17 +15,19 @@
 import forceLogin from './mixins/force_login'
 
 export default {
-    data() {
-        return {
-
-        };
-    },
     computed: {
         targetUser: function() {
             // returns this.storage.otherUserPk. If it's null, it falls back to this.storage.loggedInUser
             return this.storage.otherUserPk || this.storage.loggedInUser;
         },
-        canCreateProjects: function() { return ["ACTIVE", "ADMIN"].includes(this.targetUser.type); },
+        canCreateProjects: function() { return this.unableReason == "" },
+        unableReason: function() {
+            if (this.targetUser.used_space >= this.targetUser.maximum_space)
+                return "Su almacenamiento está lleno.";
+            else if (!(["ACTIVE", "ADMIN"].includes(this.targetUser.type)))
+                return "Póngase en contacto con AgroSmart para activar su cuenta.";
+            return "";
+        }
     },
     mixins: [forceLogin]
 }

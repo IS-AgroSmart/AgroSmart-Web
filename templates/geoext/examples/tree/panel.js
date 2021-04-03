@@ -659,6 +659,8 @@ function addIndex(index) {
     }).then(function (response) {
         if (response.status === 200) {
             window.location.reload(true); // Reload page if index created successfully
+        } else if (response.status === 402) {
+            throw "Su almacenamiento está lleno, no puede crear nuevos índices";
         } else throw response.text();
     }).catch((msg) => alert(msg));
 }

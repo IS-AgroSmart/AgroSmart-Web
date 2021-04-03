@@ -181,4 +181,16 @@ describe("Upload images component", () => {
         await flushPromises();
         expect(wrapper.text()).toContain("Subida fallida");
     });
+
+    it("shows error message when user is over quota", async () => {
+        mockSuccessful();
+        mock.onPost(/api\/upload-files\/myuuid/).reply(402); // HTTP 402 Payment Required
+        mountComponent();
+        await flushPromises();
+
+        wrapper.find("form").trigger("submit");
+        await flushPromises();
+        expect(wrapper.text()).toContain("Subida fallida");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
+    });
 })

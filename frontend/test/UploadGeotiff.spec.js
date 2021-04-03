@@ -8,7 +8,6 @@ import UploadGeotiff from 'components/UploadGeotiff.vue';
 
 import BootstrapVue from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
-import VueRouter from 'vue-router';
 
 const localVue = createLocalVue();
 localVue.prototype.$isLoggedIn = () => true;
@@ -78,6 +77,16 @@ describe('GeoTIFF upload component', () => {
         await flushPromises();
         expect(wrapper.find('.alert-danger').exists()).toBe(true);
         expect(wrapper.text()).toContain("Subida fallida");
+    });
+
+    it("shows error message when user is over quota", async () => {
+        mock.onPost(/api\/uploads\/.+\/geotiff/).reply(402); // HTTP 402 Payment Required
+
+        wrapper.find("form").trigger("submit");
+        await flushPromises();
+        expect(wrapper.find('.alert-danger').exists()).toBe(true);
+        expect(wrapper.text()).toContain("Subida fallida");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 
     it("shows the correct message when no files selected", async () => {

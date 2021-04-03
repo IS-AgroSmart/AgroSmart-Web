@@ -69,11 +69,6 @@ describe("Index creation component", () => {
         });
     };
 
-    const mockApi = (url, responseData, valid = true) => {
-        if (valid) mock.onGet(url).reply(200, responseData);
-        else mock.onGet(url).networkError();
-    };
-
     beforeEach(() => {
         mock = new MockAdapter(axios);
     });
@@ -200,6 +195,18 @@ describe("Index creation component", () => {
         await flushPromises();
 
         expect(mock.history.post.length).toBe(1);
-        expect(wrapper.text()).toContain("Error en la fórmula");
+        expect(wrapper.text()).toContain("Operación fallida");
+    });
+
+    it("shows error message when user is over quota", async () => {
+        mountComponent();
+
+        mock.onPost("/api/rastercalcs/myuuid").reply(402); // HTTP 402 Payment Required
+        await wrapper.find("form").trigger("submit");
+        await flushPromises();
+
+        expect(wrapper.find('.alert-danger').exists()).toBe(true);
+        expect(wrapper.text()).toContain("Operación fallida");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 })

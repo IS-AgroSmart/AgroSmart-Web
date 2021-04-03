@@ -109,6 +109,11 @@ Vue.prototype.$isMasquerading = function() {
   if(this.storage.otherUserPk != undefined && this.storage.otherUserPk != "") return this.storage.otherUserPk;
   else return null;
 }
+Vue.prototype.$effectiveUser = function() {
+  if(!this.$isLoggedIn()) return null;
+  // Try to use masqueraded user, if null then revert to logged in
+  return this.$isMasquerading() ?? this.storage.loggedInUser; 
+}
 Vue.prototype.$cameras = [
   { text: 'Micasense Rededge', value: "REDEDGE" },
   { text: 'RGB', value: "RGB" }
