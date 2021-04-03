@@ -17,7 +17,9 @@ localVue.use(ReactiveStorage, {
     "isAdmin": false,
     "otherUserPk": 0,
     "loggedInUser": {
-        type: "DEMO_USER"
+        type: "DEMO_USER",
+        used_space: 50 * Math.pow(1024, 2),
+        maximum_space: 120 * Math.pow(1024, 2)
     }
 });
 
@@ -53,7 +55,7 @@ describe("Flight list component", () => {
             progress: 40,
         },
         is_demo: false,
-    },{
+    }, {
         uuid: "uuid2",
         camera: "RGB",
         processing_time: 6000,
@@ -65,7 +67,7 @@ describe("Flight list component", () => {
             progress: 100,
         },
         is_demo: false,
-    },{
+    }, {
         uuid: "uuid3",
         camera: "RGB",
         processing_time: 6000,
@@ -98,7 +100,8 @@ describe("Flight list component", () => {
         expect(wrapper.text()).toContain("Completed demo flight");
         expect(wrapper.text()).toContain("Completed flight");
 
-        expect(mock.history.get.length).toBe(1);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
     });
 
     it("correctly identifies demo flights", async () => {
@@ -118,6 +121,8 @@ describe("Flight list component", () => {
 
         expect(wrapper.findAll("a.btn")
             .filter(b => b.text() == "Crear vuelo")).toHaveLength(1);
+        expect(wrapper.text()).not.toContain("Su almacenamiento está lleno.");
+        expect(wrapper.text()).not.toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
     });
 
     it("doesn't show New Flight button for demo users", async () => {
@@ -128,6 +133,7 @@ describe("Flight list component", () => {
 
         expect(wrapper.text()).not.toContain("Crear vuelo");
         expect(wrapper.text()).toContain("No puede crear vuelos");
+        expect(wrapper.text()).toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
     });
 
     it("doesn't show New Flight button for deleted users", async () => {
@@ -138,6 +144,20 @@ describe("Flight list component", () => {
 
         expect(wrapper.text()).not.toContain("Crear vuelo");
         expect(wrapper.text()).toContain("No puede crear vuelos");
+        expect(wrapper.text()).toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
+    });
+
+    it("doesn't show New Flight button for users who are over disk quota", async () => {
+        mockFlights();
+        wrapper.vm.storage.loggedInUser.type = "ACTIVE";
+        wrapper.vm.storage.loggedInUser.used_space = 200 * Math.pow(1024, 2); // 200GB used, 120GB max space
+        mountComponent();
+        await flushPromises();
+
+        expect(wrapper.text()).not.toContain("Crear vuelo");
+        expect(wrapper.text()).toContain("No puede crear vuelos");
+        expect(wrapper.text()).not.toContain("Póngase en contacto con AgroSmart para activar su cuenta.");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 
     it("requests Flights as other user when impersonating", async () => {
@@ -148,7 +168,8 @@ describe("Flight list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("respects impersonated User permissions (impersonated Demo = can't create Flights)", async () => {
@@ -199,9 +220,10 @@ describe("Flight list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get.length).toBe(1);
-        jest.advanceTimersByTime(2000);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
+        jest.advanceTimersByTime(2000); // wait a bit
         await flushPromises();
-        expect(mock.history.get.length).toBeGreaterThan(1);
+        expect(mock.history.get.length).toBeGreaterThan(2);
     });
 })

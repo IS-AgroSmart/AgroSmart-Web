@@ -10,14 +10,18 @@
             Está trabajando como el usuario {{ this.storage.otherUserPk.username }}.
             <b-link @click="stopMasquerading">Terminar</b-link>
         </b-alert>
+        <custom-footer/>
     </div>
 </template>
 
 <script>
 import Navbar from './components/Navbar'
+import CustomFooter from './components/CustomFooter'
+
 export default {
     components: {
-        Navbar
+        Navbar,
+        CustomFooter
     },
     computed: {
         masquerading: function() { return this.storage.otherUserPk },

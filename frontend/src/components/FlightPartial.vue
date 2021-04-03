@@ -21,7 +21,7 @@
 
 <script>
 import axios from 'axios'
-import forceLogin from './mixins/force_login'
+// import forceLogin from './mixins/force_login'
 
 export default {
     data() {
@@ -87,6 +87,6 @@ export default {
         flight: { type: Object },
         deleted: { type: Boolean, default: false }
     },
-    mixins: [forceLogin]
+    //mixins: [forceLogin] // forceLogin not required, this will only be instantiated from page components
 }
 </script>

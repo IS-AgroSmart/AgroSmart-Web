@@ -2,6 +2,7 @@
     <div class="pt-3" style="padding-left:15px; padding-right:15px;">
         <b-alert variant="success" show v-if="indexOK">Índice correcto</b-alert>
         <b-alert variant="danger" show v-if="indexWrong">Error en la fórmula</b-alert>
+        <b-alert variant="danger" show v-if="uploadError">{{ uploadError }}</b-alert>
     
         <div>
             <b-button-toolbar key-nav justify>
@@ -73,6 +74,7 @@ export default {
             formula: "",
             indexOK: false,
             indexWrong: false,
+            uploadError: "",
             uploading: false,
         }
     },
@@ -93,9 +95,12 @@ export default {
                 .then(function() {
                     window.history.back();
                 })
-                .catch(function() {
+                .catch(function(error) {
                     that.indexOK = false;
-                    that.indexWrong = true;
+                    if(error.response?.status == 402)
+                        that.uploadError = "Operación fallida. Su almacenamiento está lleno.";
+                    else
+                        that.uploadError = "Operación fallida.";
                     that.uploading = false;
                 });
         },

@@ -197,11 +197,11 @@ describe("Flight details component", () => {
         mountComponent();
         await flushPromises();
 
-        // api/flights/???, nodeodm/task/???/info, nodeodm/task/???/console
-        expect(mock.history.get).toHaveLength(3);
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // api/users, api/flights/???, nodeodm/task/???/info, nodeodm/task/???/console
+        expect(mock.history.get).toHaveLength(4);
         expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
         expect(mock.history.get[2].headers).toHaveProperty("TARGETUSER", 123);
+        expect(mock.history.get[3].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("doesn't send admin data if not set", async () => {
@@ -281,7 +281,7 @@ describe("Flight details component", () => {
         await wrapper.vm.deleteFlight();
         await flushPromises();
 
-        expect(mock.history.delete.length).toBe(1);
+        expect(mock.history.delete).toHaveLength(1);
         expect(wrapper.vm.$bvModal.msgBoxConfirm).toHaveBeenCalledWith(
             "Este vuelo no podrá ser recuperado.", expect.any(Object));
     });

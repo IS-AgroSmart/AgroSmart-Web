@@ -1,19 +1,11 @@
 import glob
-import signal
 from datetime import datetime
 from typing import List
-import os
-import requests
-from django.db.models.signals import post_save, post_delete
-import json
 
 import pytest
 from django.db import IntegrityError
-from django.test import TestCase
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from httpretty import httpretty
-from rest_framework.test import APIClient
 
 from core.models import *
 from core.test_viewsets import FlightsMixin, BaseTestViewSet
@@ -47,6 +39,7 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
         put_requests = []
 
         def mark_create_ws_executed(request, uri, response_headers):
+            del (request, uri)
             nonlocal create_ws_executed
             create_ws_executed = True
             return [200, response_headers, ""]
@@ -57,7 +50,9 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
 
         httpretty.register_uri(httpretty.POST, "http://container-geoserver:8080/geoserver/rest/workspaces",
                                mark_create_ws_executed)
-        import inspect, django, pytz
+        import inspect
+        import django
+        import pytz
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
         fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
         fs.create_file("/flights/{}/odm_orthophoto/rgb.tif".format(flights[1].uuid), contents="")
@@ -83,11 +78,29 @@ class TestUserProjectModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
         with open(project_path + "/mainortho/timeregex.properties") as f:
             assert f.read() == "regex=[0-9]{8},format=yyyyMMdd"
 
+    def test_compute_disk_space(self, fs, projects: List[UserProject]):
+        """
+        Tests that the used disk space is updated correctly
+        Args:
+            fs: The pyfakefs fixture
+            projects: A list of projects
+        """
+        p = projects[0]
+        # These should be 41KB and 1MB files, respectively
+        fs.create_file(p.get_disk_path() + "/smallfile.txt", contents="A" * 1024 * 41)
+        fs.create_file(p.get_disk_path() + "/somewhere/hidden/bigfile.txt", contents="Z" * 1024 * 1024)
+
+        p.update_disk_space()
+        p.refresh_from_db()
+
+        assert p.used_space == 1024 + 41
+
 
 @pytest.mark.django_db
 class TestArtifactModel(ProjectsMixin, BaseTestViewSet):
-    def _test_disk_path(self, projects, type, name, filename, title):
-        art = Artifact.objects.create(project=projects[0], type=type.name, name=name,
+    @staticmethod
+    def _test_disk_path(projects, art_type, name, filename, title):
+        art = Artifact.objects.create(project=projects[0], type=art_type.name, name=name,
                                       title=title)
         path = art.get_disk_path()
         assert "/projects/" in path
@@ -103,48 +116,85 @@ class TestArtifactModel(ProjectsMixin, BaseTestViewSet):
         self._test_disk_path(projects, ArtifactType.INDEX, "somefile", "somefile.tif", "Index")
 
 
-class FlightModelTest(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user('temporary', 'temporary@gmail.com', 'temporary')
-        self.user2 = User.objects.create_user('temporary2', 'temporary2@gmail.com', 'temporary')
+@pytest.mark.django_db
+class TestFlightModel(FlightsMixin, BaseTestViewSet):
+    def test_cannot_repeat_flight_name_on_same_user(self, users):
+        u = users[0]
+        u.flight_set.create(name="title", date=datetime.now())
+        with pytest.raises(IntegrityError):
+            u.flight_set.create(name="title", date=datetime.now())
 
-        post_save.disconnect(create_nodeodm_task, sender=Flight)
-        post_delete.disconnect(delete_nodeodm_task, sender=Flight)
-        post_delete.disconnect(delete_thumbnail, sender=Flight)
-        post_delete.disconnect(delete_geoserver_workspace, sender=Flight)
-        post_delete.disconnect(delete_geoserver_workspace, sender=UserProject)
-        post_delete.disconnect(delete_on_disk, sender=UserProject)
-
-    def test_cannot_repeat_flight_name_on_same_user(self):
-        self.user.flight_set.create(name="title", date=datetime.now())
-        self.assertRaises(IntegrityError, self.user.flight_set.create, name="title", date=datetime.now())
-
-    def test_can_repeat_flight_name_on_different_user(self):
-        self.user.flight_set.create(name="title", date=datetime.now())
+    def test_can_repeat_flight_name_on_different_user(self, users):
+        users[0].flight_set.create(name="title", date=datetime.now())
         try:
-            self.user2.flight_set.create(name="title", date=datetime.now())
+            users[1].flight_set.create(name="title", date=datetime.now())
         except IntegrityError:
-            self.fail("Attempt to create flight raised IntegrityError unexpectedly!")
+            pytest.fail("Attempt to create flight raised IntegrityError unexpectedly!")
 
-    def test_flight_initializes_as_waiting_for_images(self):
-        f = self.user.flight_set.create(name="flight", date=datetime.now())
-        self.assertEqual(f.state, FlightState.WAITING.name)
+    def test_flight_initializes_as_waiting_for_images(self, users):
+        f = users[0].flight_set.create(name="flight", date=datetime.now())
+        assert f.state == FlightState.WAITING.name
 
-    def test_flight_png_ortho_path(self):
-        f = self.user.flight_set.create(name="flight", date=datetime.now())
-        self.assertTrue(str(f.uuid) in f.get_png_ortho_path())
-        self.assertTrue(f.get_png_ortho_path().endswith("/odm_orthophoto/odm_orthophoto.png"))
+    def test_flight_png_ortho_path(self, users):
+        f = users[0].flight_set.create(name="flight", date=datetime.now())
+        assert str(f.uuid) in f.get_png_ortho_path()
+        assert f.get_png_ortho_path().endswith("/odm_orthophoto/odm_orthophoto.png")
 
-    def test_get_nodeodm_info(self):
-        f: Flight = self.user.flight_set.create(name="flight", date=datetime.now())
+    def test_get_nodeodm_info(self, users):
+        f: Flight = users[0].flight_set.create(name="flight", date=datetime.now())
         f.state = FlightState.PROCESSING.name
         f.save()
 
-        httpretty.enable()
+        # httpretty.enable()
         httpretty.register_uri(httpretty.GET, "http://container-nodeodm:3000/task/{}/info".format(f.uuid),
                                body=json.dumps({"processingTime": 123, "progress": 42}))
         info = f.get_nodeodm_info()
         assert info["processingTime"] == 123
         assert info["progress"] == 42
         assert info["numImages"] == 0
+
+    def test_compute_disk_space(self, fs, users):
+        """
+        Tests that the used disk space is updated correctly
+        Args:
+            fs: The pyfakefs fixture
+            users: The User list fixture
+        """
+        f = users[0].flight_set.create(name="flight", date=datetime.now())
+        # These should be 3KB and 3MB files, respectively
+        fs.create_file(f.get_disk_path() + "/images.json", contents="A" * 1024 * 3)
+        fs.create_file(f.get_disk_path() + "/odm_orthophoto/odm_orthophoto.tif", contents="Z" * 1024 * 1024 * 3)
+
+        f.update_disk_space()
+        f.refresh_from_db()
+
+        assert f.used_space == (3 * 1024) + 3
+
+
+@pytest.mark.django_db
+class TestUserModel(FlightsMixin, ProjectsMixin, BaseTestViewSet):
+    def test_compute_disk_space(self, fs, users, flights, projects):
+        """
+        Tests that the used disk space is updated correctly
+        Args:
+            fs: The pyfakefs fixture
+            users: The User list fixture
+        """
+        u: User = users[0]
+        u.refresh_from_db()
+        f = u.flight_set.all()[0]
+        p = u.user_projects.all()[0]
+
+        # Create files for the user's first Flight
+        fs.create_file(f.get_disk_path() + "/smallfile.txt", contents="A" * 1024 * 3)
+        fs.create_file(f.get_disk_path() + "/odm_orthophoto/bigfile.tif", contents="Z" * 1024 * 1024 * 3)
+        # Create files for the user's first UserProject
+        fs.create_file(p.get_disk_path() + "/smallfile.txt", contents="A" * 1024 * 41)
+        fs.create_file(p.get_disk_path() + "/somewhere/hidden/bigfile.txt", contents="Z" * 1024 * 1024)
+
+        f.update_disk_space()
+        p.update_disk_space()
+        u.update_disk_space()  # User.update_disk_space() expects all Flights and Projects to be updated
+        u.refresh_from_db()
+
+        assert u.used_space == 3 + (3 * 1024) + 41 + 1024

@@ -1,8 +1,6 @@
 <template>
     <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
-        <b-alert variant="success" show v-if="uploadOK">Subida exitosa. Procesando...</b-alert>
-        <b-alert variant="danger" show v-if="uploadError">Subida fallida</b-alert>
-        <b-alert variant="danger" show v-if="processingError">No pudo iniciarse el procesamiento</b-alert>
+        <b-alert variant="danger" show v-if="uploadError">{{ uploadError }}</b-alert>
     
         <b-form @submit="onSubmit">
             <p class="small text-muted">{{ validFormats }}</p>
@@ -26,9 +24,7 @@ export default {
             flight: {},
             flightLoaded: false,
             files: [],
-            uploadOK: false,
-            uploadError: false,
-            processingError: false,
+            uploadError: "",
             uploading: false,
             uploadProgress: 0,
         }
@@ -66,8 +62,11 @@ export default {
                 .then(function() {
                     that.$router.replace({ "name": "flightDetails", params: { "uuid": that.$route.params.uuid } })
                 })
-                .catch(function() {
-                    that.uploadError = true;
+                .catch(function(error) {
+                    if(error.response?.status == 402)
+                        that.uploadError = "Subida fallida. Su almacenamiento está lleno.";
+                    else
+                        that.uploadError = "Subida fallida.";
                     that.uploading = false;
                 });
         },

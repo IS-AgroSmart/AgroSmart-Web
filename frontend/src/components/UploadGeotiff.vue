@@ -3,8 +3,7 @@
         <b-link href="#" @click="goBack()" class="mb-3">&lt; Volver al proyecto</b-link>
         <br><br>
 
-        <b-alert variant="success" show v-if="uploadOK">Subida exitosa. Procesando...</b-alert>
-        <b-alert variant="danger" show v-if="uploadError">Subida fallida</b-alert>
+        <b-alert variant="danger" show v-if="uploadError">{{ uploadError }}</b-alert>
     
         <b-form @submit="onSubmit">
             <b-form-group>
@@ -31,7 +30,6 @@ export default {
         return {
             file: null,
             title: "",
-            uploadOK: false,
             uploadError: false,
             uploading: false,
             uploadProgress: 0,
@@ -59,8 +57,11 @@ export default {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(() => this.goBack())
-                .catch(function() {
-                    that.uploadError = true;
+                .catch(function(error) {
+                    if(error.response?.status == 402)
+                        that.uploadError = "Subida fallida. Su almacenamiento está lleno.";
+                    else
+                        that.uploadError = "Subida fallida.";
                     that.uploading = false;
                 });
         },

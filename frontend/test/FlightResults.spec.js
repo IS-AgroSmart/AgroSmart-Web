@@ -31,7 +31,8 @@ localVue.use(ReactiveStorage, {
     "isAdmin": false,
     "otherUserPk": 0,
     "loggedInUser": {
-        type: "DEMO_USER"
+        type: "DEMO_USER",
+        username: "admin"
     }
 });
 
@@ -69,7 +70,10 @@ describe("Flight results component", () => {
 
     beforeEach(() => {
         mock = new MockAdapter(axios);
-
+        mock.onGet("api/users").replyOnce(200, [{
+            id: 1,
+            username: "admin"
+        }]);
     });
 
     afterEach(function () {
@@ -84,8 +88,9 @@ describe("Flight results component", () => {
         await flushPromises();
 
         expect(wrapper.text()).toContain("Flight Name");
-        expect(mock.history.get).toHaveLength(1);
-        expect(mock.history.get[0].url).toContain("/flights/myuuid");
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
+        expect(mock.history.get[1].url).toContain("/flights/myuuid");
         expect(wrapper.find(".alert").exists()).toBe(false);
     });
 
@@ -97,14 +102,15 @@ describe("Flight results component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // get[0] is /api/users
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows alert if API call fails", async () => {
         mockError();
         mountComponent();
         await flushPromises();
-        
+
         expect(wrapper.vm.error).toBeTruthy();
         expect(wrapper.find(".alert").exists()).toBe(true);
     })

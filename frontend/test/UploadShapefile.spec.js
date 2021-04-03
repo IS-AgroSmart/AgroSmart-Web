@@ -8,7 +8,6 @@ import UploadShapefile from 'components/UploadShapefile.vue';
 
 import BootstrapVue from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
-import VueRouter from 'vue-router';
 
 const localVue = createLocalVue();
 localVue.prototype.$isLoggedIn = () => true;
@@ -77,6 +76,17 @@ describe('Shapefile upload component', () => {
         wrapper.find('form').trigger('submit');
         await flushPromises();
         expect(wrapper.find('.alert-danger').exists()).toBe(true);
+        expect(wrapper.text()).toContain("Subida fallida");
+    });
+
+    it("shows error message when user is over quota", async () => {
+        mock.onPost(/api\/uploads\/.+\/vectorfile/).reply(402); // HTTP 402 Payment Required
+
+        wrapper.find("form").trigger("submit");
+        await flushPromises();
+        expect(wrapper.find('.alert-danger').exists()).toBe(true);
+        expect(wrapper.text()).toContain("Subida fallida");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 
     it("shows the correct message when wrong files selected", async () => {

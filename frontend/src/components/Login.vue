@@ -31,6 +31,7 @@
 
 <script>
 import axios from "axios";
+import { getUserInfo } from "../api/users"
 
 export default {
     data() {
@@ -49,14 +50,16 @@ export default {
                     "username": this.form.username,
                     "password": this.form.password
                 })
-                .then(tokenResponse => {
+                .then((tokenResponse) => {
                     this.storage.token = tokenResponse.data.token;
-                    axios.get("api/users", { headers: { "Authorization": "Token " + this.storage.token } })
-                        .then(response =>
-                            this.storage.loggedInUser = response.data.find((u) => u.username == this.form.username)
-                        )
-                        .catch(error => this.error = error);
-                    this.$router.replace({ path: '/flights' });
+                    return getUserInfo(this.storage.token, this.form.username);
+                }).then(([user, err]) => {
+                    if (err != null) {
+                        this.error = err;
+                    } else {
+                        this.storage.loggedInUser = user;
+                        this.$router.back();
+                    }
                 })
                 .catch(error => this.error = error);
         },

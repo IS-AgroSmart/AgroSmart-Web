@@ -69,11 +69,6 @@ describe("Index creation component", () => {
         });
     };
 
-    const mockApi = (url, responseData, valid = true) => {
-        if (valid) mock.onGet(url).reply(200, responseData);
-        else mock.onGet(url).networkError();
-    };
-
     beforeEach(() => {
         mock = new MockAdapter(axios);
     });
@@ -95,7 +90,7 @@ describe("Index creation component", () => {
         mountComponent();
 
         const inputs = wrapper.findAll("input");
-        expect(inputs.length).toBe(2);
+        expect(inputs).toHaveLength(2);
         expect(inputs.at(0).text()).toBe("");
         expect(inputs.at(1).text()).toBe("");
     });
@@ -169,7 +164,7 @@ describe("Index creation component", () => {
         await wrapper.find('form').trigger('submit');
         await flushPromises();
 
-        expect(mock.history.post.length).toBe(1);
+        expect(mock.history.post).toHaveLength(1);
         expect(mock.history.post[0].headers).toHaveProperty("Authorization", "Token usertoken");
         expect(JSON.parse(mock.history.post[0].data)).toMatchObject({
             "formula": "something",
@@ -199,7 +194,19 @@ describe("Index creation component", () => {
         await wrapper.find('form').trigger('submit');
         await flushPromises();
 
-        expect(mock.history.post.length).toBe(1);
-        expect(wrapper.text()).toContain("Error en la fórmula");
+        expect(mock.history.post).toHaveLength(1);
+        expect(wrapper.text()).toContain("Operación fallida");
+    });
+
+    it("shows error message when user is over quota", async () => {
+        mountComponent();
+
+        mock.onPost("/api/rastercalcs/myuuid").reply(402); // HTTP 402 Payment Required
+        await wrapper.find("form").trigger("submit");
+        await flushPromises();
+
+        expect(wrapper.find('.alert-danger').exists()).toBe(true);
+        expect(wrapper.text()).toContain("Operación fallida");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 })

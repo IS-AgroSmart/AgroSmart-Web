@@ -87,7 +87,7 @@ describe("Upload images component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get).toHaveLength(1);
+        expect(mock.history.get).toHaveLength(2); // 1st is GET /api/users, 2nd is GET /api/flights/uuid
         expect(wrapper.vm.error).toBeFalsy();
     });
 
@@ -99,7 +99,8 @@ describe("Upload images component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // get[0] is /api/users
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows alert if API call fails", async () => {
@@ -180,5 +181,17 @@ describe("Upload images component", () => {
         wrapper.find("form").trigger("submit");
         await flushPromises();
         expect(wrapper.text()).toContain("Subida fallida");
+    });
+
+    it("shows error message when user is over quota", async () => {
+        mockSuccessful();
+        mock.onPost(/api\/upload-files\/myuuid/).reply(402); // HTTP 402 Payment Required
+        mountComponent();
+        await flushPromises();
+
+        wrapper.find("form").trigger("submit");
+        await flushPromises();
+        expect(wrapper.text()).toContain("Subida fallida");
+        expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
     });
 })

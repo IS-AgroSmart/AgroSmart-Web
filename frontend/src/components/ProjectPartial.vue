@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import forceLogin from './mixins/force_login';
+// import forceLogin from './mixins/force_login';
 import axios from 'axios';
 
 export default {
@@ -99,6 +99,6 @@ export default {
         project: { type: Object },
         deleted: { type: Boolean, default: false }
     },
-    mixins: [forceLogin]
+    // mixins: [forceLogin] // forceLogin not required, this will only be instantiated from page components
 }
 </script>
