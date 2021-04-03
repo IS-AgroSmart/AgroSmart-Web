@@ -78,7 +78,8 @@ describe("Deleted projects component", () => {
         expect(wrapper.text()).toContain("Completed project");
         expect(wrapper.text()).toContain("Another completed project");
 
-        expect(mock.history.get.length).toBe(1);
+        // 1st is /api/users, 2nd is /api/projects
+        expect(mock.history.get).toHaveLength(2);
     });
 
     it("requests Projects as other user when impersonating", async () => {
@@ -89,7 +90,8 @@ describe("Deleted projects component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // 1st is /api/users, 2nd is /api/projects
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows Restore and Delete button on all projects", async () => {

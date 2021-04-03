@@ -8,7 +8,6 @@ import NewFlight from 'components/NewFlight.vue';
 
 import BootstrapVue from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
-import Multiselect from 'vue-multiselect';
 
 const localVue = createLocalVue();
 localVue.prototype.$isLoggedIn = () => true;

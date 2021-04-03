@@ -97,12 +97,12 @@ describe('Pending requests component', () => {
         mountComponent();
         await flushPromises();
 
-        expect(wrapper.findAll(".card").length).toBe(2);
+        expect(wrapper.findAll(".card")).toHaveLength(2);
         expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
         expect(wrapper.text().includes("foo@example.com")).toBeFalsy();
         expect(wrapper.text().includes("admin@gmail.com")).toBeFalsy();
         expect(wrapper.text().includes("bar@example.com")).toBeTruthy();
-        expect(mock.history.get.length).toBe(1);
+        expect(mock.history.get).toHaveLength(1);
     });
 
     it("redirects to login if not logged in", async () => {
@@ -132,7 +132,7 @@ describe('Pending requests component', () => {
         wrapper.vm.opcionFilter = "myname";
 
         wrapper.vm.$nextTick(() => { // Allow for recomputing 
-            expect(wrapper.findAll(".card").length).toBe(1);
+            expect(wrapper.findAll(".card")).toHaveLength(1);
             expect(wrapper.text().includes("myname@example.com")).toBeTruthy();
             expect(wrapper.text().includes("bar@example.com")).toBeFalsy();
         });

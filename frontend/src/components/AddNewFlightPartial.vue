@@ -29,6 +29,6 @@ export default {
             return "";
         }
     },
-    mixins: [forceLogin]
+    // mixins: [forceLogin] // forceLogin not required, this will only be instantiated from page components
 }
 </script>

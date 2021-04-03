@@ -71,8 +71,8 @@ describe('Profile component', () => {
         wrapper.find('form').trigger('submit');
         await flushPromises();
 
-        expect(mock.history.post.length).toBe(1);
-        expect(mock.history.get.length).toBe(0);
+        expect(mock.history.post).toHaveLength(1);
+        expect(mock.history.get).toHaveLength(0);
         expect(wrapper.find('.alert-danger').exists()).toBeTruthy();
     });
 
@@ -82,7 +82,7 @@ describe('Profile component', () => {
         wrapper.find('form').trigger('submit');
         await flushPromises();
 
-        expect(mock.history.post.length).toBe(1);
+        expect(mock.history.post).toHaveLength(1);
         expect(wrapper.find('.alert-danger').exists()).toBeTruthy();
     });*/
 });

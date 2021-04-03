@@ -78,7 +78,8 @@ describe("Project list component", () => {
         await flushPromises();
 
         expect(wrapper.text()).toContain("Flight Name");
-        expect(mock.history.get).toHaveLength(1);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
     });
 
     it("calls API as other user", async () => {
@@ -88,7 +89,8 @@ describe("Project list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows the available sections", async () => {
@@ -112,23 +114,25 @@ describe("Project list component", () => {
     it("sends an API request to download report", async () => {
         mountComponent();
         await flushPromises();
-        expect(mock.history.get).toHaveLength(1);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
         mock.onGet(/api\/downloads\/.+\/report.pdf/).reply(200);
 
         await wrapper.findAll("input[type=checkbox]").at(1).trigger("click"); // Toggle orthomosaic
         await wrapper.find('form').trigger('submit');
         await flushPromises();
 
-        expect(mock.history.get).toHaveLength(2);
-        expect(mock.history.get[1].url).toContain("api/downloads/flightuuid/report.pdf");
-        expect(mock.history.get[1].params).toHaveProperty("generaldata");
-        expect(mock.history.get[1].params).not.toHaveProperty("orthomosaic");
+        expect(mock.history.get).toHaveLength(3);
+        expect(mock.history.get[2].url).toContain("api/downloads/flightuuid/report.pdf");
+        expect(mock.history.get[2].params).toHaveProperty("generaldata");
+        expect(mock.history.get[2].params).not.toHaveProperty("orthomosaic");
     });
 
     it("shows an error message when endpoint returns error", async () => {
         mountComponent();
         await flushPromises();
-        expect(mock.history.get).toHaveLength(1);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
         mock.onGet(/api\/downloads\/.+\/report.pdf/).reply(400, "awesome error description");
 
         let alert = wrapper.find("div.alert");

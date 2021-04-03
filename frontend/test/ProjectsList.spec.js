@@ -89,7 +89,7 @@ describe("Project list component", () => {
         expect(wrapper.text()).toContain("Another demo project");
         expect(wrapper.text()).toContain("Example project");
 
-        expect(mock.history.get.length).toBe(1);
+        expect(mock.history.get).toHaveLength(1);
     });
 
     it("correctly identifies demo projects", async () => {

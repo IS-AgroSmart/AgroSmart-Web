@@ -94,7 +94,7 @@ const router = new VueRouter({
     { path: '/admin/userDeleted', name:"userDeleted",component:userDeleted},
     { path: '/admin/blockCriteria', name:"blockCriteria",component:blockCriteria},
   ]
-})
+});
 
 Vue.config.productionTip = false;
 Vue.config.devtools = true;

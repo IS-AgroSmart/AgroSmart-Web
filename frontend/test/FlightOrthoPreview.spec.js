@@ -92,7 +92,8 @@ describe('Login component', () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get).toHaveLength(2);
+        // 1st is /api/users, 2nd is /api/flights/uuid, 3rd is /api/preview/uuid
+        expect(mock.history.get).toHaveLength(3);
     });
 
     it("calls info API as other user", async () => {
@@ -103,7 +104,8 @@ describe('Login component', () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // get[0] is /api/users
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows error if first API call fails", async () => {

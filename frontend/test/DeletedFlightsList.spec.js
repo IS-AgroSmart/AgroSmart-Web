@@ -94,7 +94,8 @@ describe("Deleted flights component", () => {
         expect(wrapper.text()).toContain("Completed flight");
         expect(wrapper.text()).toContain("Another completed flight");
 
-        expect(mock.history.get.length).toBe(1);
+        // 1st is /api/users, 2nd is /api/flights
+        expect(mock.history.get).toHaveLength(2);
     });
 
     it("requests Flights as other user when impersonating", async () => {
@@ -105,7 +106,8 @@ describe("Deleted flights component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // 1st is /api/users, 2nd is /api/flights
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("shows Restore and Delete button on all flights", async () => {

@@ -90,12 +90,12 @@ describe('Active Users component', () => {
         mountComponent();
         await flushPromises();
 
-        expect(wrapper.findAll(".card").length).toBe(4);
+        expect(wrapper.findAll(".card")).toHaveLength(4);
         expect(wrapper.text().includes("spammyusername")).toBe(true);
         expect(wrapper.text().includes("spam.com")).toBe(true);
         expect(wrapper.text().includes("anotherusername")).toBe(true);
         expect(wrapper.text().includes("0.0.0.0")).toBe(true);
-        expect(mock.history.get.length).toBe(1);
+        expect(mock.history.get).toHaveLength(1);
     });
 
     it("redirects to login if not logged in", async () => {
@@ -126,7 +126,7 @@ describe('Active Users component', () => {
         await input.setValue('spa');
 
         await wrapper.vm.$nextTick(); // Allow for recomputing 
-        expect(wrapper.findAll(".card").length).toBe(2);
+        expect(wrapper.findAll(".card")).toHaveLength(2);
         expect(wrapper.text().includes("spammyusername")).toBe(true);
         expect(wrapper.text().includes("spam.com")).toBe(true);
         expect(wrapper.text().includes("anotherusername")).toBe(false);

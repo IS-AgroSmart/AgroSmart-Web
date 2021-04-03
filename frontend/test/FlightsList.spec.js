@@ -100,7 +100,8 @@ describe("Flight list component", () => {
         expect(wrapper.text()).toContain("Completed demo flight");
         expect(wrapper.text()).toContain("Completed flight");
 
-        expect(mock.history.get.length).toBe(1);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
     });
 
     it("correctly identifies demo flights", async () => {
@@ -167,7 +168,8 @@ describe("Flight list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123);
     });
 
     it("respects impersonated User permissions (impersonated Demo = can't create Flights)", async () => {
@@ -218,9 +220,10 @@ describe("Flight list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get.length).toBe(1);
-        jest.advanceTimersByTime(2000);
+        // 1st is /api/users, 2nd is /api/flights/uuid
+        expect(mock.history.get).toHaveLength(2);
+        jest.advanceTimersByTime(2000); // wait a bit
         await flushPromises();
-        expect(mock.history.get.length).toBeGreaterThan(1);
+        expect(mock.history.get.length).toBeGreaterThan(2);
     });
 })
