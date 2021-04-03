@@ -21,7 +21,7 @@
 
 <script>
 import axios from 'axios'
-import forceLogin from './mixins/force_login'
+// import forceLogin from './mixins/force_login'
 
 export default {
     data() {

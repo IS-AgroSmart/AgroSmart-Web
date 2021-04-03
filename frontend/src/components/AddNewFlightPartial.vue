@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import forceLogin from './mixins/force_login'
+// import forceLogin from './mixins/force_login'
 
 export default {
     computed: {
