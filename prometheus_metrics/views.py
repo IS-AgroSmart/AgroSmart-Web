@@ -34,6 +34,12 @@ def metrics(request):
     for stop in [50, 100, 200, 500, 1000]:
         images_per_flight.append((stop, Flight.objects.filter(num_images__lte=stop).count()))
 
+    space_per_user_sum = User.objects.aggregate(total=Sum("used_space"))["total"]
+    space_per_user_count = User.objects.count()
+    space_per_user = []
+    for stop in [1, 5, 10, 20, 45]:
+        space_per_user.append((stop, User.objects.filter(used_space__lte=stop * 1024 ** 2).count()))
+
     build_info = _get_git_info()
 
     return render(request, "exposition.txt", {
@@ -42,5 +48,8 @@ def metrics(request):
         "images_per_flight": images_per_flight,
         "images_per_flight_sum": images_per_flight_sum,
         "images_per_flight_count": images_per_flight_count,
+        "space_per_user": space_per_user,
+        "space_per_user_sum": space_per_user_sum,
+        "space_per_user_count": space_per_user_count,
         "build_info": build_info
     })

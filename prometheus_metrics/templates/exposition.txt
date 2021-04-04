@@ -18,6 +18,14 @@ agrosmart_pics_per_flight_bucket{le="{{ bucket.0 }}"} {{ bucket.1 }}
 agrosmart_pics_per_flight_sum {{ images_per_flight_sum }}
 agrosmart_pics_per_flight_count {{ images_per_flight_count }}
 
+# HELP agrosmart_used_disk_space A histogram of the disk space occupied by each user.
+# TYPE agrosmart_used_disk_space histogram
+{% for bucket in space_per_user %}
+agrosmart_used_disk_space_bucket{le="{{ bucket.0 }}"} {{ bucket.1 }}
+{% endfor %}
+agrosmart_used_disk_space_sum {{ space_per_user_sum }}
+agrosmart_used_disk_space_count {{ space_per_user_count }}
+
 # HELP agrosmart_build_info A pseudo-metric exposing the Git tag used on the server
 # TYPE agrosmart_build_info gauge
 agrosmart_build_info{branch="{{ build_info.branch }}", revision="{{ build_info.revision }}", version="{{ build_info.version }}"} 1
