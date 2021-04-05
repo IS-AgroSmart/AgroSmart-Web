@@ -45,6 +45,8 @@ class User(DiskRelationTrackerMixin, AbstractUser):
 
     used_space = models.PositiveIntegerField(default=0)
     maximum_space = models.PositiveIntegerField(default=45 * 1024 * 1024)
+    remaining_images = models.PositiveIntegerField(default=0)
+    image_month_quota = models.PositiveIntegerField(default=3000)
 
     def get_disk_related_models(self):
         return list(self.flight_set.filter(is_demo=False)) + list(self.user_projects.filter(is_demo=False))
@@ -453,7 +455,10 @@ def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **k
 
 
 def delete_on_disk(sender, instance: Union[Flight, UserProject], **kwargs):
-    shutil.rmtree(instance.get_disk_path())
+    try:
+        shutil.rmtree(instance.get_disk_path())
+    except FileNotFoundError:
+        pass # no need to do anything, carry on
     instance.user.update_disk_space()
 
 

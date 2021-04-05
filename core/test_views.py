@@ -71,7 +71,7 @@ class TestStandaloneViews:
         from pyfakefs.fake_filesystem_unittest import Pause
         with Pause(fs):
             # Pause(fs) stops the fake filesystem and allows Django access to the common password list
-            u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1")
+            u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1", remaining_images=20)
             u2 = User.objects.create_user(username="u2", email="u2@example.com", password="u2")
             admin = User.objects.create_user(username="admin", email="admin@example.com", password="admin",
                                              type=UserType.ADMIN.name)
@@ -108,8 +108,15 @@ class TestStandaloneViews:
         token = Token.objects.get(user=user)
         c.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
 
-    # @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
-    def test_upload_images_succesful(self, c, users, flights, fs):
+    def _test_upload_two_images(self, c, fs, users, flights):
+        """
+        A helper function to send a POST request to the upload image view, with a couple of images
+        Args:
+            c: The APICLient fixture
+            fs: The pyfakefs fixture
+            users: A fixture containing pregenerated Users
+            flights: A fixture containing pregenerated Flights
+        """
         self._auth(c, users[0])
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
                                "")
@@ -120,9 +127,27 @@ class TestStandaloneViews:
         fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
         fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
         fs.create_file("/tmp/image1.jpg", contents="foobar")
-        with open("/tmp/image1.jpg") as f:
-            resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
-            assert resp.status_code == 200
+        fs.create_file("/tmp/image2.jpg", contents="foobar")
+        with open("/tmp/image1.jpg") as f1, open("/tmp/image2.jpg") as f2:
+            return c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": [f1, f2]})
+
+    # @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
+    def test_upload_images_succesful(self, c, users, flights, fs):
+        """
+        Tests that the upload view succeds if all is well
+        Args:
+            c: The APICLient fixture
+            users: A fixture containing pregenerated Users
+            flights: A fixture containing pregenerated Flights
+            fs: The pyfakefs fixture
+        """
+        assert users[0].remaining_images == 20
+
+        resp = self._test_upload_two_images(c, fs, users, flights)
+
+        assert resp.status_code == 200
+        users[0].refresh_from_db()
+        assert users[0].remaining_images == 18
 
     def test_upload_images_error_on_creation(self, c, users, flights, fs):
         import inspect
@@ -177,21 +202,32 @@ class TestStandaloneViews:
             users: A fixture containing some pre-created Users
             flights: A fixture containing some pre-created Flights
         """
-        self._auth(c, users[0])
         users[0].used_space = 50 * 1024 ** 2  # 50GB used
         users[0].save()
         users[0].refresh_from_db()
         assert users[0].used_space > users[0].maximum_space
-        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
-                               "")
-        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
-                               "")
-        import django
-        import pytz
-        fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
-        fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
-        resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": []})
+
+        resp = self._test_upload_two_images(c, fs, users, flights)
+
         assert resp.status_code == 402
+
+    def test_upload_images_not_enough_images(self, c, fs, users: List[User], flights):
+        """
+        Tests that image upload fails if the user is over his monthly image quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            users: A fixture containing some pre-created Users
+            flights: A fixture containing some pre-created Flights
+        """
+        users[0].remaining_images = 1
+        users[0].save()
+        users[0].refresh_from_db()
+
+        resp = self._test_upload_two_images(c, fs, users, flights)
+
+        assert resp.status_code == 402
+        assert resp.content.decode("utf8") == "Subida fallida. Tiene un límite de 1 imágenes."
 
     def _test_webhook(self, c, monkeypatch, fs, flight, false_code, real_code):
         """
@@ -225,7 +261,8 @@ class TestStandaloneViews:
             data = {
                 "uuid": str(flight.uuid),
                 "status": {"code": real_code},
-                "processingTime": 12345
+                "processingTime": 12345,
+                "imagesCount": 31
             }
             return [200, response_headers, json.dumps(data)]
 
@@ -346,15 +383,32 @@ class TestStandaloneViews:
 
     def test_webhook_successful(self, c, monkeypatch, fs, flights):
         resp = self._test_webhook(c, monkeypatch, fs, flights[0], false_code=40, real_code=40)
+
         assert resp.status_code == 200
-        flights[0].refresh_from_db()  # HACK seems to be necessary to reload status?
+        flights[0].refresh_from_db()
         assert flights[0].state == FlightState.COMPLETE.name
+        flights[0].user.refresh_from_db()
+        # NodeODM reports Flight has 31 images, but they should NOT get returned if the task ends OK
+        assert flights[0].user.remaining_images == 20
 
     def test_webhook_with_error(self, c, monkeypatch, fs, flights):
+        """
+        Tests the case when the webhook is invoked with a failed flight
+        Args:
+            c: The APIClient fixture
+            monkeypatch: The monkeypatch fixture
+            fs: The pyfakefs fixture
+            flights: A fixture containing pregenerated Flights
+        """
+        assert flights[0].user.remaining_images == 20
+
         resp = self._test_webhook(c, monkeypatch, fs, flights[0], false_code=30, real_code=30)
+
         assert resp.status_code == 200
         flights[0].refresh_from_db()
         assert flights[0].state == FlightState.ERROR.name
+        flights[0].user.refresh_from_db()
+        assert flights[0].user.remaining_images == 51  # NodeODM reports Flight has 31 images
 
     def test_webhook_canceled(self, c, monkeypatch, fs, flights):
         resp = self._test_webhook(c, monkeypatch, fs, flights[0], false_code=50, real_code=50)

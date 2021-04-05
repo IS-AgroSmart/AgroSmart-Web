@@ -253,7 +253,14 @@ def upload_images(request, uuid):
     if not user.type == UserType.ADMIN.name and not flight.user == user:
         return HttpResponse(status=403)
     if flight.user.used_space >= flight.user.maximum_space:
-        return HttpResponse(status=402)  # HTTP 402 Payment Required
+        return HttpResponse("Subida fallida. Su almacenamiento está lleno.",
+                            status=402)  # HTTP 402 Payment Required
+    if len(request.FILES.getlist("images")) > flight.user.remaining_images:
+        return HttpResponse(f"Subida fallida. Tiene un límite de {flight.user.remaining_images} imágenes.",
+                            status=402)
+    # Deduct the images ON THE FLIGHT OWNER! (not on the poor admin that is impersonating the User)
+    flight.user.remaining_images -= len(request.FILES.getlist("images"))
+    flight.user.save()
 
     files = []
     filenames = []
@@ -294,17 +301,20 @@ def webhook_processing_complete(request):
     from nodeodm_proxy import api
     data = api.get_info(settings.NODEODM_SERVER_URL, flight.uuid, settings.NODEODM_SERVER_TOKEN).json()
 
+    flight.processing_time = data.get("processingTime", 0)
+    num_images = data.get("imagesCount", 0)
+    flight.num_images = num_images
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
+        flight.user.remaining_images += num_images # give the images back if task failed
     elif data["status"]["code"] == 40:
         success_message = "El procesamiento de su vuelo ha terminado. Entre a la aplicación para ver los resultados."
         flight.state = FlightState.COMPLETE.name
         send_notification_by_user(username, success_message)
     elif data["status"]["code"] == 50:
         flight.state = FlightState.CANCELED.name
-    flight.processing_time = data.get("processingTime", 0)
-    flight.num_images = data.get("imagesCount", 0)
     flight.save()
+    flight.user.save()
 
     if flight.state == FlightState.COMPLETE.name:
         flight.download_and_decompress_results()

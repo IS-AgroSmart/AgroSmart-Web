@@ -12,6 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField()
     used_space = serializers.ReadOnlyField()
     maximum_space = serializers.ReadOnlyField()
+    remaining_images = serializers.ReadOnlyField()
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -39,7 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["pk", 'username', 'email', 'is_staff', 'password', 'type', 'organization', 'first_name',
-                  'used_space', 'maximum_space']
+                  'used_space', 'maximum_space', 'remaining_images']
 
 
 class FlightSerializer(serializers.ModelSerializer):
