@@ -108,18 +108,16 @@ class TestStandaloneViews:
         token = Token.objects.get(user=user)
         c.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
 
-    # @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
-    def test_upload_images_succesful(self, c, users, flights, fs):
+    def _test_upload_single_image(self, c, fs, users, flights):
         """
-        Tests that the upload view succeds if all is well
+        A helper function to send a POST request to the upload image view, with a single image
         Args:
             c: The APICLient fixture
+            fs: The pyfakefs fixture
             users: A fixture containing pregenerated Users
             flights: A fixture containing pregenerated Flights
-            fs: The pyfakefs fixture
         """
         self._auth(c, users[0])
-        assert users[0].remaining_images == 20
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
                                "")
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
@@ -130,10 +128,25 @@ class TestStandaloneViews:
         fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
         fs.create_file("/tmp/image1.jpg", contents="foobar")
         with open("/tmp/image1.jpg") as f:
-            resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
-            assert resp.status_code == 200
-            users[0].refresh_from_db()
-            assert users[0].remaining_images == 19
+            return c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
+
+    # @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
+    def test_upload_images_succesful(self, c, users, flights, fs):
+        """
+        Tests that the upload view succeds if all is well
+        Args:
+            c: The APICLient fixture
+            users: A fixture containing pregenerated Users
+            flights: A fixture containing pregenerated Flights
+            fs: The pyfakefs fixture
+        """
+        assert users[0].remaining_images == 20
+
+        resp = self._test_upload_single_image(c, fs, users, flights)
+
+        assert resp.status_code == 200
+        users[0].refresh_from_db()
+        assert users[0].remaining_images == 19
 
     def test_upload_images_error_on_creation(self, c, users, flights, fs):
         import inspect
@@ -188,20 +201,13 @@ class TestStandaloneViews:
             users: A fixture containing some pre-created Users
             flights: A fixture containing some pre-created Flights
         """
-        self._auth(c, users[0])
         users[0].used_space = 50 * 1024 ** 2  # 50GB used
         users[0].save()
         users[0].refresh_from_db()
         assert users[0].used_space > users[0].maximum_space
-        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
-                               "")
-        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
-                               "")
-        import django
-        import pytz
-        fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
-        fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
-        resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": []})
+
+        resp = self._test_upload_single_image(c, fs, users, flights)
+
         assert resp.status_code == 402
 
     def test_upload_images_not_enough_images(self, c, fs, users: List[User], flights):
@@ -213,23 +219,14 @@ class TestStandaloneViews:
             users: A fixture containing some pre-created Users
             flights: A fixture containing some pre-created Flights
         """
-        self._auth(c, users[0])
         users[0].remaining_images = 0
         users[0].save()
         users[0].refresh_from_db()
-        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
-                               "")
-        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
-                               "")
-        import django
-        import pytz
-        fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
-        fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
-        fs.create_file("/tmp/image1.jpg", contents="foobar")
-        with open("/tmp/image1.jpg") as f:
-            resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
-            assert resp.status_code == 402
-            assert resp.content.decode("utf8") == "Subida fallida. Tiene un límite de 0 imágenes."
+
+        resp = self._test_upload_single_image(c, fs, users, flights)
+
+        assert resp.status_code == 402
+        assert resp.content.decode("utf8") == "Subida fallida. Tiene un límite de 0 imágenes."
 
     def _test_webhook(self, c, monkeypatch, fs, flight, false_code, real_code):
         """
