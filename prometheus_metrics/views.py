@@ -4,6 +4,7 @@ import subprocess
 from django.db.models import Count, Sum, Window, F, Case, When
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
 
 from core.models import User, UserType, Flight
 
