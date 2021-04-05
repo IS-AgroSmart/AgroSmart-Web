@@ -455,7 +455,10 @@ def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **k
 
 
 def delete_on_disk(sender, instance: Union[Flight, UserProject], **kwargs):
-    shutil.rmtree(instance.get_disk_path())
+    try:
+        shutil.rmtree(instance.get_disk_path())
+    except FileNotFoundError:
+        pass # no need to do anything, carry on
     instance.user.update_disk_space()
 
 

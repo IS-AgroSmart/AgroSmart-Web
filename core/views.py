@@ -255,11 +255,11 @@ def upload_images(request, uuid):
     if flight.user.used_space >= flight.user.maximum_space:
         return HttpResponse("Subida fallida. Su almacenamiento está lleno.",
                             status=402)  # HTTP 402 Payment Required
-    if len(request.FILES) > flight.user.remaining_images:
-        return HttpResponse(f"Subida fallida. Tiene un límite de {user.remaining_images} imágenes.",
+    if len(request.FILES.getlist("images")) > flight.user.remaining_images:
+        return HttpResponse(f"Subida fallida. Tiene un límite de {flight.user.remaining_images} imágenes.",
                             status=402)
     # Deduct the images ON THE FLIGHT OWNER! (not on the poor admin that is impersonating the User)
-    flight.user.remaining_images -= len(request.FILES)
+    flight.user.remaining_images -= len(request.FILES.getlist("images"))
     flight.user.save()
 
     files = []
