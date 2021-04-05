@@ -71,7 +71,7 @@ class TestStandaloneViews:
         from pyfakefs.fake_filesystem_unittest import Pause
         with Pause(fs):
             # Pause(fs) stops the fake filesystem and allows Django access to the common password list
-            u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1")
+            u1 = User.objects.create_user(username="u1", email="u1@example.com", password="u1", remaining_images=20)
             u2 = User.objects.create_user(username="u2", email="u2@example.com", password="u2")
             admin = User.objects.create_user(username="admin", email="admin@example.com", password="admin",
                                              type=UserType.ADMIN.name)

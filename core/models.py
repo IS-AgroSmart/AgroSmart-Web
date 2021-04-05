@@ -45,6 +45,8 @@ class User(DiskRelationTrackerMixin, AbstractUser):
 
     used_space = models.PositiveIntegerField(default=0)
     maximum_space = models.PositiveIntegerField(default=45 * 1024 * 1024)
+    remaining_images = models.PositiveIntegerField(default=0)
+    image_month_quota = models.PositiveIntegerField(default=3000)
 
     def get_disk_related_models(self):
         return list(self.flight_set.filter(is_demo=False)) + list(self.user_projects.filter(is_demo=False))

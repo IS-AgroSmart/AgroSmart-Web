@@ -1,7 +1,4 @@
 from django.contrib import admin
-
-# Register your models here.
-from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from .models import *
@@ -18,6 +15,14 @@ def _format_size(size):
     return f"{size / (1024 ** 2):.4f} GB"
 
 
+def recompute_disk_space(modeladmin, request, queryset):
+    for obj in queryset:
+        obj.update_disk_space()
+
+
+recompute_disk_space.short_description = "Recompute disk space used by the selected object(s)"
+
+
 class FlightAdmin(admin.ModelAdmin):
     def pretty_used_space(self, obj: Flight):
         return _format_size(obj.used_space)
@@ -25,6 +30,8 @@ class FlightAdmin(admin.ModelAdmin):
     pretty_used_space.short_description = "Used space"
 
     list_display = ("name", "uuid", "user", "date", "camera", "state", "pretty_used_space")
+
+    actions = (recompute_disk_space,)
 
 
 class UserProjectAdmin(admin.ModelAdmin):
@@ -34,6 +41,8 @@ class UserProjectAdmin(admin.ModelAdmin):
     pretty_used_space.short_description = "Used space"
 
     list_display = ("name", "uuid", "pretty_used_space")
+
+    actions = (recompute_disk_space,)
 
 
 class CustomUserAdmin(UserAdmin):
@@ -47,14 +56,25 @@ class CustomUserAdmin(UserAdmin):
 
     pretty_maximum_space.short_description = "Maximum space"
 
-    list_display = UserAdmin.list_display + ("pretty_used_space", "pretty_maximum_space")
+    def refresh_available_images(self, request, queryset):
+        for obj in queryset:
+            obj.remaining_images = obj.image_month_quota
+            obj.save()
+
+    refresh_available_images.short_description = "Reset image quota for the selected users(s)"
+
+    list_display = UserAdmin.list_display + ("pretty_used_space", "pretty_maximum_space",
+                                             "remaining_images")
 
     fieldsets = UserAdmin.fieldsets + (
-        ("Additional data", {'fields': ('type', 'used_space', 'maximum_space')}),
+        ("Additional data", {'fields': ('type', 'used_space', 'maximum_space',
+                                        'remaining_images', 'image_month_quota')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
         (None, {'fields': ('type',)}),
     )
+
+    actions = (recompute_disk_space, "refresh_available_images")
 
 
 admin.site.register(User, CustomUserAdmin)
