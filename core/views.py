@@ -256,7 +256,7 @@ def upload_images(request, uuid):
         return HttpResponse("Subida fallida. Su almacenamiento está lleno.",
                             status=402)  # HTTP 402 Payment Required
     if len(request.FILES) > flight.user.remaining_images:
-        return HttpResponse(f"Subida fallida. Tiene un límite de ${user.remaining_images} imágenes.",
+        return HttpResponse(f"Subida fallida. Tiene un límite de {user.remaining_images} imágenes.",
                             status=402)
     # Deduct the images ON THE FLIGHT OWNER! (not on the poor admin that is impersonating the User)
     flight.user.remaining_images -= len(request.FILES)
@@ -314,6 +314,7 @@ def webhook_processing_complete(request):
     elif data["status"]["code"] == 50:
         flight.state = FlightState.CANCELED.name
     flight.save()
+    flight.user.save()
 
     if flight.state == FlightState.COMPLETE.name:
         flight.download_and_decompress_results()

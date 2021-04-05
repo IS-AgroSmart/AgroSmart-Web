@@ -110,7 +110,16 @@ class TestStandaloneViews:
 
     # @pytest.mark.xfail(reason="pyfakefs limitation on /tmp dir")
     def test_upload_images_succesful(self, c, users, flights, fs):
+        """
+        Tests that the upload view succeds if all is well
+        Args:
+            c: The APICLient fixture
+            users: A fixture containing pregenerated Users
+            flights: A fixture containing pregenerated Flights
+            fs: The pyfakefs fixture
+        """
         self._auth(c, users[0])
+        assert users[0].remaining_images == 20
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
                                "")
         httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
@@ -123,6 +132,8 @@ class TestStandaloneViews:
         with open("/tmp/image1.jpg") as f:
             resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
             assert resp.status_code == 200
+            users[0].refresh_from_db()
+            assert users[0].remaining_images == 19
 
     def test_upload_images_error_on_creation(self, c, users, flights, fs):
         import inspect
@@ -193,6 +204,33 @@ class TestStandaloneViews:
         resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": []})
         assert resp.status_code == 402
 
+    def test_upload_images_not_enough_images(self, c, fs, users: List[User], flights):
+        """
+        Tests that image upload fails if the user is over his monthly image quota
+        Args:
+            c: The APIClient fixture
+            fs: The pyfakefs fixture
+            users: A fixture containing some pre-created Users
+            flights: A fixture containing some pre-created Flights
+        """
+        self._auth(c, users[0])
+        users[0].remaining_images = 0
+        users[0].save()
+        users[0].refresh_from_db()
+        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/upload/" + str(flights[0].uuid),
+                               "")
+        httpretty.register_uri(httpretty.POST, "http://container-nodeodm:3000/task/new/commit/" + str(flights[0].uuid),
+                               "")
+        import django
+        import pytz
+        fs.add_real_directory(os.path.dirname(inspect.getfile(django)))
+        fs.add_real_directory(os.path.dirname(inspect.getfile(pytz)))
+        fs.create_file("/tmp/image1.jpg", contents="foobar")
+        with open("/tmp/image1.jpg") as f:
+            resp = c.post(reverse('upload_files', kwargs={"uuid": flights[0].uuid}), {"images": f})
+            assert resp.status_code == 402
+            assert resp.content.decode("utf8") == "Subida fallida. Tiene un límite de 0 imágenes."
+
     def _test_webhook(self, c, monkeypatch, fs, flight, false_code, real_code):
         """
         Helper function that tests the webhook with configurable behavior
@@ -225,7 +263,8 @@ class TestStandaloneViews:
             data = {
                 "uuid": str(flight.uuid),
                 "status": {"code": real_code},
-                "processingTime": 12345
+                "processingTime": 12345,
+                "imagesCount": 31
             }
             return [200, response_headers, json.dumps(data)]
 
@@ -346,15 +385,32 @@ class TestStandaloneViews:
 
     def test_webhook_successful(self, c, monkeypatch, fs, flights):
         resp = self._test_webhook(c, monkeypatch, fs, flights[0], false_code=40, real_code=40)
+
         assert resp.status_code == 200
-        flights[0].refresh_from_db()  # HACK seems to be necessary to reload status?
+        flights[0].refresh_from_db()
         assert flights[0].state == FlightState.COMPLETE.name
+        flights[0].user.refresh_from_db()
+        # NodeODM reports Flight has 31 images, but they should NOT get returned if the task ends OK
+        assert flights[0].user.remaining_images == 20
 
     def test_webhook_with_error(self, c, monkeypatch, fs, flights):
+        """
+        Tests the case when the webhook is invoked with a failed flight
+        Args:
+            c: The APIClient fixture
+            monkeypatch: The monkeypatch fixture
+            fs: The pyfakefs fixture
+            flights: A fixture containing pregenerated Flights
+        """
+        assert flights[0].user.remaining_images == 20
+
         resp = self._test_webhook(c, monkeypatch, fs, flights[0], false_code=30, real_code=30)
+
         assert resp.status_code == 200
         flights[0].refresh_from_db()
         assert flights[0].state == FlightState.ERROR.name
+        flights[0].user.refresh_from_db()
+        assert flights[0].user.remaining_images == 51  # NodeODM reports Flight has 31 images
 
     def test_webhook_canceled(self, c, monkeypatch, fs, flights):
         resp = self._test_webhook(c, monkeypatch, fs, flights[0], false_code=50, real_code=50)
