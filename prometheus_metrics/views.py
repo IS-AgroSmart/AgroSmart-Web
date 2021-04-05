@@ -24,6 +24,7 @@ def _get_git_info():
     return {"version": version, "revision": revision, "branch": branch}
 
 
+@require_http_methods(request_method_list=["GET"])
 def metrics(request):
     users = User.objects.values("type").annotate(count=Count("*"))
     flights = Flight.objects.values("state").annotate(count=Count("*"))
@@ -40,6 +41,12 @@ def metrics(request):
     for stop in [1, 5, 10, 20, 45]:
         space_per_user.append((stop, User.objects.filter(used_space__lte=stop * 1024 ** 2).count()))
 
+    images_per_user_sum = User.objects.aggregate(total=Sum("remaining_images"))["total"]
+    images_per_user_count = User.objects.count()
+    images_per_user = []
+    for stop in [100, 200, 500, 1000, 2000, 3000]:
+        images_per_user.append((stop, User.objects.filter(remaining_images__lte=stop).count()))
+
     build_info = _get_git_info()
 
     return render(request, "exposition.txt", {
@@ -51,5 +58,8 @@ def metrics(request):
         "space_per_user": space_per_user,
         "space_per_user_sum": space_per_user_sum,
         "space_per_user_count": space_per_user_count,
+        "images_per_user": images_per_user,
+        "images_per_user_sum": images_per_user_sum,
+        "images_per_user_count": images_per_user_count,
         "build_info": build_info
     })

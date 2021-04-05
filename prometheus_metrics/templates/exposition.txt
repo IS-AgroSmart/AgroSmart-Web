@@ -18,6 +18,14 @@ agrosmart_pics_per_flight_bucket{le="{{ bucket.0 }}"} {{ bucket.1 }}
 agrosmart_pics_per_flight_sum {{ images_per_flight_sum }}
 agrosmart_pics_per_flight_count {{ images_per_flight_count }}
 
+# HELP agrosmart_used_pics_per_user A histogram of the number of pictures used by each user on the current month.
+# TYPE agrosmart_used_pics_per_user histogram
+{% for bucket in images_per_user %}
+agrosmart_used_pics_per_user_bucket{le="{{ bucket.0 }}"} {{ bucket.1 }}
+{% endfor %}
+agrosmart_used_pics_per_user_sum {{ images_per_user_sum }}
+agrosmart_used_pics_per_user_count {{ images_per_user_count }}
+
 # HELP agrosmart_used_disk_space A histogram of the disk space occupied by each user.
 # TYPE agrosmart_used_disk_space histogram
 {% for bucket in space_per_user %}
