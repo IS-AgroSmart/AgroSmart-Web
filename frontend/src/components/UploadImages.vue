@@ -4,10 +4,11 @@
     
         <b-form @submit="onSubmit">
             <p class="small text-muted">{{ validFormats }}</p>
-            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="enoughFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" :accept="validFormats"></b-form-file>
-            <div class="my-3 text-danger">{{ enoughFiles ? "" : '¡No hay suficientes archivos seleccionados!' }}</div>
+            <b-form-file multiple v-model="files" :file-name-formatter="formatNames" :state="enoughFiles && !tooManyFiles" placeholder="Escoja o arrastre imágenes..." drop-placeholder="Arrastre imágenes aquí..." browse-text="Seleccionar" :accept="validFormats"></b-form-file>
+            <div class="my-3 text-danger" v-if="!enoughFiles">¡No hay suficientes archivos seleccionados!</div>
+            <div class="my-3 text-danger" v-if="tooManyFiles">Ha seleccionado demasiadas imágenes. Puede subir hasta {{ maxNumberFiles }} imágenes.</div>
     
-            <b-button :disabled="!enoughFiles || uploading" type="submit" variant="primary">
+            <b-button :disabled="!enoughFiles || tooManyFiles || uploading" type="submit" variant="primary">
                 Subir <span v-if="uploading">({{uploadProgress}} %)</span>
             </b-button>
         </b-form>
@@ -27,12 +28,13 @@ export default {
             uploadError: "",
             uploading: false,
             uploadProgress: 0,
+            maxImagesPerFlight: 1000
         }
     },
     computed: {
-        enoughFiles() {
-            return this.files.length >= 3;
-        },
+        enoughFiles() { return this.files.length >= 3; },
+        maxNumberFiles()  { return Math.min(this.$effectiveUser().remaining_images, this.maxImagesPerFlight) },
+        tooManyFiles() { return this.files.length > this.maxNumberFiles; },
         validFormats() { return this.flight.camera == "RGB" ? "image/jpeg, image/png" : "image/tiff"; },
     },
     methods: {
@@ -63,8 +65,8 @@ export default {
                     that.$router.replace({ "name": "flightDetails", params: { "uuid": that.$route.params.uuid } })
                 })
                 .catch(function(error) {
-                    if(error.response?.status == 402)
-                        that.uploadError = "Subida fallida. Su almacenamiento está lleno.";
+                    if (error.response?.status == 402)
+                        that.uploadError = error.response.data;
                     else
                         that.uploadError = "Subida fallida.";
                     that.uploading = false;

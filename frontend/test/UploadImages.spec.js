@@ -26,12 +26,19 @@ localVue.use(FormFilePlugin);
 localVue.use(FormGroupPlugin);
 localVue.use(LayoutPlugin);
 localVue.prototype.$isLoggedIn = () => true;
+localVue.prototype.$effectiveUser = () => {
+    return {
+        type: "DEMO_USER",
+        remaining_images: 6,
+    }
+};
 localVue.use(ReactiveStorage, {
     "token": "",
     "isAdmin": false,
     "otherUserPk": 0,
     "loggedInUser": {
-        type: "DEMO_USER"
+        type: "DEMO_USER",
+        remaining_images: 6,
     }
 });
 
@@ -141,6 +148,46 @@ describe("Upload images component", () => {
         expect(wrapper.vm.formatNames(wrapper.vm.files)).toBe("3 archivos seleccionados");
     });
 
+    it("disables Upload button if too few files", async () => {
+        mockSuccessful();
+        mountComponent();
+        await flushPromises();
+        wrapper.vm.files = [new File([], "0001.jpg")];
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.enoughFiles).toBe(false);
+        expect(wrapper.find("button").attributes()).toHaveProperty("disabled", "disabled"); 
+    });
+
+    it("disables Upload button if more files than remaining image quota", async () => {
+        mockSuccessful();
+        mountComponent();
+        await flushPromises();
+        wrapper.vm.files = [];
+        for(let i=0; i<10; i++) {
+            wrapper.vm.files.push(new File([], `${i}.jpg`));
+        }
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.enoughFiles).toBe(true);
+        expect(wrapper.vm.tooManyFiles).toBe(true);
+        expect(wrapper.vm.maxNumberFiles).toBe(6);
+        expect(wrapper.find("button").attributes()).toHaveProperty("disabled", "disabled");
+    });
+
+    it("disables Upload button if more files than max images per flight", async () => {
+        mockSuccessful();
+        mountComponent();
+        await flushPromises();
+        wrapper.vm.files = [];
+        wrapper.vm.maxImagesPerFlight = 4;
+        for(let i=0; i<5; i++) {
+            wrapper.vm.files.push(new File([], `${i}.jpg`));
+        }
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.tooManyFiles).toBe(true);
+        expect(wrapper.vm.maxNumberFiles).toBe(4);
+        expect(wrapper.find("button").attributes()).toHaveProperty("disabled", "disabled");
+    });
+
     it("sends upload request", async () => {
         mockSuccessful();
         mock.onPost(/api\/upload-files\/myuuid/).reply(200);
@@ -183,9 +230,10 @@ describe("Upload images component", () => {
         expect(wrapper.text()).toContain("Subida fallida");
     });
 
-    it("shows error message when user is over quota", async () => {
+    it("shows error message when user is over disk quota", async () => {
         mockSuccessful();
-        mock.onPost(/api\/upload-files\/myuuid/).reply(402); // HTTP 402 Payment Required
+        mock.onPost(/api\/upload-files\/myuuid/).reply(402, 
+            "Subida fallida. Su almacenamiento está lleno."); // HTTP 402 Payment Required
         mountComponent();
         await flushPromises();
 
@@ -193,5 +241,18 @@ describe("Upload images component", () => {
         await flushPromises();
         expect(wrapper.text()).toContain("Subida fallida");
         expect(wrapper.text()).toContain("Su almacenamiento está lleno.");
+    });
+
+    it("shows error message when user is over image quota", async () => {
+        mockSuccessful();
+        mock.onPost(/api\/upload-files\/myuuid/).reply(402, 
+            "Subida fallida. Tiene un límite de 42 imágenes."); // HTTP 402 Payment Required
+        mountComponent();
+        await flushPromises();
+
+        wrapper.find("form").trigger("submit");
+        await flushPromises();
+        expect(wrapper.text()).toContain("Subida fallida");
+        expect(wrapper.text()).toContain("Tiene un límite de 42 imágenes.");
     });
 })
