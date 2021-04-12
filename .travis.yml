@@ -19,4 +19,4 @@ before_install: cd frontend
 install:
   - npm ci
 script:
-  - $(npm bin)/cypress run --record --browser chrome
+  - npm run test:e2e
