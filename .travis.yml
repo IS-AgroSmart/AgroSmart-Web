@@ -19,4 +19,4 @@ before_install: cd frontend
 install:
   - npm ci
 script:
-  - npm run test:e2e:ci
+  - npm run test:e2e:upload
