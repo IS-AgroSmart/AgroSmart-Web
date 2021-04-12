@@ -34,13 +34,16 @@ jobs:
           node-version: 12
       - name: Install mysql_config
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev libpq-dev
-      - uses: actions/cache@v2
+      - name: Cache Pip modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-python-modules
         with:
           path: ${{ env.pythonLocation }}
           key: ${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/requirements.txt') }}
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Cache node modules
+      - name: Cache Node modules
         uses: actions/cache@v2
         env:
           cache-name: cache-node-modules
