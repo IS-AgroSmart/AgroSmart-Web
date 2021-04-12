@@ -22,6 +22,8 @@ jobs:
           wait-on: 'http://localhost:8001'
           wait-on-timeout: 120
           record: true
+          browser: chrome
+          headless: true
           parallel: true
           working-directory: ./frontend
         env:
