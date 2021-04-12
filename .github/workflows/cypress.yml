@@ -20,11 +20,9 @@ jobs:
         with:
           start: npm run serve
           wait-on: 'http://localhost:8001'
-          wait-on-timeout: 60
-          browser: chrome
+          wait-on-timeout: 120
           record: true
           parallel: true
-          group: 'UI - Chrome'
           working-directory: ./frontend
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
