@@ -1,0 +1,9 @@
+{
+  "name": "First Flight",
+  "uuid": "first_uuid-asd",
+  "state": "COMPLETE",
+  "camera": "RGB",
+  "processing_time": 60000,
+  "num_images": 1234,
+  "date": "2000/01/02"
+}

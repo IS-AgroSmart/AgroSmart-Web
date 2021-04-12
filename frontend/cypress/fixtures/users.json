@@ -1,0 +1,24 @@
+[
+  {
+    "username": "admin",
+    "used_space": 20971520,
+    "__used_space_comment__": "20 GB",
+    "maximum_space": 47185920,
+    "__maximum_space_comment__": "45 GB",
+    "type": "ADMIN"
+  },
+  {
+    "username": "alice",
+    "used_space": 20971520,
+    "__used_space_comment__": "20 GB",
+    "maximum_space": 47185920,
+    "__maximum_space_comment__": "45 GB"
+  },
+  {
+    "username": "bob_fulldisk",
+    "used_space": 47185921,
+    "__used_space_comment__": "45 GB + 1 kilobyte",
+    "maximum_space": 47185920,
+    "__maximum_space_comment__": "45 GB"
+  }
+]
