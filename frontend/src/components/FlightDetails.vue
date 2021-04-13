@@ -15,7 +15,7 @@
                 </b-progress>
     
                 <b-link v-if="isDoneSuccessfully" :to="{name: 'flightOrthoPreview', params: {uuid: flight.uuid}}">
-                    <b-img v-if="isDoneSuccessfully" :src="orthomosaicThumbUrl" fluid rounded="circle" /></b-link>
+                    <b-img v-if="isDoneSuccessfully" :src="orthomosaicThumbUrl" fluid rounded="circle" @error="thumbnailLoadError"/></b-link>
                 <h4 class="my-3 text-center">Notas</h4>
                 <span style="white-space: pre-wrap;">{{flight.annotations}}</span>
             </div>
@@ -148,6 +148,13 @@ export default {
             } else { // At least one day, add day format
                 return this.$moment.utc(duration.as('milliseconds')).format('DDD [d] HH [h] mm [min] ss [s]')
             }
+        },
+        thumbnailLoadError(e) {
+            // After two seconds, try to reload the image
+            window.setTimeout(() => {
+                // eslint-disable-next-line no-self-assign
+                e.target.src = e.target.src;
+            }, 2000);
         }
     },
     computed: {
