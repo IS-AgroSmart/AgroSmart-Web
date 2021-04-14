@@ -30,7 +30,7 @@ Cypress.Commands.add('login', (userType, options = {}) => {
 
   const user = types[userType]
 
-  cy.get("input[type='text']").type(user.username)
-  cy.get("input[type='password']").type(user.password)
-  cy.contains("button", "Iniciar sesión").click()
+  cy.get("[data-cy=username]").type(user.username)
+  cy.get("[data-cy=password]").type(user.password)
+  cy.get("[data-cy=login]").click()
 })

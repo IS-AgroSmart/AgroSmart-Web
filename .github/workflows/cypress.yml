@@ -26,6 +26,7 @@ jobs:
           headless: true
           parallel: false
           working-directory: ./frontend
+          config: video=false
         # env:
           # CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
