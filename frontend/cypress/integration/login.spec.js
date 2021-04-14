@@ -16,11 +16,11 @@ context('Login', () => {
     }, {statusCode: 403})
     cy.intercept("GET", "/api/users", {statusCode: 403})
 
-    cy.get("input[type='text']").type("nope")
-    cy.get("input[type='password']").type("hello")
-    cy.contains("button", "Iniciar sesión").click()
+    cy.get("[data-cy=username]").type("nope")
+    cy.get("[data-cy=password]").type("hello")
+    cy.get("[data-cy=login]").click()
     cy.url().should('not.include', '/flights')
-    cy.contains("div.alert-danger", "Usuario o contraseña incorrectos")
+    cy.contains("[data-cy=alert]", "Usuario o contraseña incorrectos")
   })
 
   it("Logging in", () => {
@@ -33,9 +33,9 @@ context('Login', () => {
     cy.intercept("GET", "/api/users", { fixture: 'users.json' }).as("getUsers")
     cy.intercept("GET", "/api/flights", { fixture: 'flights.json' }).as("getFlights")
 
-    cy.get("input[type='text']").type("admin")
-    cy.get("input[type='password']").type("admin")
-    cy.contains("button", "Iniciar sesión").click()
+    cy.get("[data-cy=username]").type("admin")
+    cy.get("[data-cy=password]").type("admin")
+    cy.get("[data-cy=login]").click()
 
     cy.wait("@getUsers").its("request.headers").should("have.a.property", "authorization", "Token FOOBAR_token")
     cy.url().should('include', '/flights')

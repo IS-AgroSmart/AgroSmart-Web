@@ -1,6 +1,6 @@
 <template>
     <div class="px-3">
-        <b-progress :max="maximum" :value="used" variant="primary"></b-progress>
+        <b-progress :max="maximum" :value="used" variant="primary" data-cy="disk-space"></b-progress>
         <strong>{{ used }} GB de {{ maximum }} GB</strong> usados 
         <b-icon-info-circle id="info-icon"/>
         <b-tooltip target="info-icon" variant="light">

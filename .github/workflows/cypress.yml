@@ -21,7 +21,7 @@ jobs:
           start: npm run serve
           wait-on: 'http://localhost:8001'
           wait-on-timeout: 120
-          record: true
+          record: false
           browser: chrome
           headless: true
           parallel: true

@@ -1,21 +1,21 @@
 <template>
     <div class=" pt-3" style="padding-left:15px; padding-right:15px;">
-        <b-alert v-if="error" show variant="danger">
+        <b-alert v-if="error" show variant="danger" data-cy="alert">
             Error! Usuario o contraseña incorrectos
         </b-alert>
         <b-form @submit="onSubmit">
             <b-form-group id="input-group-1" label="Usuario:" label-for="input-1">
-                <b-form-input id="input-1" v-model="form.username" type="text" required placeholder="Nombre de usuario"></b-form-input>
+                <b-form-input id="input-1" v-model="form.username" type="text" required placeholder="Nombre de usuario" data-cy="username"></b-form-input>
             </b-form-group>
     
             <b-form-group id="input-group-2" label="Contraseña:" label-for="input-2">
-                <b-form-input id="input-2" type="password" v-model="form.password" required placeholder="Contraseña"></b-form-input>
+                <b-form-input id="input-2" type="password" v-model="form.password" required placeholder="Contraseña" data-cy="password"></b-form-input>
             </b-form-group>
     
             <b-container>
                 <b-row align-h="center">
                     <b-col cols="3" class="text-center">
-                        <b-button type="submit" variant="primary">Iniciar sesión</b-button>
+                        <b-button type="submit" variant="primary" data-cy="login">Iniciar sesión</b-button>
                     </b-col>
                     <b-col cols="3" class="text-center">
                         <b-button to="signUp" variant="secondary">Crear cuenta</b-button>

@@ -7,7 +7,7 @@ context('Flight list', () => {
   })
 
   it("Lists all flights", () => {
-    cy.get("div.card").should('have.length.at.least', 2)
+    cy.get("[data-cy='flight-card']").should('have.length.at.least', 2)
   })
 
   it('Show details of Flight', function () {
@@ -25,7 +25,7 @@ context('Flight list', () => {
       fixture: "images/thumbnail.png"
     })
 
-    cy.contains(".card", "First Flight").find(".btn").click();
+    cy.contains("[data-cy='flight-card']", "First Flight").find(".btn").click();
 
     cy.contains("Resultados")
     cy.contains("Estado: Terminado")
