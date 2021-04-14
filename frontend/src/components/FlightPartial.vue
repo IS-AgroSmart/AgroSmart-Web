@@ -1,6 +1,6 @@
 <template>
     <div class="col-md-4">
-        <b-card :title="flightName" class="my-3">
+        <b-card :title="flightName" class="my-3" data-cy="flight-card">
     
             <b-card-text>
                 <b-spinner variant="warning" type="grow" v-if="isWaiting" title="Suba imágenes al vuelo para comenzar"></b-spinner>

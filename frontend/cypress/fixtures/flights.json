@@ -1,0 +1,14 @@
+[
+  {
+    "name": "First Flight",
+    "uuid": "first_uuid-asd"
+  },
+  {
+    "name": "Second Flight",
+    "uuid": "second_uuid-asd"
+  },
+  {
+    "name": "Third Flight",
+    "uuid": "third_uuid-asd"
+  }
+]

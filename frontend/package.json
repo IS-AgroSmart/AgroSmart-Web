@@ -6,7 +6,9 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "test:unit": "vue-cli-service test:unit --coverage"
+    "test:unit": "vue-cli-service test:unit --coverage test/*.spec.js",
+    "test:e2e": "NODE_ENV=test vue-cli-service test:e2e",
+    "test:e2e:upload": "NODE_ENV=test vue-cli-service test:e2e --headless --record"
   },
   "dependencies": {
     "@inkline/inkline": "^1.18.0",
@@ -31,15 +33,19 @@
     "vuelayers": "^0.11.20"
   },
   "devDependencies": {
+    "@cypress/code-coverage": "^3.9.4",
     "@types/leaflet": "^1.5.17",
     "@vue/cli-plugin-babel": "^4.1.0",
+    "@vue/cli-plugin-e2e-cypress": "^4.5.12",
     "@vue/cli-plugin-eslint": "^4.1.0",
     "@vue/cli-plugin-unit-jest": "^4.4.6",
     "@vue/cli-service": "^4.1.0",
     "@vue/test-utils": "^1.0.3",
     "axios-mock-adapter": "^1.18.2",
     "babel-eslint": "^10.0.3",
+    "cypress": "^7.0.1",
     "eslint": "^5.16.0",
+    "eslint-plugin-cypress": "^2.11.2",
     "eslint-plugin-vue": "^5.0.0",
     "flush-promises": "^1.0.2",
     "html-webpack-exclude-assets-plugin": "0.0.7",

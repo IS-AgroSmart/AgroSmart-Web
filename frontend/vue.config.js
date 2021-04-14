@@ -17,7 +17,7 @@ module.exports = {
     //inject: false,
     plugins: [
       // BundleAnalyzer generates a report showing which packages add more size to the bundle
-      new BundleAnalyzerPlugin({analyzerMode: "static"}),
+      // new BundleAnalyzerPlugin({analyzerMode: "static"}),
       // HtmlWebpackExcludeAssets will NOT include chunk-vendors.js on index.html
       new HtmlWebpackExcludeAssetsPlugin(),
     ]
