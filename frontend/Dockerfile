@@ -7,7 +7,7 @@ COPY ./package.json ./package-lock.json /app/
 
 WORKDIR /app
 
-RUN npm install --only=production
+RUN npm install
 
 RUN apt-get autoremove -y && apt-get autoclean -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
