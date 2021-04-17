@@ -17,7 +17,7 @@ def task_info(request, uuid):
     user = Token.objects.get(key=request.headers["Authorization"][6:]).user
     flight = Flight.objects.get(uuid=uuid)
 
-    if not user.type == UserType.ADMIN.name and not flight.user == user:
+    if not (user.type == UserType.ADMIN.name or flight.user == user or flight.is_demo):
         return HttpResponse(status=403)
 
     if flight.state in _NODEODM_STATUS_CODES:  # Flight has ended, return cached values
@@ -36,7 +36,7 @@ def task_output(request, uuid):
     user = Token.objects.get(key=request.headers["Authorization"][6:]).user
     flight = Flight.objects.get(uuid=uuid)
 
-    if not user.type == UserType.ADMIN.name and not flight.user == user:
+    if not (user.type == UserType.ADMIN.name or flight.user == user or flight.is_demo):
         return HttpResponse(status=403)
 
     if flight.state in _NODEODM_STATUS_CODES:  # Flight has ended, return hardcoded value
@@ -54,7 +54,7 @@ def cancel_task(request):
     uuid = data["uuid"]
     flight = Flight.objects.get(uuid=uuid)
 
-    if not user.type == UserType.ADMIN.name and not flight.user == user:
+    if not (user.type == UserType.ADMIN.name or flight.user == user):
         return HttpResponse(status=403)
 
     response = requests.post(f"{settings.NODEODM_SERVER_URL}/task/cancel?token={settings.NODEODM_SERVER_TOKEN}",
