@@ -1,4 +1,5 @@
 import json
+import socket
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
@@ -14,11 +15,19 @@ _NODEODM_STATUS_CODES = {FlightState.COMPLETE.name: 40, FlightState.ERROR.name: 
 
 
 def task_info(request, uuid):
-    user = Token.objects.get(key=request.headers["Authorization"][6:]).user
+    # REMOTE_ADDR is supposed to be unforgeable (or, to be more precise, Eve won't get a response back, which is what
+    # she would be interested in). Also, the container-webhook-adapter IP is private, so more trouble for Eve, since
+    # network adapters would drop packets claiming to come from a private IP range
+    # NEVER trust X-Forwarded-For, X-Real-IP or others, since those ARE forgeable
+    # https://security.stackexchange.com/a/124186
+    comes_from_webhook_adapter = request.META.get('REMOTE_ADDR') == socket.gethostbyname("container-webhook-adapter")
     flight = Flight.objects.get(uuid=uuid)
 
-    if not (user.type == UserType.ADMIN.name or flight.user == user or flight.is_demo):
-        return HttpResponse(status=403)
+    if not comes_from_webhook_adapter:
+        # only then get the user, since webhook_adapter requests don't have auth headers
+        user = Token.objects.get(key=request.headers["Authorization"][6:]).user
+        if not (user.type == UserType.ADMIN.name or flight.user == user or flight.is_demo):
+            return HttpResponse(status=403)
 
     if flight.state in _NODEODM_STATUS_CODES:  # Flight has ended, return cached values
         data = {
