@@ -7,7 +7,7 @@
                 <vl-source-xyz url="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"></vl-source-xyz>
             </vl-layer-tile>
             <vl-layer-tile id="mosaic">
-                <vl-source-wms url="/geoserver/geoserver/wms" :layers="layerName" serverType="geoserver" ref="mySource"></vl-source-wms>
+                <vl-source-wms :url="geoserverWorkspaceUrl" :layers="layerName" serverType="geoserver" ref="mySource"></vl-source-wms>
             </vl-layer-tile>
     
         </vl-map>
@@ -42,11 +42,17 @@ export default {
         }
     },
     computed: {
+        workspaceName() {
+            return `flight_${this.flight.uuid}`;
+        },
         layerName() {
-            return "flight_" + this.flight.uuid + ":odm_orthophoto"
+            return  `${this.workspaceName}:odm_orthophoto`;
         },
         modelUrl() {
             return "/api/downloads/" + this.flight.uuid + "/3dmodel_texture"
+        },
+        geoserverWorkspaceUrl() {
+            return `/geoserver/geoserver/${this.workspaceName}/wms`;
         }
     },
     methods: {

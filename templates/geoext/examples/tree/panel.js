@@ -16,8 +16,7 @@ let noCacheHeaders = new Headers(); // HACK: Force disable cache, otherwise timi
 noCacheHeaders.append('pragma', 'no-cache');
 noCacheHeaders.append('cache-control', 'no-cache');
 
-// fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/project_a4029f71-835b-474c-92a3-ccc05ce5de2e/mainortho/wms?service=WMS&version=1.3.0&request=GetCapabilities")
-fetch(window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/" + project_path + "/mainortho/wms?service=WMS&version=1.3.0&request=GetCapabilities",
+fetch(`/geoserver/geoserver/${project_path}/mainortho/wms?service=WMS&version=1.3.0&request=GetCapabilities`,
     {headers: noCacheHeaders})
     .then(response => response.text())
     .then(str => (new window.DOMParser()).parseFromString(str, "text/xml"))
@@ -73,7 +72,7 @@ function initApp() {
             rgbLayer = new ol.layer.Tile({
                 name: "Ortomosaico RGB",
                 source: new ol.source.TileWMS({
-                    url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
+                    url: `/geoserver/geoserver/${project_path}/ows?version=1.3.0`,
                     params: {"LAYERS": project_path + ":mainortho", tiled: true}
                 })
             });
@@ -126,7 +125,7 @@ function initApp() {
                     var options = opt_options || {};
                     var img = document.createElement('img');
                     var someIndexLayer = indices[0].getSource().getParams()["LAYERS"];
-                    img.setAttribute("src", window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/styles/gradient.png");
+                    img.setAttribute("src", "/geoserver/geoserver/styles/gradient.png");
                     var element = document.createElement('div');
                     element.className = 'legend ol-unselectable ol-control';
 
@@ -303,15 +302,14 @@ function fillShapefiles() {
                             source: new ol.source.Vector({
                                 format: new ol.format.GeoJSON(),
                                 projection: 'EPSG:4326',
-                                url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + art.layer + "&maxFeatures=50&outputFormat=application/json&"
-                                //url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=test:poly&maxFeatures=50&outputFormat=application/json&"
+                                url: `/geoserver/geoserver/${project_path}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=${art.layer}&outputFormat=application/json`
                             })
                         }));
                     else if (art.type === "ORTHOMOSAIC")
                         shapefiles.push(new ol.layer.Tile({
                             name: art.name,
                             source: new ol.source.TileWMS({
-                                url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
+                                url: `/geoserver/geoserver/${project_path}/ows?version=1.3.0`,
                                 params: {"LAYERS": art.layer, tiled: true}
                             })
                         }));
@@ -329,7 +327,7 @@ function fillRasters() {
                     indices.push(new ol.layer.Image({
                         name: index.title,
                         source: new ol.source.ImageWMS({
-                            url: window.location.protocol + "//" + window.location.host + "/geoserver/geoserver/ows?version=1.3.0",
+                            url: `/geoserver/geoserver/${project_path}/ows?version=1.3.0`,
                             params: {"LAYERS": index.layer}
                         })
                     }));

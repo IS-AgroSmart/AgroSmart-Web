@@ -83,7 +83,7 @@ class UserProject(DiskSpaceTrackerMixin, BaseProject):
         requests.post("http://container-geoserver:8080/geoserver/rest/workspaces",
                       headers={"Content-Type": "application/json"},
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
-                      auth=HTTPBasicAuth('admin', 'geoserver'))
+                      auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
         self._create_mainortho_datastore()
         # For multispectral: repeat for any bands apart from RGB
@@ -114,7 +114,7 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
             GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/mainortho/external.imagemosaic",
             headers={"Content-Type": "text/plain"},
             data="file:///media/USB/" + str(self.uuid) + "/mainortho/",
-            auth=HTTPBasicAuth('admin', 'geoserver'))
+            auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
         # Enable time dimension
         requests.put(
             GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/mainortho/coverages/mainortho.json",
@@ -123,7 +123,7 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
                  '"dimensionInfo": { "enabled": true, "presentation": "LIST", "units": "ISO8601", ' +
                  '"defaultValue": "" }} ] }, "parameters": { "entry": [ { "string": [ ' +
                  '"OutputTransparentColor", "#000000" ] } ] } }} ',
-            auth=HTTPBasicAuth('admin', 'geoserver'))
+            auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
     def _create_index_datastore(self, index):
         index_folder = self.get_disk_path() + "/" + index
@@ -150,7 +150,7 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
             GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/" + index + "/external.imagemosaic",
             headers={"Content-Type": "text/plain"},
             data="file:///media/USB/" + str(self.uuid) + "/" + index + "/",
-            auth=HTTPBasicAuth('admin', 'geoserver'))
+            auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
         # Enable time dimension
         requests.put(
             GEOSERVER_BASE_URL + self._get_geoserver_ws_name() + "/coveragestores/" + index + "/coverages/" + index + ".json",
@@ -159,13 +159,13 @@ PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](ingestion)""")
                  '"dimensionInfo": { "enabled": true, "presentation": "LIST", "units": "ISO8601", ' +
                  '"defaultValue": "" }} ] }, "parameters": { "entry": [ { "string": [ ' +
                  '"OutputTransparentColor", "#000000" ] } ] } }} ',
-            auth=HTTPBasicAuth('admin', 'geoserver'))
+            auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
         # Enable gradient (is on a different URL because... reasons???)
         requests.put(
             GEOSERVER_API_ENTRYPOINT + "layers/" + self._get_geoserver_ws_name() + ":" + index + ".json",
             headers={"Content-Type": "application/json"},
             data='{"layer": {"defaultStyle": {"name": "gradient"}}}',
-            auth=HTTPBasicAuth('admin', 'geoserver'))
+            auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
 
 class Camera(Enum):
@@ -377,14 +377,14 @@ class Flight(DiskSpaceTrackerMixin, models.Model):
         requests.post("http://container-geoserver:8080/geoserver/rest/workspaces",
                       headers={"Content-Type": "application/json"},
                       data='{"workspace": {"name": "' + self._get_geoserver_ws_name() + '"}}',
-                      auth=HTTPBasicAuth('admin', 'geoserver'))
+                      auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
         using_micasense = self.camera == Camera.REDEDGE.name
         geotiff_name = "odm_orthophoto.tif" if not using_micasense else "rgb.tif"
         requests.put(
             "http://container-geoserver:8080/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/external.geotiff",
             headers={"Content-Type": "text/plain"},
             data="file:///media/input/" + str(self.uuid) + "/odm_orthophoto/" + geotiff_name,
-            auth=HTTPBasicAuth('admin', 'geoserver'))
+            auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
         if using_micasense:  # Change name to odm_orthomosaic and configure transparent color on black
             requests.put(
                 "http://container-geoserver:8080/geoserver/rest/workspaces/" + self._get_geoserver_ws_name() + "/coveragestores/ortho/coverages/rgb.json",
@@ -392,7 +392,7 @@ class Flight(DiskSpaceTrackerMixin, models.Model):
                 data='{"coverage": {"name": "odm_orthophoto", "title": "odm_orthophoto", "enabled": true, ' +
                      '"parameters": { "entry": [ { "string": [ "InputTransparentColor", "#000000" ] }, ' +
                      '{ "string": [ "SUGGESTED_TILE_SIZE", "512,512" ] } ] }}} ',
-                auth=HTTPBasicAuth('admin', 'geoserver'))
+                auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
     def create_report(self, context):
         report = render_to_string('reports/report.html', {"flight": self, "extras": context})
@@ -451,7 +451,7 @@ def delete_geoserver_workspace(sender, instance: Union[Flight, UserProject], **k
     querystring = {"recurse": "true"}
     requests.delete("http://container-geoserver:8080/geoserver/rest/workspaces/" + instance._get_geoserver_ws_name(),
                     params=querystring,
-                    auth=HTTPBasicAuth('admin', 'geoserver'))
+                    auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
 
 def delete_on_disk(sender, instance: Union[Flight, UserProject], **kwargs):

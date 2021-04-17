@@ -52,7 +52,7 @@ localVue.prototype.$processingStepsDjango = {
     "CANCELED": "Cancelado"
   }
 localVue.use(ReactiveStorage, {
-    "token": "",
+    "token": "mytoken",
     "isAdmin": false,
     "otherUserPk": 0,
     "loggedInUser": {}
@@ -130,15 +130,15 @@ describe("Flight details component", () => {
         annotations: "Some example annotations",
         is_demo: demo,
     }, true);
-    const mockConsole = (valid = true) => mockApi(/nodeodm\/task\/[^\/]+\/output/, ["line 1", "line 2"], valid);
-    const mockInfo = (valid = true) => mockApi(/nodeodm\/task\/[^\/]+\/info/, {
+    const mockConsole = (valid = true) => mockApi(/nodeodm\/task\/[^/]+\/output/, ["line 1", "line 2"], valid);
+    const mockInfo = (valid = true) => mockApi(/nodeodm\/task\/[^/]+\/info/, {
         status: {
             code: 20
         },
         processingTime: 6000,
         progress: 42.42
     }, valid);
-    const mockCompleteInfo = (valid = true) => mockApi(/nodeodm\/task\/[^\/]+\/info/, {
+    const mockCompleteInfo = (valid = true) => mockApi(/nodeodm\/task\/[^/]+\/info/, {
         status: {
             code: 40
         },
@@ -178,6 +178,15 @@ describe("Flight details component", () => {
         expect(wrapper.text()).toContain("Some example annotations");
         expect(wrapper.text()).toContain("Procesando");
     });
+
+    it("sends auth data to /nodeodm", async () => {
+        mockAllApisOk();
+        mountComponent();
+        await flushPromises();
+
+        expect(mock.history.get[2].headers).toHaveProperty("Authorization", "Token mytoken");
+        expect(mock.history.get[3].headers).toHaveProperty("Authorization", "Token mytoken");
+    })
 
     it("sets error if unable to get flight info", async () => {
         mockFlights(false);
@@ -242,6 +251,7 @@ describe("Flight details component", () => {
 
         expect(mock.history.post.length).toBeGreaterThan(0);
         expect(JSON.parse(mock.history.post[0].data)).toHaveProperty("uuid", "processingflightuuid");
+        expect(mock.history.post[0].headers).toHaveProperty("Authorization", "Token mytoken");
         expect(wrapper.vm.$bvModal.msgBoxConfirm).toHaveBeenCalledWith(
             "¿Realmente desea cancelar el procesamiento del vuelo?", expect.any(Object));
     });

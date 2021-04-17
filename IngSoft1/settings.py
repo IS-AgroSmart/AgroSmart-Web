@@ -25,6 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: don't run with debug turned on in production!
 
 SECRET_KEY = config('SECRET_KEY')
+GEOSERVER_PASSWORD = config('GEOSERVER_PASSWORD')
 DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = ["*"]
