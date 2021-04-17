@@ -87,6 +87,7 @@ def test_info_working_flight(c, users: List[User], flights: List[Flight]):
     assert len(httpretty.latest_requests) == requests_before + 1
 
 
+@pytest.mark.xfail(reason="Request fires from localhost and httpretty patches gethostbyname to always return 127.0.0.1")
 def test_info_working_flight_other_user(c, users: List[User], flights: List[Flight]):
     """
     Tests that calling /nodeodm/???/info for an in-progress Flight rejects the request if the user is not the owner
