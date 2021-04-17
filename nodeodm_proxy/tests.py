@@ -40,7 +40,10 @@ def flights(users: List[User]):
     f1 = users[0].flight_set.create(name="flight1", date=datetime.now())
     f1.camera = Camera.RGB.name
     f1.save()
-    return f1,
+    f2 = Flight.objects.create(name="flight2", date=datetime.now(), is_demo=True)
+    f2.camera = Camera.RGB.name
+    f2.save()
+    return f1, f2
 
 
 # https://docs.pytest.org/en/latest/yieldfixture.html
@@ -99,6 +102,22 @@ def test_info_working_flight_other_user(c, users: List[User], flights: List[Flig
     _auth(c, users[1])
     resp = c.get(reverse('nodeodm_proxy_task_info', kwargs={"uuid": flights[0].uuid}))
     assert resp.status_code == 403
+
+
+def test_info_demo_flight(c, users: List[User], flights: List[Flight]):
+    """
+    Tests that calling /nodeodm/???/info for a demo Flight succeds even if the user is not the Flight owner
+    Args:
+        c: The APIClient fixture that will send the request
+        users: A fixture containing Users
+        flights: A fixture containing Flights
+    """
+    httpretty.register_uri(httpretty.GET, f"http://container-nodeodm:3000/task/{flights[1].uuid}/info",
+                           body=json.dumps({}))
+
+    _auth(c, users[1])
+    resp = c.get(reverse('nodeodm_proxy_task_info', kwargs={"uuid": flights[1].uuid}))
+    assert resp.status_code == 200
 
 
 def test_info_complete_flight(c, users: List[User], flights: List[Flight]):
