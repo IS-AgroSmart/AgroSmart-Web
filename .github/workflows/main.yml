@@ -7,6 +7,7 @@ on:
 
 env:
     SECRET_KEY: "dummysecretkey"
+    GEOSERVER_PASSWORD: "geoserver"
     DEBUG: "True"
     DB_USER: "djangouser"
     DB_NAME: "db"

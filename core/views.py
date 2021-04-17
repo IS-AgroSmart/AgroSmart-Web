@@ -435,14 +435,14 @@ def upload_vectorfile(request, uuid):
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
              str(project.uuid) + "/" + file_name + "/" + file_name + ".shp",
-        auth=HTTPBasicAuth('admin', 'geoserver'))
+        auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/datastores/" +
         file_name + "/featuretypes/" + file_name + ".json",
         headers={"Content-Type": "application/json"},
         data='{"featureType": {"enabled": true, "srs": "EPSG:4326" }}',
-        auth=HTTPBasicAuth('admin', 'geoserver'))
+        auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
     project.update_disk_space()
     project.user.update_disk_space()
     return HttpResponse(status=201)
@@ -478,7 +478,7 @@ def upload_geotiff(request, uuid):
         headers={"Content-Type": "text/plain"},
         data="file:///media/USB/" +
              str(project.uuid) + "/" + geotiff_name + "/" + geotiff_name + ".tiff",
-        auth=HTTPBasicAuth('admin', 'geoserver'))
+        auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
 
     requests.put(
         GEOSERVER_BASE_URL + project._get_geoserver_ws_name() + "/coveragestores/" +
@@ -491,7 +491,7 @@ def upload_geotiff(request, uuid):
                 {"string": ["SUGGESTED_TILE_SIZE", "512,512"]}
             ]}
         }}),
-        auth=HTTPBasicAuth('admin', 'geoserver'))
+        auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD))
     project.update_disk_space()
     project.user.update_disk_space()
     return HttpResponse(status=201)
@@ -503,7 +503,7 @@ def preview_flight_url(request, uuid):
     ans = requests.get(
         "http://container-geoserver:8080/geoserver/rest/workspaces/" + flight._get_geoserver_ws_name() +
         "/coveragestores/ortho/coverages/odm_orthophoto.json",
-        auth=HTTPBasicAuth('admin', 'geoserver')).json()
+        auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD)).json()
     bbox = ans["coverage"]["nativeBoundingBox"]
     base = "/geoserver/geoserver/" + flight._get_geoserver_ws_name() + \
            "/wms?service=WMS&version=1.1.0&request=GetMap&layers=" + flight._get_geoserver_ws_name() + \
@@ -570,7 +570,7 @@ def mapper_bbox(request, uuid):
     ans = requests.get(
         "http://container-geoserver:8080/geoserver/rest/workspaces/" + project._get_geoserver_ws_name() +
         "/coveragestores/mainortho/coverages/mainortho.json",
-        auth=HTTPBasicAuth('admin', 'geoserver')).json()
+        auth=HTTPBasicAuth('admin', settings.GEOSERVER_PASSWORD)).json()
 
     return JsonResponse({"bbox": ans["coverage"]["nativeBoundingBox"], "srs": ans["coverage"]["srs"]})
 
