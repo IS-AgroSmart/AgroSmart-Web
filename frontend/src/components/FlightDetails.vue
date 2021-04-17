@@ -15,7 +15,7 @@
                 </b-progress>
     
                 <b-link v-if="isDoneSuccessfully" :to="{name: 'flightOrthoPreview', params: {uuid: flight.uuid}}">
-                    <b-img v-if="isDoneSuccessfully" :src="orthomosaicThumbUrl" fluid rounded="circle" @error="thumbnailLoadError"/></b-link>
+                    <b-img v-if="isDoneSuccessfully" :src="orthomosaicThumbUrl" fluid rounded="circle" @error="thumbnailLoadError" /></b-link>
                 <h4 class="my-3 text-center">Notas</h4>
                 <span style="white-space: pre-wrap;">{{flight.annotations}}</span>
             </div>
@@ -68,7 +68,7 @@ export default {
     },
     methods: {
         updateStatus() {
-            axios.get("nodeodm/task/" + this.$route.params.uuid + "/output", {
+            axios.get(`/nodeodm/task/${this.$route.params.uuid}/output`, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => (this.console = ("error" in response.data) ? response.data.error : response.data))
@@ -78,7 +78,7 @@ export default {
                 })
                 .catch(error => this.error = error);
 
-            axios.get("nodeodm/task/" + this.$route.params.uuid + "/info", {
+            axios.get(`/nodeodm/task/${this.$route.params.uuid}/info`, {
                     headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
                 })
                 .then(response => (this.info = ("error" in response.data) ? response.data.error : response.data))
@@ -117,7 +117,10 @@ export default {
                 })
                 .then(value => {
                     if (value)
-                        axios.post("/nodeodm/task/cancel", { uuid: this.flight.uuid });
+                        axios.post("/nodeodm/task/cancel", { uuid: this.flight.uuid },
+                            {
+                                headers: Object.assign({ "Authorization": "Token " + this.storage.token }, this.storage.otherUserPk ? { TARGETUSER: this.storage.otherUserPk.pk } : {}),
+                            });
                 });
 
         },
