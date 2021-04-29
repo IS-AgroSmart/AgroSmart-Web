@@ -7,21 +7,19 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from core.models import User, UserType, Flight
+from core.utils.working_dir import cd
 
 
 def _get_git_info():
-    original_dir = os.getcwd()
-    os.chdir("/gitinfo")
+    with cd("/gitinfo"):
+        branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
+        revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        try:
+            version = subprocess.check_output(["git", "describe"], stderr=subprocess.STDOUT, text=True).strip()
+        except subprocess.CalledProcessError as e:
+            assert e.output.startswith("fatal:"), f"Message {e.output} should have begun with fatal"
+            version = "<label not found>"
 
-    branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
-    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-    try:
-        version = subprocess.check_output(["git", "describe"], stderr=subprocess.STDOUT, text=True).strip()
-    except subprocess.CalledProcessError as e:
-        assert e.output.startswith("fatal:"), f"Message {e.output} should have begun with fatal"
-        version = "<label not found>"
-
-    os.chdir(original_dir)
     return {"version": version, "revision": revision, "branch": branch}
 
 

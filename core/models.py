@@ -26,6 +26,7 @@ from weasyprint import HTML
 from django.conf import settings
 from core.parser import FormulaParser
 from core.utils.disk_space_tracking import DiskSpaceTrackerMixin, DiskRelationTrackerMixin
+from core.utils.working_dir import cd
 
 
 class UserType(Enum):
@@ -268,18 +269,15 @@ class Flight(DiskSpaceTrackerMixin, models.Model):
         os.system(cmd)
 
     def create_rgb_tiff(self):
-        original_dir = os.getcwd()
-        os.chdir(f"{self.get_disk_path()}/odm_orthophoto/")
+        with cd(f"{self.get_disk_path()}/odm_orthophoto/"):
 
-        if self.camera == Camera.RGB.name:
-            cmd = f'gdal_translate -b 1 -b 2 -b 3 -b mask odm_orthophoto.tif rgb.tif -scale 0 255 -ot Byte -co "TILED=YES"'
-        elif self.camera == Camera.REDEDGE.name:
-            cmd = f'gdal_translate -b 3 -b 2 -b 1 -b mask odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"'
-        else:
-            cmd = ""  # should never happen!
-        os.system(cmd)
-
-        os.chdir(original_dir)
+            if self.camera == Camera.RGB.name:
+                cmd = f'gdal_translate -b 1 -b 2 -b 3 -b mask odm_orthophoto.tif rgb.tif -scale 0 255 -ot Byte -co "TILED=YES"'
+            elif self.camera == Camera.REDEDGE.name:
+                cmd = f'gdal_translate -b 3 -b 2 -b 1 -b mask odm_orthophoto.tif rgb.tif -scale 0 65535 -ot Byte -co "TILED=YES"'
+            else:
+                cmd = ""  # should never happen!
+            os.system(cmd)
 
     def _create_orthomosaic(self, height, out_name):
         cmd = f"gdal_translate -outsize 0 {height} {self.get_disk_path()}/odm_orthophoto/rgb.tif {out_name}"
@@ -366,12 +364,11 @@ class Flight(DiskSpaceTrackerMixin, models.Model):
             "ndre": 'gdal_calc.py -A odm_orthophoto.tif --A_band=5 -B odm_orthophoto.tif --B_band=4 --calc="((asarray(B,dtype=float32)-asarray(A, dtype=float32))/(asarray(B, dtype=float32)+asarray(A, dtype=float32)) + 1.) * 127." --outfile=ndre.tif --type=Byte --co="TILED=YES" --overwrite --NoDataValue=-1'}
         if self.state != FlightState.COMPLETE.name or self.camera != Camera.REDEDGE.name:
             return
-        original_dir = os.getcwd()
-        os.chdir(self.get_disk_path() + "/odm_orthophoto/")
-        # NDVI and NDRE are built-in, anything else gets parsed
-        command = COMMANDS.get(index, None) or FormulaParser().generate_gdal_calc_command(formula, index)
-        os.system(command)  # Create raster, save it to <index>.tif on folder <flight_uuid>/odm_orthophoto
-        os.chdir(original_dir)
+
+        with cd(self.get_disk_path() + "/odm_orthophoto/"):
+            # NDVI and NDRE are built-in, anything else gets parsed
+            command = COMMANDS.get(index, None) or FormulaParser().generate_gdal_calc_command(formula, index)
+            os.system(command)  # Create raster, save it to <index>.tif on folder <flight_uuid>/odm_orthophoto
 
     def create_geoserver_workspace_and_upload_geotiff(self):
         requests.post("http://container-geoserver:8080/geoserver/rest/workspaces",
@@ -458,7 +455,7 @@ def delete_on_disk(sender, instance: Union[Flight, UserProject], **kwargs):
     try:
         shutil.rmtree(instance.get_disk_path())
     except FileNotFoundError:
-        pass # no need to do anything, carry on
+        pass  # no need to do anything, carry on
     instance.user.update_disk_space()
 
 

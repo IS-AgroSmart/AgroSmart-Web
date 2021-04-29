@@ -306,7 +306,7 @@ def webhook_processing_complete(request):
     flight.num_images = num_images
     if data["status"]["code"] == 30:
         flight.state = FlightState.ERROR.name
-        flight.user.remaining_images += num_images # give the images back if task failed
+        flight.user.remaining_images += num_images  # give the images back if task failed
     elif data["status"]["code"] == 40:
         success_message = "El procesamiento de su vuelo ha terminado. Entre a la aplicación para ver los resultados."
         flight.state = FlightState.COMPLETE.name
@@ -421,10 +421,8 @@ def upload_vectorfile(request, uuid):
                 f.write(chunk)
 
     if datatype == "kml":
-        original_dir = os.getcwd()
-        os.chdir(project.get_disk_path() + "/" + file_name)
-        os.system('ogr2ogr -f "ESRI Shapefile" "{0}.shp" "{0}.kml"'.format(file_name))
-        os.chdir(original_dir)
+        with cd(project.get_disk_path() + "/" + file_name):
+            os.system('ogr2ogr -f "ESRI Shapefile" "{0}.shp" "{0}.kml"'.format(file_name))
 
     GEOSERVER_BASE_URL = "http://container-geoserver:8080/geoserver/rest/workspaces/"
 
