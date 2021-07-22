@@ -173,7 +173,7 @@ STATIC_ROOT = 'staticfiles'
 
 #Send Emails
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = config('EMAIL_HOST', cast=str)
 EMAIL_PORT = 587
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', cast=str)
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', cast=str)
