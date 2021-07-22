@@ -13,6 +13,7 @@ env:
     DB_NAME: "db"
     DB_PASSWORD: "dbpass"
     DB_HOST: "dummyhost"
+    EMAIL_HOST: "smtp.dummy.com"
     EMAIL_HOST_USER: "mydummyuser@notfound.com"
     EMAIL_HOST_PASSWORD: "mydummyemailpassword"
     FCM_API_KEY: "dummyfcm"
