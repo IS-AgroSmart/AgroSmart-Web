@@ -9,7 +9,9 @@ import FlightDetails from 'components/Project.vue';
 import {
     ButtonPlugin,
     CardPlugin,
-    AlertPlugin
+    AlertPlugin,
+    SkeletonPlugin,
+    LayoutPlugin   
 } from 'bootstrap-vue'
 import ReactiveStorage from "vue-reactive-localstorage";
 
@@ -17,6 +19,8 @@ const localVue = createLocalVue();
 localVue.use(ButtonPlugin);
 localVue.use(CardPlugin);
 localVue.use(AlertPlugin);
+localVue.use(SkeletonPlugin);
+localVue.use(LayoutPlugin);
 localVue.prototype.$isLoggedIn = () => true;
 localVue.use(ReactiveStorage, {
     "token": "",
@@ -89,7 +93,7 @@ describe("Project list component", () => {
         expect(wrapper.text()).toContain("Another demo project");
         expect(wrapper.text()).toContain("Example project");
 
-        expect(mock.history.get).toHaveLength(1);
+        expect(mock.history.get).toHaveLength(2); // 1 call to /api/users, 1 call to /api/projects
     });
 
     it("correctly identifies demo projects", async () => {
@@ -154,7 +158,7 @@ describe("Project list component", () => {
         mountComponent();
         await flushPromises();
 
-        expect(mock.history.get[0].headers).toHaveProperty("TARGETUSER", 123);
+        expect(mock.history.get[1].headers).toHaveProperty("TARGETUSER", 123); // get[0] is a request to /api/users
     });
 
     it("respects impersonated User permissions (impersonated Demo = can't create Projects)", async () => {

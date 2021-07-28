@@ -10,7 +10,6 @@ export default {
             getUserInfo(this.storage.token, this.storage.loggedInUser.username)
                 .then(([user, err]) => {
                     if (err == null) {
-                        window.console.log("Updated user", user)
                         this.storage.loggedInUser = user;
                     }
                 });

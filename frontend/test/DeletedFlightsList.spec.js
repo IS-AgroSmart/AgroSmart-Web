@@ -6,13 +6,15 @@ import flushPromises from "flush-promises";
 
 import DeletedFlights from 'components/DeletedFlights.vue';
 
-import { ButtonPlugin, CardPlugin, AlertPlugin } from 'bootstrap-vue';
+import { ButtonPlugin, CardPlugin, AlertPlugin, SkeletonPlugin, LayoutPlugin } from 'bootstrap-vue';
 import ReactiveStorage from "vue-reactive-localstorage";
 
 const localVue = createLocalVue();
 localVue.use(ButtonPlugin);
 localVue.use(CardPlugin);
 localVue.use(AlertPlugin);
+localVue.use(SkeletonPlugin);
+localVue.use(LayoutPlugin);
 localVue.prototype.$isLoggedIn = () => true;
 localVue.use(ReactiveStorage, {
     "token": "",

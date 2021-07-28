@@ -99,7 +99,6 @@ describe('Login component', () => {
         await flushPromises();
 
         expect(mock.history.post).toHaveLength(1);
-        window.console.log(mock.history.post[0].data);
         expect(JSON.parse(mock.history.post[0].data)).toHaveProperty("username", "myname");
         expect(JSON.parse(mock.history.post[0].data)).toHaveProperty("password", "supers3cr3t");
     });
