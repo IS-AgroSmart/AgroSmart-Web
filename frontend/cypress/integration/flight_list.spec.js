@@ -7,6 +7,7 @@ context('Flight list', () => {
   })
 
   it("Lists all flights", () => {
+    cy.get("[data-cy='navbar-flights']").click();
     cy.get("[data-cy='flight-card']").should('have.length.at.least', 2)
   })
 
@@ -25,6 +26,7 @@ context('Flight list', () => {
       fixture: "images/thumbnail.png"
     })
 
+    cy.get("[data-cy='navbar-flights']").click();
     cy.contains("[data-cy='flight-card']", "First Flight").find(".btn").click();
 
     cy.contains("Resultados")

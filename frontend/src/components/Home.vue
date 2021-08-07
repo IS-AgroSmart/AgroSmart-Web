@@ -143,10 +143,5 @@ export default {
             return this.$isLoggedIn()
         }
     },
-    created: function() {
-        /*if(this.loggedIn) {
-            this.$router.replace("flights");
-        }*/
-    }
 }
 </script>
