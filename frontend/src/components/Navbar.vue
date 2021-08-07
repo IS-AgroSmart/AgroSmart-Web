@@ -6,7 +6,7 @@
             <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
     
             <b-collapse id="nav-collapse" is-nav>
-                <b-navbar-nav>
+                <b-navbar-nav v-if="isLoggedIn">
                     <b-nav-item to="/flights">Vuelos</b-nav-item>
                     <b-nav-item to="/flights/deleted">Vuelos eliminados</b-nav-item>
                     <b-nav-item to="/projects">Proyectos</b-nav-item>
