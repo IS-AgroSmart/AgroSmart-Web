@@ -7,6 +7,12 @@ context('Flight list', () => {
   })
 
   it("Lists all flights", () => {
+    cy.intercept("GET", "/api/flights", {
+      fixture: 'flights.json'
+    }).as("getFlights")
+    cy.get("[data-cy='navbar-flights']").click();
+
+    cy.wait("@getFlights")
     cy.get("[data-cy='flight-card']").should('have.length.at.least', 2)
   })
 
@@ -25,6 +31,7 @@ context('Flight list', () => {
       fixture: "images/thumbnail.png"
     })
 
+    cy.get("[data-cy='navbar-flights']").click();
     cy.contains("[data-cy='flight-card']", "First Flight").find(".btn").click();
 
     cy.contains("Resultados")

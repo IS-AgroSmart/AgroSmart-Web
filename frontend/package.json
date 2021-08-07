@@ -8,7 +8,7 @@
     "lint": "vue-cli-service lint",
     "test:unit": "vue-cli-service test:unit --coverage test/*.spec.js",
     "test:e2e": "NODE_ENV=test vue-cli-service test:e2e",
-    "test:e2e:upload": "NODE_ENV=test vue-cli-service test:e2e --headless --record"
+    "test:e2e:headless": "NODE_ENV=test cypress run --browser electron --headless --config video=false"
   },
   "dependencies": {
     "@inkline/inkline": "^1.18.0",

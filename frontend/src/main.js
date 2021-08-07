@@ -60,7 +60,7 @@ Vue.use(VueClipboard);
 Vue.use(VueChatScroll);
 Vue.use(VueLayers);
 Vue.component('multiselect', Multiselect);
-Vue.use(vueDebounce)
+Vue.use(vueDebounce);
 
 const router = new VueRouter({
   routes: [
